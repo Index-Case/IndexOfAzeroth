@@ -1,4 +1,4 @@
-![The Index of Azeroth](web/art/landing.webp)
+![The Index of Azeroth](IndexOfAzeroth/web/art/landing.webp)
 
 # The Index of Azeroth
 
