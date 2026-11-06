@@ -6,13 +6,9 @@
 
 *Being a complete account of everything... probably.*
 
-> *"A human being should be able to change a diaper, plan an invasion, butcher a hog, conn a ship, design a building, write a sonnet, balance accounts, build a wall, set a bone, comfort the dying, take orders, give orders, cooperate, act alone, solve equations, analyze a new problem, pitch manure, program a computer, cook a tasty meal, fight efficiently, die gallantly. Specialization is for insects."* (Robert A. Heinlein, Time Enough for Love)
->
-> *"A witch ought to be able to do everything. She ought to know how to mend a roof, cure a pig, and read a book."* (Terry Pratchett, Lords and Ladies)
->
-> *"The problem with having a map is that you look at the map and you think you know where you are. You don't know where you are, you just know where the map is."* (Terry Pratchett, The Wee Free Men)
-
 The Index of Azeroth is a companion for World of Warcraft: Forever. It runs on your PC beside the game. It shows a map of Azeroth with your character on it and plans your levelling: which quests to take, in what order and where to go next. A small addon shows the same plan in the game.
+
+> *"The problem with having a map is that you look at the map and you think you know where you are. You don't know where you are, you just know where the map is."* (Terry Pratchett, The Wee Free Men)
 
 **What it does**
 
@@ -24,6 +20,8 @@ The Index of Azeroth is a companion for World of Warcraft: Forever. It runs on y
 - Shows the world's places on the map, with overlays for mob densities and the best places to grind.
 - Keeps a live panel beside the map with your supplies, gold and bags, gear, weapon skill, levelling pace, travel and time.
 - So much more. "Kitchen sink" should be redefined and show this tool in the wiki.
+
+> *"A human being should be able to change a diaper, plan an invasion, butcher a hog, conn a ship, design a building, write a sonnet, balance accounts, build a wall, set a bone, comfort the dying, take orders, give orders, cooperate, act alone, solve equations, analyze a new problem, pitch manure, program a computer, cook a tasty meal, fight efficiently, die gallantly. Specialization is for insects."* (Robert A. Heinlein, Time Enough for Love)
 
 **What it isn't**
 
@@ -51,6 +49,8 @@ The Index finds your game by itself and uses the game's own data. It installs it
 To remove it, delete its folder and the `IndexOfAzeroth` folder in your game's AddOns folder. The notes it keeps about your characters are set aside first, never deleted.
 
 If you'd like to tip, the Index has a Ko-fi page: [ko-fi.com/indexcase](https://ko-fi.com/indexcase).
+
+> *"A witch ought to be able to do everything. She ought to know how to mend a roof, cure a pig, and read a book."* (Terry Pratchett, Lords and Ladies)
 
 **Credits**
 
