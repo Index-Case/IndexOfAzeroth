@@ -26,6 +26,8 @@ The Index of Azeroth is a companion for World of Warcraft: Forever. It runs on y
 - It isn't 3D.
 - It doesn't show you anything Blizzard doesn't want you to see, and it's in no way meant to help you cheat. If the developer ever finds that it reveals something the game keeps hidden, that part is removed.
 
+The Index gives you information. It's there to give you an overview and help you keep track of what you're doing, and the one thing it does for you is plan. It never presses a key, never reads the game's memory and never plays the game for you.
+
 Nothing you play leaves your PC. The Index connects to the internet only to check for updates and, if you open its video window, to play the stream you choose.
 
 **How it works**
