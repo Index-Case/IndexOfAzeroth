@@ -11,9 +11,9 @@ The Index of Azeroth is a companion for World of Warcraft: Forever. It runs on y
 **What it does**
 
 - Shows a map of Azeroth with a full day-night cycle and a simulated sea. Your character's position and facing update live as you play.
-- Plans quests for a zone, a dungeon or a set of quests you choose, and redoes the plan whenever your quest log changes.
+- It plans quests for a zone, a dungeon or a set of quests you choose, and redoes the plan whenever your quest log changes.
 - Leads you to each step with an arrow in the game and names the step on a card.
-- Keeps a record of your alts, with their gear and bags as they were when you last logged out.
+- It keeps a record of your alts, with their gear and bags as they were when you last logged out.
 - Saves a complete log of your play on your PC, which you can replay on the map.
 - Shows the world's places on the map, with overlays for mob densities and the best places to grind.
 - Keeps a live panel beside the map with your supplies, gold and bags, gear, weapon skill, levelling pace, travel and time.
