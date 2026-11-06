@@ -19,6 +19,13 @@ The Index of Azeroth is a companion for World of Warcraft: Forever. It runs on y
 - Keeps a live panel beside the map with your supplies, gold and bags, gear, weapon skill, levelling pace, travel and time.
 - So much more. "Kitchen sink" should be redefined and show this tool in the wiki.
 
+**What it isn't**
+
+- It isn't a speed-levelling tool.
+- It doesn't do anything for you, and it doesn't play the game for you.
+- It isn't 3D.
+- It doesn't show you anything Blizzard doesn't want you to see, and it's in no way meant to help you cheat. If the developer ever finds that it reveals something the game keeps hidden, that part is removed.
+
 Nothing you play leaves your PC. The Index connects to the internet only to check for updates and, if you open its video window, to play the stream you choose.
 
 **How it works**
