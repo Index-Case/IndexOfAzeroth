@@ -6,6 +6,12 @@
 
 *Being a complete account of everything... probably.*
 
+> *"Specialization is for insects."* (Robert A. Heinlein, Time Enough for Love)
+>
+> *"A witch ought to be able to do everything. She ought to know how to mend a roof, cure a pig, and read a book."* (Terry Pratchett, Lords and Ladies)
+>
+> *"The problem with having a map is that you look at the map and you think you know where you are. You don't know where you are, you just know where the map is."* (Terry Pratchett, The Wee Free Men)
+
 The Index of Azeroth is a companion for World of Warcraft: Forever. It runs on your PC beside the game. It shows a map of Azeroth with your character on it and plans your levelling: which quests to take, in what order and where to go next. A small addon shows the same plan in the game.
 
 **What it does**
