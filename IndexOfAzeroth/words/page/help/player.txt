@@ -1,0 +1,5 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = Player
+intro.p1 = Open each profession's window and one of its trainers once in game, and the character's recipes and next ranks show here.

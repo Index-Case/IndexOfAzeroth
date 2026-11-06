@@ -1,0 +1,26 @@
+<!-- The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md. -->
+<Bindings>
+  <Binding name="INDEXOFAZEROTH_PASTE" header="INDEXOFAZEROTH" category="ADDONS">
+    IndexOfAzerothPasteBox_Toggle()
+  </Binding>
+  <Binding name="INDEXOFAZEROTH_GUIDE" category="ADDONS">
+    IndexOfAzerothGuideCard_Toggle()
+  </Binding>
+  <Binding name="CLICK IndexOfAzerothGuideTarget:Keybind" category="ADDONS"/>
+  <Binding name="CLICK IndexOfAzerothGuideItem:Keybind" category="ADDONS"/>
+  <Binding name="INDEXOFAZEROTH_OPTIONS" category="ADDONS">
+    IndexOfAzerothOptions_Toggle()
+  </Binding>
+  <Binding name="INDEXOFAZEROTH_COMPASS" category="ADDONS">
+    IndexOfAzerothSwitch("compass")
+  </Binding>
+  <Binding name="INDEXOFAZEROTH_BEACONS" category="ADDONS">
+    IndexOfAzerothSwitch("beacons")
+  </Binding>
+  <Binding name="INDEXOFAZEROTH_ARROWS" category="ADDONS">
+    IndexOfAzerothSwitch("arrows")
+  </Binding>
+  <Binding name="INDEXOFAZEROTH_LINES" category="ADDONS">
+    IndexOfAzerothSwitch("lines")
+  </Binding>
+</Bindings>

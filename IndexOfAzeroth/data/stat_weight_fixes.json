@@ -1,0 +1,84 @@
+{
+ "about": "Our own corrections to the stat weights, laid over them by tools/build_statweights.py. Each fix sets weights for a class (its ID) and the specs named (\"*\" for all of them) and says why in words. A fix's weight replaces Pawn's for that stat. A fix marked \"talent at full rank\" counts a spec's own Forever talent with every rank taken, as Pawn's weights count Classic's: the weight is Pawn's plus the share of the talent Pawn doesn't already count, times the weight of the stat the talent turns it into. A change here rebuilds data/stat_weights.json by itself (its fingerprint follows this file). Your own changes still go in data/stat_weights_mine.json.",
+ "fixes": [
+  {
+   "class": 3,
+   "specs": [
+    "Beast Mastery",
+    "Marksmanship"
+   ],
+   "weights": {
+    "dps": 0.1,
+    "ohdps": 0.1
+   },
+   "why": "A Beast Mastery or Marksmanship hunter fights with the bow or gun and its pet. Its melee weapons hold stats, so a melee weapon's own damage is worth little in either hand: Pawn's 0.75 made a Strength and Spirit axe an upgrade on its damage alone (Smite's Reaver). Ranged damage stays as Pawn has it. Survival keeps Pawn's 1.0: Forever's Survival hunter fights in melee too."
+  },
+  {
+   "class": 3,
+   "specs": [
+    "Marksmanship"
+   ],
+   "weights": {
+    "int": 1.2
+   },
+   "marked": "talent at full rank",
+   "why": "Careful Aim gives a Marksmanship hunter melee and ranged attack power equal to 100% of Intellect at its fifth rank. Pawn's weights were made for Burning Crusade, where Careful Aim gave 45%, so Pawn's Intellect 0.9 already counts 45%. The other 55% at Pawn's attack power weight of 0.55 adds 0.30, for 1.2."
+  },
+  {
+   "class": 7,
+   "specs": [
+    "Enhancement"
+   ],
+   "weights": {
+    "int": 0.84
+   },
+   "marked": "talent at full rank",
+   "why": "Mental Dexterity gives an Enhancement shaman attack power equal to 100% of Intellect at its third rank. Pawn's weights count none of it, so Pawn's Intellect 0.34 gains 100% at Pawn's attack power weight of 0.5, for 0.84."
+  },
+  {
+   "class": 2,
+   "specs": [
+    "Retribution"
+   ],
+   "weights": {
+    "int": 0.44
+   },
+   "marked": "talent at full rank",
+   "why": "Champion of the Light gives a Retribution paladin spell damage equal to 30% of Intellect at its third rank. Pawn's weights count none of it, so Pawn's Intellect 0.34 gains 30% at Pawn's spell damage weight of 0.33, for 0.44."
+  },
+  {
+   "class": 1,
+   "specs": [
+    "Fury"
+   ],
+   "weights": {
+    "ohdps": 2.9
+   },
+   "why": "A Fury warrior's off-hand weapon hits for half a main hand's swing, and Dual Wield Specialization adds 5% a rank, 25% at its fifth rank, so the off hand deals 62.5%. Pawn weighs a warrior's off-hand weapon as its main hand, 5.22. Pawn's own rogue off-hand scale weighs an off-hand weapon at 2/3 of the main hand for a rogue whose off hand deals 75% (its Dual Wield Specialization at 50%). The warrior's 62.5% at that rate is 5.22 x 2/3 x 62.5/75, for 2.9."
+  },
+  {
+   "class": 5,
+   "specs": "*",
+   "weights": {
+    "wdps": 1
+   },
+   "why": "A wand is a priest's only ranged weapon and Pawn weighs its damage at 0, so a better wand was never an upgrade. A point of wand damage per second is weighed as a point of the spec's main stat: the least weight the gear verdicts count as a weapon the spec fights with, so a better wand is an upgrade and its other stats still count."
+  },
+  {
+   "class": 8,
+   "specs": "*",
+   "weights": {
+    "wdps": 1
+   },
+   "why": "A wand is a mage's only ranged weapon and Pawn weighs its damage at 0, so a better wand was never an upgrade. A point of wand damage per second is weighed as a point of the spec's main stat: the least weight the gear verdicts count as a weapon the spec fights with, so a better wand is an upgrade and its other stats still count."
+  },
+  {
+   "class": 9,
+   "specs": "*",
+   "weights": {
+    "wdps": 1
+   },
+   "why": "A wand is a warlock's only ranged weapon and Pawn weighs its damage at 0, so a better wand was never an upgrade. A point of wand damage per second is weighed as a point of the spec's main stat: the least weight the gear verdicts count as a weapon the spec fights with, so a better wand is an upgrade and its other stats still count."
+  }
+ ]
+}

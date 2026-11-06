@@ -1,0 +1,12 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = Video
+escape = Escape
+escape.p1 = Escape only closes the link box, so the Escape that closes a menu never stops a stream.
+favorites = Favorites
+favorites.p1 = When a favorite stream (one with a gold <b>star</b>) goes live, the whole window flashes.
+sound = Sound
+sound.p1 = The <b>speaker</b> and the <b>slider</b> under the player set the stream's sound. Kick's player takes no sound setting from this page, so on a Kick stream both are greyed out. Use the speaker and the volume slider in the Kick player's own bar, which shows at any window size.
+after-reload = After a reload
+after-reload.p1 = A reload brings the window back as it was left. If the browser holds back the sound, the first click or key press anywhere on the page brings the sound back. <b>Sound on</b> does the same.

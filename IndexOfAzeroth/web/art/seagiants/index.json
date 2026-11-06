@@ -1,0 +1,62 @@
+{
+ "cthulu": [
+  {
+   "body": 512,
+   "image": "cthulu_0.png",
+   "size": [
+    372,
+    574
+   ],
+   "v": "6ddfc1053c56"
+  },
+  {
+   "body": 512,
+   "image": "cthulu_1.png",
+   "size": [
+    336,
+    574
+   ],
+   "v": "178ec221ad0d"
+  }
+ ],
+ "seaserpent": [
+  {
+   "body": 512,
+   "image": "seaserpent_0.png",
+   "size": [
+    285,
+    574
+   ],
+   "v": "08ed2e1ca530"
+  },
+  {
+   "body": 512,
+   "image": "seaserpent_1.png",
+   "size": [
+    555,
+    574
+   ],
+   "v": "611412893f44"
+  }
+ ],
+ "turtle": [
+  {
+   "body": 512,
+   "image": "turtle_0.png",
+   "size": [
+    574,
+    554
+   ],
+   "v": "099ce674f2f8"
+  },
+  {
+   "body": 512,
+   "image": "turtle_1.png",
+   "size": [
+    574,
+    536
+   ],
+   "v": "2436f7efcda1"
+  }
+ ]
+}

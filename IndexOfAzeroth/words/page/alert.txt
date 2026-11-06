@@ -1,0 +1,15 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+window = Start the game. The reader looks for the window of the game client you play.
+minimized = Restore the game window. A minimized window has no picture to read.
+hidden = Keep the top left corner of the game window uncovered. In game, /ioa strip on turns the strip on and /ioa test checks it.
+brightness = Set Brightness back to its default of 50 in the game's graphics options, then run /ioa test.
+contrast = Set Contrast back to its default of 50 in the game's graphics options, then run /ioa test.
+gamma = Set Gamma back to its default of 1.0 in the game's graphics options, then run /ioa test.
+colors = Something adjusts the game's colors. Set the game's Brightness to 50, Contrast to 50 and Gamma to 1.0 (their defaults) and turn off filters (ReShade, NVIDIA filters), then run /ioa test.
+checksum = A frame arrived damaged. If this keeps showing, run /ioa test in game, or try /ioa size 6 for bigger blocks.
+version = The Index's addon and the Index are different versions. Install the newest Index with the game closed, and the Index puts the matching addon into the game.
+cut-off = Make the game window wider so the whole strip fits.
+index = Start the Index from its shortcut.
+default = Run /ioa test in game to check the strip.

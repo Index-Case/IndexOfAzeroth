@@ -1,0 +1,126 @@
+// The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+"use strict";
+
+const ROLL_INV_NAME = { 1: "Head", 2: "Neck", 3: "Shoulder", 5: "Chest", 20: "Chest", 6: "Waist", 7: "Legs", 8: "Feet",
+  9: "Wrist", 10: "Hands", 11: "Finger", 12: "Trinket", 13: "One-Hand", 14: "Off Hand", 15: "Ranged", 16: "Back",
+  17: "Two-Hand", 21: "Main Hand", 22: "Off Hand", 23: "Held In Off-hand", 25: "Thrown", 26: "Ranged", 28: "Relic" };
+const RANGED_INV = new Set([15, 25, 26]);
+const rollCard = { list: [], at: 0, sig: "", names: {}, asked: new Set(), key: "", timer: null };
+
+function applyRolls(snap) {
+  const list = snap.rolls?.rolls || [];
+  const sig = JSON.stringify(list);
+  if (sig !== rollCard.sig) { rollCard.sig = sig; rollCard.list = list; rollCard.at = Date.now(); }
+  renderRolls();
+}
+
+function rollNames(ids) {
+  const need = ids.filter((id) => !rollCard.names[id] && !rollCard.asked.has(id));
+  const asked = need.length && getJson(`/api/iteminfo?ids=${need.join(",")}`, { key: "roll names" });
+  if (!asked) return;
+  need.forEach((id) => rollCard.asked.add(id));
+  asked.then((got) => {
+    Object.assign(rollCard.names, got);
+    renderRolls(true);
+  }, () => need.forEach((id) => rollCard.asked.delete(id)));
+}
+
+const rollLeft = (r) => Math.max(0, r.left - (Date.now() - rollCard.at) / 1000);
+const rollKey = (r) => r.key ?? r.item;
+
+function rollVerdict(r) {
+  const it = { cls: r.cls, sub: r.sub, inv: r.inv, il: r.il, rl: r.rl };
+  let u = usability(it);
+  if (u.use === "yes" && r.usable === false) u = { use: "never" };
+  const stats = statCache[rollKey(r)];
+  const mine = stats && RANGED_INV.has(r.inv) ? { ...stats, st: asRanged(stats.st) } : stats;
+  const { known, against, againstId, slot } = replaced(r.inv), usable = u.use === "yes" || u.use === "train";
+  const cmp = usable && mine?.st && known ? compareGear({ ...mine, st: inSlot(mine.st, slot) }, against) : null;
+  const up = usable && (cmp ? !!cmp.kind : isUpgrade(it));
+  return { u, it, up, cmp, against, againstId, mine, known };
+}
+
+const CLEARLY_FOR = 1.5;
+function rollRanking(r, v) {
+  const st = v.mine?.st;
+  if (!statWeights.data || !st) return [];
+  const it = { cls: r.cls, sub: r.sub, inv: r.inv }, cls = app.status?.classId;
+  const people = [{ you: true, cls, u: v.u, specs: specsFor(cls, spec() || LEVELING_TREE[cls], myRole()) }];
+  for (const m of app.group?.members || []) {
+    const name = m.name.split("-")[0];
+    if (m.me) continue;
+    people.push({ name, cls: m.classId, role: m.role, u: usabilityFor(it, m.classId, m.level || 1), specs: specsFor(m.classId, 0, m.role) });
+  }
+  const order = (x) => KIND_RANK[x.kind] ?? 3;
+  return people.filter((p) => p.cls && p.u.use !== "never").map((p) => {
+    const best = p.specs.map((s) => ({ s, worth: gearScore({ st }, s.w), kind: compareGear({ st }, null, s.w, s.name)?.kind }))
+      .sort((a, b) => order(a) - order(b) || b.worth - a.worth)[0];
+    return best && { ...p, spec: best.s.name, worth: best.worth, kind: best.kind };
+  }).filter((p) => p && p.kind).sort((a, b) => order(a) - order(b) || b.worth - a.worth);
+}
+const KIND_WORDS = { clear: "a clear upgrade", weak: "a weak upgrade", debatable: "a debatable upgrade" };
+function rankingHtml(rank) {
+  if (!app.group?.members?.length || !rank.length) return "";
+  const who = (p) => {
+    const cls = CLASS_NAMES[p.cls] || "";
+    const why = p.you ? "by your talents" : p.role ? `as the group's ${p.role}` : "the spec of theirs the item suits best";
+    const tip = `${p.spec} ${cls} (${why}). For this spec the item is ${KIND_WORDS[p.kind]} on its own, worth ${p.worth.toFixed(1)} by the spec's stat weights${
+      p.u.use === "later" ? `. ${p.you ? "You" : p.name} can wear the item from level ${p.u.level}` : ""}`;
+    return `<b style="color:${CLASS_COLORS[cls] || tint("class-other")}" title="${esc(tip)}">${esc(p.you ? "you" : p.name)}</b> (${esc(`${p.spec} ${cls}`)})`;
+  };
+  if (rank.length === 1) return `<small class="rc-for">Only ${who(rank[0])} can use this item here</small>`;
+  const clearly = KIND_RANK[rank[0].kind] < KIND_RANK[rank[1].kind] || rank[0].worth >= rank[1].worth * CLEARLY_FOR;
+  return `<small class="rc-for">${clearly ? "Clearly for" : "Best for"} ${who(rank[0])}, then ${rank.slice(1).map(who).join(", ")}</small>`;
+}
+
+function renderRolls(force) {
+  const box = $("roll-card");
+  if (!box) return;
+  const open = rollCard.list.filter((r) => rollLeft(r) > 0);
+  if (!open.length) {
+    box.hidden = true;
+    clearInterval(rollCard.timer);
+    rollCard.timer = null;
+    rollCard.key = "";
+    return;
+  }
+  const ids = open.map((r) => r.item), keys = open.map(rollKey);
+  rollNames(ids);
+  const need = keys.filter((id) => !(id in statCache));
+  if (need.length) loadStats(need)?.then(() => renderRolls(true));
+  const key = JSON.stringify([rollCard.sig, keys.map((id) => statCache[id] ? 1 : 0), ids.map((id) => rollCard.names[id] ? 1 : 0),
+    (app.equipped || []).join(","), Object.keys(gear.worn).length, app.status?.nums?.armorKinds, app.status?.nums?.weaponKinds,
+    app.state?.level, !!statWeights.data, (app.group?.members || []).map((m) => [m.name, m.classId, m.role, m.level])]);
+  if (!force && key === rollCard.key && !box.hidden) return;
+  rollCard.key = key;
+  const rows = open.map((r) => {
+    const v = rollVerdict(r), info = rollCard.names[r.item] || {}, st = statCache[rollKey(r)];
+    const name = st?.n || info.n || `Item ${r.item}`, q = st?.q ?? info.q ?? 1;
+    const kind = r.cls === 4 ? ARMOR_NAME[r.sub] : r.cls === 2 ? WEAPON_SKILL[r.sub] : "";
+    const line = [st?.slot || ROLL_INV_NAME[r.inv], kind && kind[0].toUpperCase() + kind.slice(1),
+      r.il ? `item level ${r.il}` : "", r.rl > 1 ? `requires level ${r.rl}` : ""].filter(Boolean).join(", ");
+    const note = v.u.use === "never" ? "your class can't use it"
+      : v.u.use === "later" ? `${esc(v.u.skill)} from level ${v.u.level}`
+      : !v.up && (v.u.use === "yes" || v.u.use === "train") ? "not better than what you wear" : "";
+    const gain = v.against && v.mine?.st ? gainText(v.mine, v.against) : "";
+    const vs = v.u.use === "never" || !v.known ? ""
+      : v.against ? `Over ${itemNamed(v.against.n, v.againstId, v.against.n)}${v.against.il ? ` (item level ${v.against.il})` : ""}${gain ? `: ${esc(gain)}` : ""}`
+      : "You wear nothing in that slot";
+    const icon = r.icon ? `/fileicon/${esc(r.icon)}.jpg` : `/icon/${esc(info.icon || "inv_misc_questionmark")}.jpg`;
+    return itemRowHtml({ id: rollKey(r), icon, q, name, cls: `rc-item${v.u.use === "never" ? " unusable" : ""}`, line: `${esc(line)}${note ? `, ${note}` : ""}`,
+      more: `${vs ? `<small class="rc-vs">${vs}</small>` : ""}${rankingHtml(rollRanking(r, v))}`, after: upgradeTag(v.it, v.u, v.up, v.cmp) });
+  }).join("");
+  box.innerHTML = `<div class="rc-head"><span>${open.length > 1 ? `Rolling on ${open.length} items` : "Rolling on"}</span>
+      <span class="rc-end"><span class="rc-left"></span>${helpButton("rolls")}</span></div>${rows}<div class="rc-foot">Hover over an item for its tooltip, and hold Ctrl to compare it with what's worn</div>`;
+  box.hidden = false;
+  tickRolls();
+  if (!rollCard.timer) rollCard.timer = setInterval(tickRolls, 250);
+}
+
+function tickRolls() {
+  const box = $("roll-card"), open = rollCard.list.filter((r) => rollLeft(r) > 0);
+  if (!box || !open.length) return renderRolls();
+  const left = Math.min(...open.map(rollLeft));
+  const el = box.querySelector(".rc-left");
+  if (el) el.textContent = `${Math.ceil(left)} s`;
+}

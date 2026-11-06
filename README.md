@@ -6,7 +6,7 @@
 
 **[Download the latest release](https://github.com/Index-Case/IndexOfAzeroth/releases/latest/download/IndexOfAzeroth.zip)**
 
-**Early days.** This is version 0.1. The Index works, but it still has rough edges, and updates come often while they're smoothed out.
+**Early days.** This is version 0.1 alpha. The Index works, but it still has rough edges, and updates come often while they're smoothed out.
 
 *Being a complete account of everything... probably.*
 
@@ -58,6 +58,6 @@ If you'd like to tip, the Index has a Ko-fi page: [ko-fi.com/indexcase](https://
 
 **Credits**
 
-The dangerous-mob notes come from RestedXP, under CC BY-NC-SA 4.0. No other RestedXP data has been used. World of Warcraft and its art © Blizzard Entertainment, Inc.
+The dangerous-mob notes come from RestedXP, under CC BY-NC-SA 4.0. No other RestedXP data has been used. Some of the quest, vendor and trainer data comes from ForeverDB.net (https://foreverdb.net). World of Warcraft and its art © Blizzard Entertainment, Inc.
 
 The Index of Azeroth. Copyright 2026 Index Case. PolyForm Strict 1.0.0, see LICENSE.md.

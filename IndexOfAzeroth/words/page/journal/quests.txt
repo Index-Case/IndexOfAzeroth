@@ -1,0 +1,44 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: level, req, side, dungeon, names, from, xp, quest, name, zone
+
+title = Quests
+available = Available from level {req}
+none = No {side} quests recorded for {dungeon}.
+side.tip = {side} quests
+levels = Level {level}, available from level {req}
+levels.side = Level {level}, available from level {req}, {side} only
+objective = Objective
+starts = Starts at
+turn-in = Turn in
+unknown = Unknown
+notes = Notes
+party = Party
+party.have = Have the quest: {names}
+party.nobody = Nobody in the party has this quest
+party.without = Without the quest: {names}
+choose = Choose one reward
+also = You also receive
+xp = {xp} XP
+guide = Guide me
+guide.start.tip = Guides you to where this quest starts. Paste the copied line into the game's chat.
+guide.end.tip = Guides you to where this quest is turned in. Paste the copied line into the game's chat.
+guide.start = starts {quest}
+guide.end = turn in {quest}
+
+place.inside = {name}, inside {dungeon}
+place.the-dungeon = the dungeon
+place.item = The item {name}
+place.zone = {name}, {zone}
+
+state.ready = READY
+state.have = YOU HAVE IT
+state.done = DONE
+state.low = TOO LOW
+
+epic.tip = Plans every quest here as one guide, with the quest chains that lead to them
+epic.early = Quest epic from level {from}
+epic.restart = Restart the quest epic
+epic.start = Quest epic: all quests
+epic.early.note = The first quest opens at level {from}, and you're level {level}
+epic.running.note = The epic is running. Its steps are in the blue panel and on the map
+epic.start.note = The epic takes every quest here from pickup to turn-in, with the chains that lead up to them

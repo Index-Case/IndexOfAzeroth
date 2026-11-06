@@ -1,0 +1,38 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: n, level, item, name, boss, quest, dungeon, skill, wear, il, slot, gain
+
+title = Next upgrades
+about.dungeon = This list shows the best piece for each slot from the dungeons in your level range. You can use every piece listed, and each piece is better than what you are wearing. When no dungeon in your level range has an upgrade for a slot, the list shows the piece from the next dungeon up. A piece out of reach for now is greyed out, and a red skull beside the piece says the level it needs. The biggest upgrade comes first.
+about.raid = This list shows the best piece for each slot from the raids in your level range. You can use every piece listed, and each piece is better than what you are wearing. When no raid in your level range has an upgrade for a slot, the list shows the piece from the next raid up. A piece out of reach for now is greyed, and a red skull beside the piece says the level it needs. The biggest upgrade comes first.
+asked.weights = the stat weights
+asked.gear = the gear
+unknown = What you wear isn't known yet. The add-on sends your gear while the game runs, and until then every piece counts as an upgrade.
+no-raid = No raid fits your level yet.
+fewer = Fewer
+more = {n} more
+wearing = wearing {item}
+wearing.nothing = nothing worn
+wearing.level = wearing item level {level}
+none.dungeon = Nothing better in these dungeons
+none.raid = Nothing better in these raids
+
+plan = Where to run
+plan.slots = {n} upgrades: {slot}
+plan.slots.one = {n} upgrade: {slot}
+
+trash = Trash
+quest = Quest: {quest}
+others = and {n} more
+from-level = {name}, from level {level}
+stretch = a stretch till level {level}
+worn-from = worn from level {level}
+train = train {skill} first
+lower = lower armour
+lower.wear = (you wear {wear})
+details = Details
+item-level = item level {il}
+gain-over = {gain} over {item}
+over = over {item}
+boss.tip = {boss} in {dungeon}
+quest.tip = The quest {quest}
+trash.tip = The trash in {dungeon}

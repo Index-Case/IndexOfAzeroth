@@ -1,0 +1,6 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = The auction house scan
+intro.p1 = Press and hold the scroll to stop it and read the newest items with their prices.
+intro.p2 = With Auctionator loaded, the two addons share each scan. The auction house allows one whole scan every 15 minutes.

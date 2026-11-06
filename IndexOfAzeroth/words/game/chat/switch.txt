@@ -1,0 +1,15 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: name, command
+
+on = You have the {name} switched on.
+off = You have the {name} switched off. Type /ioa {command} on to bring the {name} back.
+
+name.compass = compass
+name.beacons = beacons
+name.arrows = navigation arrows
+name.lines = guide lines on the maps
+name.button = add-on button
+name.minimap = minimap button
+name.card = epic card
+name.strip = strip
+name.polaroid = level-up picture

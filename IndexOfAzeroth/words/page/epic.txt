@@ -1,0 +1,6 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+closed.dismiss = Dismiss
+closed.dismiss.tip = This takes the closed epic's box off the page. It can be brought back from the Dismissed menu.
+closed.why = This quest epic is closed. Show again opens it where you left off.

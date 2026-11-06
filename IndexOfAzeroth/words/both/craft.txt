@@ -1,0 +1,18 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: item, count, items, station, skill, need, have, recipe
+
+name = {item} crafting epic
+grind = Grind until you have {count} {item}.
+skin = Kill and skin beasts until you have {count} {item}.
+herbalism = Gather herbs until you have {count} {item}.
+mining = Mine until you have {count} {item}.
+auction = Buy {items} at the auction house.
+craft = Craft {item}.
+craft.station = Craft {item} at {station}.
+craft.some = Craft {count} {item}.
+craft.some.station = Craft {count} {item} at {station}.
+skill = Needs {skill} {need}, you have {have}
+none = Get {count} {item}. The Index knows no way for you to get {item} yet.
+unlearnt = No source says yet where you learn {recipe}, and the Index asks again every day
+buying = Buying {items}
+materials = materials for {item}

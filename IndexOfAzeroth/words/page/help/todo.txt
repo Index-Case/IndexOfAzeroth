@@ -1,0 +1,10 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = To do
+hiding-item = Hiding an item
+hiding-item.li1 = <b>Dismiss</b> hides an item for as long as the item applies.
+hiding-item.li2 = <b>Never show</b> hides an item for good.
+hiding-item.li3 = <b>Show again</b> under Dismissed puts a hidden item back.
+errands-quest = Errands in the quest epic
+errands-quest.p1 = <b>Never show</b> on water, ammo, Ankhs, wood for campfire kits or repairs also leaves that errand out of the quest epic.

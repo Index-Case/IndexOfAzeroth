@@ -1,0 +1,17 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+count = Count left
+count.help = A number over a quest mob's nameplate shows how many more of that mob are left for the quest. An epic's number takes the colour of that mob's rows on the card, or blue without one, and other quests' numbers are gold. While this page is open, every nameplate shows a number so you can move the number clear of other add-ons' marks.
+shown = Shown
+across = Across
+up = Up and down
+reset = Put the count back
+
+far = Nameplate distance
+far.help = The quest counts, the Target key and respawn timers reach as far as nameplates show. Off puts back your own nameplate distance.
+far.on = Out to 41 yards
+
+friends = Friendly nameplates
+friends.help = Near a guide NPC whose height isn't known yet, the add-on turns friendly nameplates on to place the beacon at the NPC's height. Your own setting comes back when the guide moves on, at logout and at /reload.
+friends.on = Turned on when needed

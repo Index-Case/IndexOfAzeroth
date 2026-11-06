@@ -1,0 +1,11 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: dungeon
+
+entrance = {dungeon} entrance
+entrance.sub = dungeon entrance
+portal = {dungeon} portal
+portal.sub = the portal
+portal.sub.underground = the portal, underground
+no-map = The page has no map data for that spot
+far = {dungeon} is on another continent
+failed = No guide to {dungeon}

@@ -1,0 +1,17 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+where = Where the Target key shows
+where.help = Every switch here holds for every guide and on every character.
+world = In the open world
+dungeons = In dungeons
+dungeons.help = In dungeons and raids the key targets quest mobs and the next boss. Spamming the key in a dungeon leads to wipes.
+card-hidden = With the epic card hidden
+card-hidden.help = The Target key stays out beside the add-on button.
+flights = At flight masters
+flights.help = The key targets the flight master when the route takes a flight.
+none = With the open world and dungeons both off, the Target key never shows.
+
+talk = The NPC to talk to
+talk.help = For every guide, the Target key marks the NPC to talk to. Vendors, trainers, flight masters and innkeepers get the purple diamond. Quest givers and everyone else get the moon, which keeps the ! or ? in view. Once the NPC is in reach, press the key to talk. Your group sees the mark too. The key never marks mobs.
+mark = Purple diamond and moon

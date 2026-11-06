@@ -1,0 +1,309 @@
+<!-- The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md. -->
+<!doctype html>
+<html lang="en" data-art="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="page-version" content="">
+<title>The Index of Azeroth</title>
+<script src="pageload.js"></script>
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="preload" href="art/landing.webp" as="image">
+<link rel="preload" href="fonts/Marcellus-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<script src="words.js"></script>
+<script src="loadbox.js"></script>
+<header class="bar">
+  <div class="brand">
+    <img class="brand-icon" src="img/brand.png" alt="" width="40" height="40">
+    <span class="brand-words"><span class="brand-name">The Index of Azeroth</span>
+    <span class="brand-line"><span class="brand-to">Being a Complete Account of Everything, Probably</span></span></span>
+  </div>
+  <nav class="keys" id="top-keys" aria-label="Tools">
+    <button class="key" id="btn-player" data-drawer="player" aria-pressed="false" title="Your road to 60 shows what each level opens and what it costs (Y)" style="--icon:url(/icon/inv_misc_questionmark.jpg)"><span class="hotkey">Y</span>Player</button>
+    <button class="key" data-drawer="alts" aria-pressed="false" title="The Alts board shows the experience, gold, bags, professions and rested experience of the playing character and of every alt (A)" style="--icon:url(/icon/inv_misc_groupneedmore.jpg)"><span class="hotkey">A</span>Alts</button>
+    <button class="key" id="btn-journal" aria-pressed="false" title="The Dungeons window shows every dungeon and raid with its bosses, loot, quests and the next upgrades (J)" style="--icon:url(/icon/inv_misc_book_09.jpg)"><span class="hotkey">J</span>Dungeons</button>
+    <div class="layer-pick">
+      <button class="key" id="btn-quests" aria-haspopup="true" aria-expanded="false" title="Quests and Professions holds the quest log and the epics, the guides that plan quests and professions into one route (Q)" style="--icon:url(/icon/inv_scroll_08.jpg)"><span class="hotkey">Q</span><span class="key-tick" aria-label="Quests and Professions"><span class="key-tick-run" aria-hidden="true"><span style="--i:0;--n:2">Quests</span><span style="--i:1;--n:2">Professions</span></span></span></button>
+      <div class="layer-menu quest-menu" id="quest-menu" role="menu" hidden><div class="j-bar" id="quest-bar"></div><div class="menu-body" id="quest-list"></div></div>
+    </div>
+    <button class="key" id="btn-notices" data-drawer="notices" aria-pressed="false" title="Dismissed lists the To do items dismissed or set to never show, for as long as those items still apply" style="--icon:url(/ui/pickup.png)" hidden>Dismissed</button>
+    <div class="layer-pick">
+      <button class="key" id="btn-layers" aria-haspopup="true" aria-expanded="false" title="Overlays and Loops shows where to grind XP or gold and where to skin, mine, pick herbs, fish or find treasure (L)" style="--icon:url(/icon/inv_misc_spyglass_02.jpg)"><span class="hotkey">L</span><span class="key-tick" aria-label="Overlays and Loops"><span class="key-tick-run" aria-hidden="true"><span style="--i:0;--n:2">Overlays</span><span style="--i:1;--n:2">Loops</span></span></span> <span class="layer-count" id="layer-count"></span></button>
+      <div class="layer-menu poi-menu" id="layer-menu" role="menu" hidden><div class="j-bar" id="layer-bar"></div><div class="menu-body" id="layer-list"></div></div>
+    </div>
+    <div class="layer-pick">
+      <button class="key" id="btn-poi" aria-haspopup="true" aria-expanded="false" title="Places shows the bank, inn, trainers, flight masters and every other place a guard gives directions to (P)" style="--icon:url(/icon/inv_misc_map_01.jpg)"><span class="hotkey">P</span>Places <span class="layer-count" id="poi-count"></span></button>
+      <div class="layer-menu poi-menu" id="poi-menu" role="menu" hidden><div class="j-bar" id="poi-bar"></div><div class="menu-body" id="poi-list"></div></div>
+    </div>
+    <div class="layer-pick">
+      <button class="key" id="btn-mobs" aria-haspopup="true" aria-expanded="false" title="Find any NPC or monster by name, then follow a guide to it or put it on the Target key in game. NPCs, Monsters and Rares also lists the zone's rares and the respawn timers (M)" style="--icon:url(/icon/inv_bountyhunting.jpg)"><span class="hotkey">M</span><span class="key-tick" aria-label="NPCs, Monsters and Rares"><span class="key-tick-run three" aria-hidden="true"><span style="--i:0;--n:3">NPCs</span><span style="--i:1;--n:3">Monsters</span><span style="--i:2;--n:3">Rares</span></span></span> <span class="layer-count" id="mob-count"></span></button>
+      <div class="layer-menu poi-menu mob-menu" id="mob-menu" role="menu" hidden><div class="j-bar" id="mob-bar"></div><div class="menu-body" id="mob-list"></div></div>
+    </div>
+    <div class="layer-pick">
+      <button class="key" id="btn-market" aria-haspopup="true" aria-expanded="false" title="Find any item by name. You see its price in your auction house and the ways you can get it: grind for it, quest for it, craft it or buy it (K)" style="--icon:url(/icon/inv_misc_bag_08.jpg)"><span class="hotkey">K</span>Items and gear</button>
+      <div class="layer-menu poi-menu mob-menu market-menu" id="market-menu" role="menu" hidden><div class="j-bar" id="market-bar"></div><div class="menu-body" id="market-list"></div></div>
+    </div>
+  </nav>
+  <div class="end-keys">
+    <button class="key" id="btn-video" aria-pressed="false" title="Watch a YouTube, Twitch or Kick video or stream in a window of its own (V)" style="--icon:url(/icon/spell_nature_farsight.jpg)"><span class="hotkey">V</span>Video</button>
+    <button class="key" data-drawer="link" aria-pressed="false" title="Status shows the link to the game, the addons and the data, and whether each of the three is current" style="--icon:url(/icon/trade_engineering.jpg)">Status<span class="key-news" hidden>!</span><span class="key-realign realign-spin" id="key-realign" hidden></span><span class="key-blink" aria-hidden="true"></span></button>
+  </div>
+  <div class="signal-wrap">
+  <button class="signal" id="signal" data-drawer="link" title="Shows whether the page can read the pixel strip">
+    <span class="signal-lamp"></span><span class="signal-words"><span class="signal-line"><span id="signal-text">Connecting</span><span class="signal-news" id="signal-news" hidden>!</span></span>
+      <small class="signal-version" id="signal-version"></small></span>
+  </button>
+  <div class="fs-clip"><button type="button" class="fs-note" id="fs-note" aria-hidden="true" tabindex="-1">Press <kbd class="fs-key">F11</kbd> to leave full screen</button></div>
+  </div>
+  <button type="button" class="key glass-icon" id="btn-reload" title="Reload the page (F5)" aria-label="Reload the page" style="--icon:url(/icon/ability_hunter_readiness.jpg)"><img src="/icon/ability_hunter_readiness.jpg" alt=""></button>
+  <button class="key glass-icon" id="btn-options" aria-pressed="false" title="Set how the page looks and works" aria-label="Options" style="--icon:url(/icon/inv_misc_gear_01.jpg)"><img src="/icon/inv_misc_gear_01.jpg" alt=""></button>
+</header>
+
+<main class="stage">
+  <canvas class="map-below" id="map-below" aria-hidden="true" hidden></canvas>
+  <canvas id="map"></canvas>
+  <div class="map-shade" id="map-shade" aria-hidden="true" hidden></div>
+  <div class="map-night" id="map-night" aria-hidden="true"></div>
+  <div class="map-light" id="map-light" aria-hidden="true"></div>
+  <canvas class="map-you" id="map-you" aria-hidden="true" hidden></canvas>
+  <canvas class="map-you" id="map-replay-you" aria-hidden="true" hidden></canvas>
+  <div class="ah-scroll" id="ah-scroll" hidden>
+    <img class="ah-frame" alt="" draggable="false"><img class="ah-frame" alt="" draggable="false" hidden>
+    <img class="ah-frame" alt="" draggable="false" hidden><img class="ah-frame" alt="" draggable="false" hidden>
+    <div class="ah-grip" id="ah-grip"></div>
+    <div class="ah-tape" id="ah-tape" hidden><div class="ah-roll" id="ah-roll"></div></div>
+    <div class="ah-page" id="ah-page" hidden></div>
+    <div class="ah-caption" id="ah-caption" role="status"></div>
+    <button class="help-q ah-help" data-help="scan" title="The auction house scan: what this does" aria-label="Help: the auction house scan"></button>
+  </div>
+  <canvas class="ah-stream" id="ah-stream" aria-hidden="true" hidden></canvas>
+  <div class="lr-scroll" id="lr-scroll" role="dialog" aria-label="Level report" hidden>
+    <img class="lr-art" alt="" draggable="false"><div class="lr-seal-box"></div>
+    <div class="lr-page" id="lr-page"></div>
+    <div class="lr-pol-box" id="lr-pol-box"></div>
+    <button class="key small square x-mark lr-close" data-lr-close="1" title="Close (Escape)">&times;</button>
+    <div class="lr-countdown" id="lr-countdown" aria-live="polite"></div>
+  </div>
+  <div class="lr-photo" id="lr-photo" role="dialog" aria-label="Level-up picture" hidden></div>
+  <section class="director-slide" id="director-slide" role="status" hidden></section>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="ah-motion" x="-2%" y="-10%" width="104%" height="120%">
+    <feGaussianBlur stdDeviation="0.9 11"/></filter></svg>
+  <button class="key small travel-go" id="travel-go" tabindex="-1">Guide me</button>
+  <div class="poi-tip" id="poi-tip" hidden></div>
+  <div class="toast" id="toast" role="status" hidden></div>
+  <div class="itemtip" id="itemtip" hidden></div>
+  <div class="roll-card" id="roll-card" role="status" hidden></div>
+
+  <div class="alert" id="alert" role="alert" hidden>
+    <div class="alert-title" id="alert-title">Pixel strip not readable</div>
+    <div class="alert-text" id="alert-text"></div>
+    <div class="alert-hint" id="alert-hint"></div>
+  </div>
+
+  <section class="location" aria-live="polite">
+    <div class="zone-wrap" id="zone-wrap"><div class="zone-line"><div class="zone" id="zone">Waiting for the game</div><span class="zone-levels" id="zone-levels" hidden title="The level range of this zone's mobs. The colour shows the range against the character's level. Red means the zone is far above the character, and guides go round it. Yellow is the character's level, green is below it and grey gives no XP"></span><span class="life-mark" id="life-mark" hidden></span><div class="view-zone" id="view-zone" hidden></div><div class="mouse-coords" id="mouse-coords" hidden></div></div></div>
+    <div class="expedition" id="expedition" role="status" hidden><span>Mapping</span><i></i><i></i><i></i></div>
+    <div class="subzone" id="subzone"></div>
+    <div class="coords-line"><div class="coords" id="coords"></div><button class="locate-me" id="btn-locate" hidden title="Move the map back to the character without following. The map stays put after that"><svg class="locate-ic" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><circle cx="12" cy="12" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><circle class="dot" cx="12" cy="12" r="2.6"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></div>
+    <form class="map-search" id="map-search" role="search" autocomplete="off">
+      <svg class="ms-glass" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M15 15l6 6" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+      <input id="map-find" class="find-box" type="search" placeholder="Search the map or coordinates" aria-label="Search the map or coordinates" autocomplete="off" spellcheck="false" title="Type the name of a zone, a place, a dungeon or a flight master. Coordinates work too. 52.5 72.1 is a spot in the zone the map shows. Elwynn Forest 52.5 72.1 and a /way line name the zone">
+      <div class="ms-list" id="map-found" popover="manual"></div>
+    </form>
+    <div class="epic-mode" id="epic-mode" hidden></div>
+    <div class="legend" id="legend" hidden></div>
+  </section>
+
+  <div class="sidestack">
+    <section class="reload-panel" id="reload-panel" hidden></section>
+    <section class="mapnote" id="mapnote" hidden></section>
+    <section class="runbox" id="runbox" hidden></section>
+    <section class="track epic" id="track-epic" hidden></section>
+    <section class="track epic profs" id="track-profs" hidden></section>
+    <section class="track loop" id="track-loop" hidden></section>
+    <section class="guide" id="guide" hidden><canvas class="seeker" id="seeker" aria-hidden="true"></canvas><div class="guide-body" id="guide-body"></div></section>
+    <section class="todo" id="todo" hidden></section>
+  </div>
+
+  <div class="byline" aria-hidden="true">by Index Case</div>
+  <div class="addon-notice" id="addon-notice" role="status" hidden></div>
+  <button class="help-q big help-map" id="help-map" data-help="map" title="How The Index of Azeroth works" aria-label="Help: The Index of Azeroth"></button>
+  <div class="gamepick ask-box" id="ask-box" role="dialog" hidden></div>
+  <div class="overlay-legend" id="overlay-legend" hidden></div>
+  <div class="plan-legend" id="plan-legend" hidden></div>
+  <div class="plan-stage" id="plan-stage" aria-live="polite" hidden></div>
+  <div class="ol-tip" id="ol-tip" hidden></div>
+
+  <div class="warnings" id="warnings" role="alert" aria-live="assertive"></div>
+  <aside class="status" id="status" aria-label="Character status" hidden></aside>
+
+  <div class="life-banner" id="life-banner" role="status" title="Click to show this banner as a glow round the edge of the screen instead" hidden></div>
+  <div class="edge-glow" aria-hidden="true"></div>
+  <div class="edge-alarm" id="edge-alarm" aria-hidden="true"></div>
+  <div class="to-zones" id="to-zones" hidden></div>
+
+  <section class="replay" id="replay" aria-label="Replay your day" hidden></section>
+
+  <div class="mapkeys">
+    <div class="floorkeys" id="floorkeys" hidden></div>
+    <div class="floorkeys" id="levelkeys" hidden></div>
+    <span class="follow-wrap">
+    <label class="sticky-key" title="After 15 seconds of moving, the map snaps back to Follow"><input type="checkbox" id="follow-sticky"> Sticky</label>
+    <button class="key small" id="btn-follow" aria-pressed="true" title="Keep the map centred on the character (F). Press F twice or double-click to follow the character and zoom in"><span class="hotkey">F</span><svg class="locate-ic" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><circle cx="12" cy="12" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><circle class="dot" cx="12" cy="12" r="2.6"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Follow</button>
+    </span>
+    <button class="key small orient" id="btn-heading" title="Switch between north up and heading up (H)">
+      <span class="hotkey">H</span>
+      <svg class="needle" id="needle" viewBox="-10 -10 20 20" aria-hidden="true">
+        <path d="M0,-9 L3.5,0 L-3.5,0 Z" class="needle-n"/><path d="M0,9 L3.5,0 L-3.5,0 Z" class="needle-s"/>
+      </svg>
+      <span id="orient-label">North up</span>
+    </button>
+    <button class="key small square" id="btn-zoomout" title="Zoom out (-)">&minus;</button>
+    <button class="key small square" id="btn-zoomin" title="Zoom in (+)">+</button>
+  </div>
+
+  <section class="journal" id="journal" aria-label="Dungeons" hidden></section>
+  <section class="reader" id="reader" aria-label="Patch notes" hidden></section>
+  <section class="reader timeline" id="timeline" aria-label="Your road to 60" hidden></section>
+  <section class="reader talents" id="talents" aria-label="Talents" hidden></section>
+  <section class="reader books" id="books" aria-label="Library books" hidden></section>
+  <section class="video" id="video" aria-label="Video" hidden>
+    <div class="vd-bar" id="video-bar" title="Drag to move the window">
+      <button class="key small" id="video-link-key" data-vd="link" aria-pressed="false" title="Paste a YouTube, Twitch or Kick link to watch">Link</button>
+      <button class="key small" id="video-save" data-vd="save" title="Keep this video or stream with the saved videos and streams" hidden>Save</button>
+      <span class="layer-pick"><button class="key small vd-mark-key" id="video-saved-key" data-vd="saved" aria-haspopup="true" aria-expanded="false" title="The saved videos and streams" aria-label="The saved videos and streams" hidden><img src="/icon/inv_misc_ribbon_01.jpg" alt=""><span class="vd-caret"></span></button>
+        <div class="layer-menu vd-saved" id="video-saved" role="menu" hidden></div></span>
+      <button class="key small vd-mark-key" id="video-catch" data-vd="catch" title="Skip to the end" hidden><img src="/icon/ability_mage_timewarp.jpg" alt=""><span class="vd-word">Catch Up</span></button>
+      <span class="vd-title" id="video-title">Video</span>
+      <button class="help-q" data-help="video" title="Video: what this does" aria-label="Help: Video"></button>
+      <button class="key small square x-mark" data-vd="close" title="Close the window and stop the video (V)">&times;</button>
+    </div>
+    <form class="vd-link" id="video-link" hidden>
+      <input id="video-url" type="text" inputmode="url" placeholder="A YouTube, Twitch or Kick link" autocomplete="off" spellcheck="false" aria-label="The video's link">
+      <button class="key small" type="submit">Watch</button>
+      <label class="vd-auto" title="When Autoplay is ticked, a video or stream plays as soon as it's in the window. The last one watched plays again when the window opens. The page keeps this setting for next time"><input type="checkbox" id="video-autoplay" checked> Autoplay</label>
+    </form>
+    <div class="vd-link vd-ask" id="video-ask" hidden>
+      <span class="vd-ask-q">Save this video, or its channel's live stream?</span>
+      <button class="key small" data-vd="keep-video" title="Keep this video as it is">This video</button>
+      <button class="key small" id="video-keep-live" data-vd="keep-live">Its channel live</button>
+    </div>
+    <div class="vd-link vd-ask" id="video-held" role="status" hidden>
+      <span class="vd-ask-q">The video came back from the reload without its sound. The browser holds the sound back until you click. Any click or key press on the page brings the sound back.</span>
+      <button class="key small" data-vd="sound-on" title="Turn the sound back on as it was before the reload">Sound on</button>
+    </div>
+    <div class="vd-error" id="video-error" role="alert" hidden></div>
+    <div class="vd-screen" id="video-screen"></div>
+    <div class="vd-foot">
+      <button class="vd-mute" id="video-mute" data-vd="mute" data-level="high" aria-pressed="false" title="Mute" aria-label="Mute"><svg viewBox="0 0 16 16" aria-hidden="true">
+        <path class="vd-cone" d="M1.5 5.75h3l4-3.25v11l-4-3.25h-3Z"/><path class="vd-wave1" d="M10.75 5.75a3 3 0 0 1 0 4.5"/>
+        <path class="vd-wave2" d="M12.5 3.5a6 6 0 0 1 0 9"/><path class="vd-off" d="M11 5.75l4 4.5M15 5.75l-4 4.5"/></svg></button>
+      <input class="vd-volume" id="video-volume" type="range" min="0" max="100" step="1" value="100" title="Volume 100%" aria-label="Volume">
+      <span class="vd-kick-volume" id="video-kick-volume" hidden>Set Kick's volume in its own bar</span>
+      <span class="vd-grip" id="video-grip" title="Drag to size the window"></span>
+    </div>
+    <div class="vd-online" id="video-online" role="status" hidden><p class="vd-online-words" id="video-online-words"></p></div>
+  </section>
+  <section class="options" id="options" role="dialog" aria-label="Options" hidden></section>
+
+  <aside class="drawer" id="drawer" hidden>
+    <div class="j-bar" id="drawer-bar"></div>
+    <div class="drawer-body" id="drawer-body"></div>
+  </aside>
+</main>
+
+<footer class="xpbar" id="xpbar" title="Experience">
+  <div class="xp-rested" id="xp-rested"></div>
+  <div class="xp-fill" id="xp-fill"><span class="heat-tail" id="xp-tail" hidden></span><span class="heat-edge" id="xp-edge" hidden></span></div>
+  <span class="heat-burst" id="xp-burst" hidden></span>
+  <div class="xp-ticks"></div>
+  <div class="xp-text" id="xp-text"></div>
+</footer>
+<div class="heat-layer" id="heat-layer" aria-hidden="true"></div>
+<div class="blood" id="blood" aria-hidden="true" hidden></div>
+
+<script src="core.js"></script>
+<script src="palette.js"></script>
+<script src="geo.js"></script>
+<script src="lines.js"></script>
+<script src="format.js"></script>
+<script src="rules.js"></script>
+<script src="asked.js"></script>
+<script src="realign.js"></script>
+<script src="heat.js"></script>
+<script src="fade.js"></script>
+<script src="light.js"></script>
+<script src="relief.js"></script>
+<script src="sea.js"></script>
+<script src="seagiants.js"></script>
+<script src="storm.js"></script>
+<script src="lighttint.js"></script>
+<script src="torches.js"></script>
+<script src="travellers.js"></script>
+<script src="trees.js"></script>
+<script src="scroll.js"></script>
+<script src="blood.js"></script>
+<script src="options.js"></script>
+<script src="maptiles.js"></script>
+<script src="clouds.js"></script>
+<script src="below.js"></script>
+<script src="fresh.js"></script>
+<script src="fullscreen.js"></script>
+<script src="app.js"></script>
+<script src="help.js"></script>
+<script src="status.js"></script>
+<script src="layers.js"></script>
+<script src="todo.js"></script>
+<script src="poi.js"></script>
+<script src="guide.js"></script>
+<script src="routelines.js"></script>
+<script src="travel.js"></script>
+<script src="mapsearch.js"></script>
+<script src="guidemap.js"></script>
+<script src="seeker.js"></script>
+<script src="dungeon.js"></script>
+<script src="hidden.js"></script>
+<script src="journal.js"></script>
+<script src="tracks.js"></script>
+<script src="epic.js"></script>
+<script src="director.js"></script>
+<script src="quiplines.js"></script>
+<script src="quips.js"></script>
+<script src="compose.js"></script>
+<script src="planmap.js"></script>
+<script src="planstage.js"></script>
+<script src="routeweigh.js"></script>
+<script src="commands.js"></script>
+<script src="planready.js"></script>
+<script src="quests.js"></script>
+<script src="gear.js"></script>
+<script src="npcs.js"></script>
+<script src="mobs.js"></script>
+<script src="tooltip.js"></script>
+<script src="market.js"></script>
+<script src="rolls.js"></script>
+<script src="queue.js"></script>
+<script src="prospect.js"></script>
+<script src="addons.js"></script>
+<script src="respawns.js"></script>
+<script src="alts.js"></script>
+<script src="player.js"></script>
+<script src="levelreport.js"></script>
+<script src="talents.js"></script>
+<script src="replaytime.js"></script>
+<script src="replay.js"></script>
+<script src="books.js"></script>
+<script src="camp.js"></script>
+<script src="profs.js"></script>
+<script src="expedition.js"></script>
+<script src="model.js"></script>
+<script src="life.js"></script>
+<script src="news.js"></script>
+<script src="video.js"></script>
+<script src="shares.js"></script>
+</body>
+</html>

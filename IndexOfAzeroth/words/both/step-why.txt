@@ -1,0 +1,21 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: quest, level, skill, rank, money, npc, step, why
+
+after = you need to hand in {quest} first
+after.parked = you need to hand in {quest} first, and that quest is parked
+quest-before = the quest before it
+level = you need level {level}
+skill = you need {skill} {rank}
+money = you need {money} for its spells
+takes = you need to finish the step "{step}" first
+run = you need the run's quests first
+pickup = you need to pick up the quest first
+objectives = you need to finish the quest's objectives first
+not-offered = {npc} didn't offer this quest
+not-offered.giver = The giver didn't offer this quest
+failed = the quest failed, so drop the quest and pick it up again
+skipped = skipped
+parked = parked and still to do
+parked.waiting = parked and waiting, because {why}
+waiting = Waiting: {why}
+blocked = Blocked: {why}

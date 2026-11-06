@@ -1,0 +1,17 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: kind, zone, name
+
+kind.zone = Zone
+kind.continent = Continent
+kind.place = Place
+kind.dungeon = Dungeon
+kind.raid = Raid
+kind.battleground = Battleground
+kind.flight = Flight master
+kind.spot = Coordinates
+under = {kind}, {zone}
+show = Click to move the map to {name}
+guide = This starts the Navigation Guide to {name} and copies the line for the in-game arrow. The map stays where it is
+guide.entrance = This starts the Navigation Guide to the entrance of {name} and copies the line for the in-game arrow. The map stays where it is
+none = Nothing on the map goes by that name
+guide.key = Guide me

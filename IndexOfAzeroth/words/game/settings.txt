@@ -1,0 +1,11 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+words = Reset puts the add-on button back at the top of the screen and shows it. Use it if you hid the button or lost it off screen. Everything else is under Open the options.
+reset = Reset the add-on button
+options = Open the options
+minimap.hide = Hide the minimap button
+minimap.show = Show the minimap button
+in-combat = The game options open after the fight.
+minimap.click = Click: open this add-on's page in the game options, with Reset for the add-on button
+minimap.drag = Drag: move the button round the minimap

@@ -1,0 +1,10 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: level, skill
+
+requires = requires level {level}
+never = your class can't use this item
+later = {skill} from level {level}
+train = needs {skill}
+star.off = The page keeps stars for each character. Stars work once the game sends which character you're playing.
+star.on = Starred for this character. Click to unstar.
+star.tip = Click to star this item for this character. Inside the dungeon, the run panel names the item when its boss is next. The page and the game tell you when that boss is down.

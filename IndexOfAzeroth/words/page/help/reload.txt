@@ -1,0 +1,6 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = Reload the interface
+intro.p1 = Red means the game needs a reload, or a restart where the key says so. Gold means a reload is worth doing.
+intro.p2 = When all that waits is a guide, a loop or the Target key, pasting its line is faster and needs no reload.

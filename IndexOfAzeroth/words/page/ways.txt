@@ -1,0 +1,12 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+safest = Safest
+safest.tip = Safest keeps to roads and well clear of mobs that would attack, even if the route is longer.
+grinding = Grinding
+grinding.tip = Grinding goes through mobs worth fighting on the way, with no elites and none far above the character's level, even if the route is a bit longer.
+epic.in-game = The epic's plan in game takes the new route after a /reload.
+loop.safest.tip = Safest keeps the route to the loop on roads and well clear of mobs that would attack, even if that route is longer.
+loop.grinding.tip = Grinding takes the route to the loop through mobs worth fighting, with no elites and none far above the character's level, even if that route is a bit longer.
+loop.gathering = A gathering loop keeps clear of mobs, so the route to a gathering loop never grinds.
+guided = The Navigation Guide is leading there, so the Navigation Guide's own Safest and Grinding keys set that route.

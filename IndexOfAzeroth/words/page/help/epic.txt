@@ -1,0 +1,35 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = Quest epic
+starting-epic = Starting an epic
+starting-epic.p1 = A quest epic collects quests and plans them into a guide. The epic's colour is Blizzard blue.
+starting-epic.li1 = Start a dungeon's epic from the dungeon's <b>Quests</b> tab under Dungeons.
+starting-epic.li2 = Start a zone's epic from <b>Zone epic</b> under Quests.
+starting-epic.li3 = Tick quests in the quest log and press <b>Quest epic</b> to make a custom plan.
+starting-epic.li4 = Type <b>/reload</b> in game once the page says the plan is ready.
+card-game = The card in game
+card-game.li1 = <b>Park</b> sets a quest aside. The quest stays on the list because we don't skip quests around here.
+card-game.li2 = <b>Skip</b> sets an errand aside. Supplies, selling and repairs stay skipped until the next level. A trainer, an inn or a flight path stays skipped for the whole epic.
+card-game.li3 = <b>A fight</b> collapses the card. The <b>Card</b> page of the options changes that.
+card-game.li4 = <b>LFG</b> posts the dungeon with the character's class, level and role in the zone's General channel. The role comes from the talent tree with the most points.
+target-key = The Target key
+target-key.li1 = The <b>Target</b> key targets whoever the step is about and talks to NPCs in reach.
+target-key.li2 = The press that targets a mob also uses the step's quest item on that mob, except on a kill step with a spell picked.
+target-key.li3 = <b>Ctrl+click</b> the Target key to bind it.
+target-key.li4 = <b>Ctrl+right-click</b> the Target key to pick a spell for the key to cast at the mob.
+target-key.li5 = A Target key needed during a fight slides out after the fight.
+target-key.li6 = The Target key tries to not take a mob another player has tagged.
+target-key.li7 = The Target key starts switched off in dungeons, because spamming the key there can lead to wipes. The <b>Target key</b> page of the options switches the key on for dungeons.
+quests-game = Quests in game
+quests-game.li1 = The count over a quest mob's nameplate (<b>4 left</b>) takes the colour of that mob's rows on the card.
+quests-game.li2 = The addon auto accepts and hands in the plan's quests.
+quests-game.li3 = <b>Hold Shift</b> while talking to a quest giver to accept or hand in by hand.
+plan = The plan
+plan.li1 = The plan keeps its order, and moving around never makes a new plan.
+plan.li2 = A new plan comes when a step can't be done, when the quest log changes or when <b>Safest</b>, <b>Grinding</b> or <b>Re-plan</b> is pressed. The page then asks for a <b>/reload</b>.
+plan.li3 = The addon puts training, selling, repairs and restocking into the running guide itself, with no <b>/reload</b>.
+plan.li4 = <b>Replan</b> shows on the card when the character drifts far from the plan.
+plan.li5 = <b>Unpark</b> copies a line that puts a parked quest back into the guide in game, with no <b>/reload</b>.
+plan.li6 = <b>Close</b> closes the epic and keeps its plan. The guide in game runs on until it's closed there or <b>/reload</b> is typed.
+plan.li7 = <b>Reopen</b> or <b>/ioa guide start</b> picks up a closed epic.

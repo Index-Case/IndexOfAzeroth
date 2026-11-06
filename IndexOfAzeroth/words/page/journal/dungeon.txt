@@ -1,0 +1,37 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: lo, hi, level, day, n, xp, way, when, coming
+
+levels.range = Level {lo}-{hi}
+levels.from = Level {level}+
+levels.game = Forever's data says level {level}
+levels.notes = Blizzard's notes say {lo}-{hi}
+levels.notes-from = Blizzard's notes say level {level} and up
+levels.maybe = possibly {lo}-{hi}
+fit.low = Your level is too low
+fit.stretch = A stretch
+fit.right = You're the right level
+fit.easy = Easy
+fit.gray = Gray to you
+when.not-open = Not open yet
+when.opens = Opens {day}
+when.later = Not in Forever's first raid release
+when.coming = Not in the game yet
+players = {n} players
+players.battleground = {n} against {n}
+xp = about {xp} kill XP a run
+xp.none = No kill XP for a run at your level
+xp.unknown = Kill XP for a run isn't known yet
+way-in = Way in: {way}.
+pin.walked = The pin shows where you went in.
+pin.described = The pin shows where the guides put the entrance. After your first visit it moves to where you went in.
+tab.bosses = Bosses
+tab.quests = Quests
+tab.run = Previous runs
+tab.map = Map
+to-portal = Guide me to the portal
+to-portal.tip = Guides you through the nearest entrance to the portal. Paste the copied line into the game's chat.
+to-entrance = Guide me to the entrance
+to-entrance.tip = Guides you to the nearest entrance. Paste the copied line into the game's chat.
+asked = the dungeon
+coming = This dungeon isn't in the game yet. Its bosses, loot, quests and way in show up the day the game adds them.
+coming.when = {when}. {coming}

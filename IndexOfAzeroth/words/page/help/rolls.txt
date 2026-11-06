@@ -1,0 +1,6 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = Loot roll
+intro.p1 = In a group the card says who an item is for. It lists everyone the item is an upgrade for, with clear upgrades first, then weak ones and then debatable ones.
+intro.p2 = <b>Clearly for</b> means one player is well ahead of the others. The other players' verdicts go by their class and their role in the group.

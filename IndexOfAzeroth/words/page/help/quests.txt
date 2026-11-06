@@ -1,0 +1,14 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = Quests and Professions
+planning = Planning
+planning.p1 = Tick quests and press <b>Quest epic</b> to plan just those quests as one quest epic. The plan is ordered for the least walking, with everything close by done before moving on. With <b>Prefer close</b> ticked, new epics plan each objective near its quest's giver.
+reading-quest = Reading a quest
+reading-quest.p1 = Click a quest's title to read its text. Point at an item an objective names (<b>Goretusk Liver: 3/8</b>) to see its tooltip.
+guide-me = Guide me
+guide-me.p1 = <b>Guide me</b> leads to the game's own marker for the quest. The marker shows the quest's objectives while the quest is open and its turn-in once it's complete. Guide me stays greyed out until the game marks the quest on its map. A quest the game marks far from the character, such as one on another continent, is guided to where the game last marked it.
+no-data = No data yet
+no-data.p1 = A zone marked <b>no data yet</b> has new quests with no information on them yet. The plan takes one of those quests only if a giver on the plan's route offers that quest.
+camping = Camping
+camping.p1 = In the Camping epic each player adds one object to a camp, so each player's share is the fire and one feature.

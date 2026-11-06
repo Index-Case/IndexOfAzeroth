@@ -1,0 +1,23 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: site, volume
+
+orb.unknown = The scrying orb clouds over. It finds visions only on YouTube, Twitch and Kick.
+orb.none = The orb reaches {site} and finds no vision on that page. Give it the link of a video, a stream or a clip.
+orb.kick = Kick lets only its live channels be scried from afar. Give the orb a channel's link.
+orb.no-channel = The orb searches YouTube's halls and finds no such channel.
+orb.unreached = The orb can't reach YouTube just now. Try again in a moment.
+orb.unread = YouTube answers in a way the orb can't read just now. Try again later.
+live.new = Went live since you last looked
+live.on = Live now
+live.off = Not live now
+live.asking = The page is asking whether the stream is live
+live.unreached = The page can't tell whether the stream is live, because {site} didn't answer
+live.unread = The page can't tell whether the stream is live, because {site} answered in a way the page can't read
+sound.mute = Mute
+sound.unmute = The video is muted. Click to turn the sound on
+sound.volume = Volume {volume}%
+sound.volume-muted = Volume {volume}%, muted
+sound.kick.key = Kick's player can't be muted from this page, so use the speaker in Kick's own bar
+sound.kick.slider = Kick's player takes no volume from the page and opens at its own each time, so hover over the speaker in Kick's own bar
+sound.clip.key = Twitch's clip player takes no sound setting from the page, so use the clip player's own sound keys
+sound.clip.slider = Twitch's clip player takes no sound setting from the page, so use the clip player's own sound keys

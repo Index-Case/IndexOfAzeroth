@@ -1,0 +1,10 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: name
+
+to-entrance.tip = Guides you to the nearest entrance for your side. Paste the copied line into the game's chat.
+brackets = Brackets
+masters = Battlemasters
+master.tip = Guides you to this battlemaster. Paste the copied line into the game's chat.
+master.guide = {name} battlemaster
+none.side = The data has no entrance or battlemaster for your side.
+none = No entrance or battlemaster in the game yet.

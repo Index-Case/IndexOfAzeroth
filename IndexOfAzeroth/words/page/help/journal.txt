@@ -1,0 +1,18 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = Dungeons
+experience = Experience
+experience.p1 = A dungeon run's kill experience shows after five kills inside that dungeon.
+not-open = Not open yet
+not-open.p1 = <b>Not open yet</b> means the dungeon isn't open in the game yet.
+upgrades = Upgrades
+upgrades.p1 = Upgrades are judged for the character's spec. The spec is the talent tree with the most points, or the class's usual leveling tree before 5 points are spent. Each piece gets a score for the spec, which adds up its stats. Each stat is weighted by how much the spec values that stat.
+upgrades.li2 = A <b>Clear upgrade</b> scores at least 2 points more than what's worn in that slot, and at least a tenth more. At least half of the gain comes from the stats the spec prioritizes, and the piece gives up no more than half of what it gains.
+upgrades.li3 = A <b>Weak upgrade</b> scores higher than what's worn in that slot, but gains less than 2 points or less than a tenth more, gets less than half of its gain from the stats the spec prioritizes, or gives up more than half of what it gains.
+upgrades.li4 = A <b>Debatable upgrade</b> scores higher than what's worn in that slot, but almost none of the gain is in stats the spec uses, or much of the piece is in stats for other classes. Roll on it only if nobody else wants it.
+upgrades.li5 = An <b>Item level upgrade</b> has a higher item level than what's worn in that slot. No stats are known yet for one of the two pieces, so the verdict goes by item level alone.
+upgrades.li6 = A <b>Small upgrade</b> among a quest's rewards scores a little higher than what's worn in that slot, too little to count as an upgrade anywhere else.
+upgrades.li7 = <b>Upgrade, lower armour</b> marks a piece of a lighter armour type than the class can wear. Warriors and Paladins wear mail, and plate from level 40. Hunters and Shamans wear leather, and mail from level 40.
+stars = Stars
+stars.p1 = A star you set on an item here reaches the game at the next /reload.

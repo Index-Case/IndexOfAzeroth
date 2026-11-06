@@ -1,0 +1,13 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+quest-items = Quest items
+sparkles = Quest item sparkles
+sparkles.help = The game shows the sparkle on lootable quest objects only while outline mode is off. With this on, outline mode stays off, even after picking a graphics preset. With this off, your outline settings come back and the sparkle goes after a game restart.
+sparkles.tip = Forever Loot Sparkles does the same. Both add-ons can run together. While Forever Loot Sparkles runs, the sparkle stays on even with this off.
+
+ground = Ground cover
+ground.help = More grass, seen further out. These boxes change game graphics settings, so they hold on every character.
+ground.density = Grass density
+ground.fade = Grass fade
+ground.distance = Grass distance

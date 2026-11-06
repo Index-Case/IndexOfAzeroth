@@ -1,0 +1,38 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = The Index of Azeroth
+moving-map = Moving the map
+moving-map.li1 = <b>F</b> follows the character. <b>F</b> twice zooms in on the character.
+moving-map.li2 = <b>H</b> switches between north up and heading up.
+moving-map.li3 = <b>Ctrl+click</b> any spot on the map to start a guide there.
+moving-map.li4 = <b>Sticky</b>, when ticked, brings the map back to the character after 15 seconds of the character moving.
+while-game = While the game is closed
+while-game.p1 = While the game is closed or its window is covered, the map shows where the character was last seen. Follow and the guides wait until the game is back.
+zones = Zones
+zones.p1 = The level range under each zone's name is coloured for the character's level.
+zones.li1 = <b>Red</b> zones are three or more levels above the character. Guides avoid red zones when they can.
+zones.li2 = <b>Yellow</b> zones hold the character's level.
+zones.li3 = <b>Green</b> zones are below the character's level.
+zones.li4 = <b>Grey</b> zones give the character no experience.
+zones.li5 = <b>C</b> in a cave, a building or a city switches between the inside map and the zone map.
+detailed-map = The detailed map
+detailed-map.p1 = A zone that covers more than half of the land on screen lights the map in that zone's colours, more strongly as the zone fills the screen.
+detailed-map.p2 = White water forms where a river drops. The white water drifts downstream with the current.
+detailed-map.li1 = <b>Trees</b> draws the game's trees and their shadows.
+detailed-map.li2 = <b>Tree transparency</b> clears the trees over roads and buildings and thins the trees around the character's arrow.
+overlays = Overlays
+overlays.li1 = <b>Ctrl+click</b> a name along the bottom of the map to show only that overlay. <b>Ctrl+click</b> the name again to show every overlay.
+overlays.li2 = <b>Tab</b> moves to each name, and <b>Enter</b> on a name works as a click. <b>Ctrl+Enter</b> on a name shows only that overlay.
+overlays.li3 = <b>Drag</b> a name left or right to fade that overlay.
+combat = In combat
+combat.p1 = When the character stands idle in a fight and loses health, <b>IN COMBAT</b> beats like a heart and bursts at half health. The blood on the screen shows how hurt the character is.
+game = In game
+game.li1 = <b>Click</b> the add-on button to show or hide the epic card.
+game.li2 = <b>Middle-click</b> the add-on button to paste a guide.
+game.li3 = <b>Right-click</b> the add-on button to turn the strip on or off.
+game.li4 = The <b>compass</b> is the ribbon across the top of the screen. The compass marks each guide's spot in that guide's colour.
+game.li5 = <b>Drag</b> the compass to move it. <b>/ioa compass reset</b> puts the compass back.
+game.li6 = <b>Right-click</b> a guide's arrow under the compass to close that guide.
+game.li7 = <b>/ioa copy</b> copies the addon's chat lines.
+game.li8 = <b>/ioa help</b> lists every command.

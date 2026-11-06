@@ -1,0 +1,12 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = Your road to 60
+colours = Colours
+colours.li1 = Blue spells are spells the character knows.
+colours.li2 = Gold spells are waiting at the trainer now.
+colours.li3 = Dim spells need a higher level first.
+colours.li4 = Dashed spells are a talent's later rank.
+colours.li5 = A hunter's pet skills are brown, edged orange when the character can learn them.
+colours.li6 = Jade marks what else a level opens.
+colours.p7 = The faded levels past the gold line are above the game's level cap.

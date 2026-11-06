@@ -1,0 +1,9 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = Profession epics
+intro.p1 = A profession epic only leads the way when there's something to do. A profession epic adds its trainer, vendor and crafts to the quest epic when they're close to the quest epic's route.
+recipe-colours = Recipe colours
+recipe-colours.p1 = An orange recipe always gives a skill point. A yellow recipe usually gives one, a green recipe sometimes gives one and a grey recipe never does.
+hide = Hide
+hide.p1 = <b>Hide</b> puts the profession epic away while its chores keep coming. <b>Unhide</b> in the Player menu brings it back.

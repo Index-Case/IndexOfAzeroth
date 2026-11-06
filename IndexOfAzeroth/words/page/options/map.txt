@@ -1,0 +1,26 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+name = Map
+lighting = Map lighting
+lighting.text = This lights and shades the land on the detailed map by the game's sun and moon and by the light of the zone in view
+lighting.none = Map lighting needs WebGL 2, which this browser hasn't got
+night = Night
+night.text = This darkens the map at night
+zone-glow = Zone glow
+zone-glow.text = This lights up the zone under the mouse on the map
+continent-names = Continent names
+continent-names.text = This shows the big name of each continent on the detailed map when the map is zoomed out to a continent or the world
+zone-names = Zone names
+zone-names.text = This shows each zone's name and level range on a continent's map
+city-banners = City banners
+city-banners.text = This shows the banners of the capital cities, like Stormwind and the Undercity, on the detailed map
+place-names = Place names
+place-names.text = This shows the names of the towns and landmarks inside a zone, like Thelsamar, on the detailed map
+replay = Replay
+replay.text = This shows the replay controls, which play back a recorded day, at the foot of the map
+maps-shown = Maps shown
+maps-shown.text = This picks whether the page draws the paper maps, the detailed maps or both of them as the map zooms in and out
+maps-shown.paper = Paper maps only
+maps-shown.both = Both
+maps-shown.detailed = Detailed maps only

@@ -1,0 +1,15 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = Items and gear
+intro.p1 = The search finds any item in the game by name. Each item shows its price at the auction house and a key for each way to get the item.
+grind = Grind for it
+grind.p1 = <b>Grind for it</b> starts a grind loop at the best place to farm the item. The best place gives the most an hour, counting the trip there. An item that only herbs or ore veins give has <b>Gather it</b> in its place, which starts a gathering loop.
+quest = Quest for it
+quest.p1 = <b>Quest for it</b> starts a quest epic that ends with the item as a quest reward. When earlier quests lead up to that quest, the epic takes in the whole chain. The key shows when the chain can be started now and the quest is at most 4 levels above the character.
+buy = Buy it
+buy.p1 = <b>Buy it</b> starts the Navigation Guide to the nearest vendor or auctioneer with the item.
+prices = Prices
+prices.p1 = Scan the auction house with the tab named The Index of Azeroth on its window to get prices here. An item's price is the middle price of what sold lately, or the middle listed price when nothing sold.
+search = Search
+search.p1 = Press <b>Enter</b> for the full search, which also finds a word typed with a letter or two wrong.

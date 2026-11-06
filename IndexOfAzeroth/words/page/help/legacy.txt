@@ -1,0 +1,6 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = Legacy points
+intro.p1 = Legacy points belong to the account, and every character can spend up to the same cap.
+intro.p2 = <b>Granted</b> points are the points beyond the challenges done, such as the 16 every beta tester gets.

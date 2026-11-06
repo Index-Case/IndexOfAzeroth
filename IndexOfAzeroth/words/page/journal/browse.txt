@@ -1,0 +1,19 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: kind, n
+
+dungeons = Dungeons
+raids = Raids
+battlegrounds = Battlegrounds
+title = Browse {kind}
+pick.dungeon = Pick a dungeon to see its bosses, loot and quests. The colors show how each one fits your level.
+pick.raid = Pick a raid to see its bosses, loot and quests. The colors show how each one fits your level.
+pick.battleground = Pick a battleground to see its levels, brackets and where to join. The colors show how each one fits your level.
+upgrades = Next upgrades
+upgrades.tip = The best gear for each slot from the dungeons and raids in your level range
+none.dungeon = No dungeons in the data.
+none.raid = No raids in the data.
+none.battleground = No battlegrounds in the data.
+asked = the dungeons
+quests = {n} quests
+quests.one = {n} quest
+starred = {n} starred

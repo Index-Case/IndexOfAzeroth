@@ -1,0 +1,11 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+kind.item-tip = Items with no tooltip
+kind.spell-tip = Spells with no tooltip
+kind.mob-level = Mobs whose level isn't known
+kind.npc-place = NPCs and mobs with no known place
+place.tooltip = a tooltip
+place.npcs = the NPCs menu
+place.rares = the rares list
+place.dungeons = the Dungeons window

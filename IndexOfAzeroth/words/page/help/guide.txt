@@ -1,0 +1,25 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = The Navigation Guide
+colours = Colours
+colours.li1 = <b>Gold</b> is the Navigation Guide's own colour.
+colours.li2 = <b>Bone white</b> is the guide's colour on a corpse run.
+colours.li3 = <b>Crimson</b> is the guide's colour while the Target key holds the mob or NPC that the guide leads to.
+way = The route
+way.li1 = <b>Safest</b> keeps to roads and away from mobs.
+way.li2 = <b>Grinding</b> goes through camps worth fighting.
+way.li3 = A <b>red stretch</b> of the route has notes on the mobs there. Mouse over the red stretch to read the notes.
+way.li4 = A <b>red note</b> means no route on foot reaches the spot.
+way.li5 = A route drawn as a <b>straight line</b> fills in with the walking route a little later.
+starting-it = Starting the guide in game
+starting-it.li1 = <b>Paste</b> the copied line into the game's chat to start the guide at once.
+starting-it.li2 = <b>/reload</b> starts the guide too, when the line wasn't pasted.
+starting-it.li3 = <b>/ioa go off</b> stops the arrow in game.
+stops = Stops
+stops.p1 = <b>Ctrl+click</b> the map again to add a stop while a guide started from the map runs.
+flights = Flights
+flights.li1 = <b>Open a flight master's map</b> once on each character, and the guide then uses that character's flight paths.
+flights.li2 = <b>Hold Shift</b> as a flight map opens to pick the flight by hand.
+nameplates = Nameplates
+nameplates.p1 = Near some of Forever's own NPCs the friendly nameplates turn on for a moment. The <b>Nameplates</b> page of the options switches that off.

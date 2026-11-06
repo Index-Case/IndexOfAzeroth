@@ -1,0 +1,6 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: product
+
+none = No World of Warcraft client is installed in any folder the Index checks
+lead-missing = The game client the Index builds its data from, {product}, isn't installed
+several = Several World of Warcraft clients are installed, and no client was recorded when the Index was installed. The Index builds its data from the client it was installed for, so run the Index's installer again and choose the client you play

@@ -1,0 +1,18 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = Options for The Index of Azeroth
+on = On
+off = Off
+
+general = General
+general.general = General
+general.graphics = Graphics
+general.level-up-picture = Level-up picture
+quest-epic = Quest epic
+quest-epic.card = Card
+navigation = Navigation
+navigation.guidance = Guidance
+targets = Targets
+targets.nameplates = Nameplates
+targets.target-key = Target key

@@ -1,0 +1,28 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: item, running, epic, count, have, vendor, zone, quest, coins, name
+
+title = {item} Crafting epic
+label = the {item} crafting epic
+ask = {running} is running. Start the {item} crafting epic? {running} keeps its plan and your progress, and the Back to {running} key opens it again.
+ask.yes = Start the crafting epic
+back = Back to {epic}
+back.tip = This closes the crafting epic and opens {epic} again where you were, with its plan and progress.
+back.done = {epic} is back where you were. Type /reload in game to pick it up there
+back.failed = Nothing to go back to
+materials = Materials
+row.need = You need {count} {item} and you have {have}.
+row.pattern = You need {item} to learn the recipe.
+row.vendor = The plan buys {item} from {vendor}.
+row.auction = Buy {count} {item} at the auction house. That costs about {coins}.
+row.grind = The plan grinds for {item} in {zone}.
+row.gather = The plan gathers {item} in {zone}.
+row.quest = {quest} gives {item} as a reward.
+row.craft = The plan crafts {item} from the materials under it.
+row.none = The Index knows no way for you to get {item} yet.
+pick.grind = The plan gets {name} by grinding at the best place for you to farm it.
+pick.gather = The plan gets {name} by gathering it at the best place for you.
+pick.quest = The plan gets {name} as the reward from {quest}.
+pick.craft = The plan crafts {name} from its own materials.
+pick.buy = The plan buys {name} from {vendor}.
+pick.auction = The plan buys {name} at the auction house.
+pick.failed = The plan still gets that material the way it did

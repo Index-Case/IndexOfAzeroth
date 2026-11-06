@@ -1,0 +1,49 @@
+{
+ "about": "Hand-made ways out of spots the ground data gets wrong (nav.py): a path that starts or ends within reach of a way's first point, at its height (or indoors when no height is given), walks the way, then on from its last point. Points are world yards: north, west, height. A way's block closes its room's floors (within its reach of the first point, between its heights) to every other search, so no way passes through the room.",
+ "ways": [
+  {
+   "name": "Stormwind's gryphon roost: out of its door and down the ramp to the street",
+   "inst": 0,
+   "reach": 25,
+   "points": [
+    [
+     -8832.8,
+     478.6,
+     109.6
+    ],
+    [
+     -8843.0,
+     506.0,
+     110.0
+    ],
+    [
+     -8847.0,
+     510.0,
+     112.0
+    ],
+    [
+     -8852.0,
+     516.0,
+     113.0
+    ],
+    [
+     -8851.0,
+     522.0,
+     106.0
+    ],
+    [
+     -8836.0,
+     545.0,
+     97.0
+    ]
+   ],
+   "block": {
+    "reach": 20,
+    "heights": [
+     104,
+     116
+    ]
+   }
+  }
+ ]
+}

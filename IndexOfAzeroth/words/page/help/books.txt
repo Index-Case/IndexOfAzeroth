@@ -1,0 +1,6 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = Library books
+intro.p1 = The librarian takes each book once, in a quest named after the book. The Alliance's librarian is Garion Wendell in Stormwind's Mage Quarter, and the Horde's is Owen Thadd in the Undercity's Magic Quarter.
+intro.p2 = Players report that 10 books open Friend of the Library and 20 open Greater Friend of the Library.

@@ -1,0 +1,19 @@
+{
+  "zones": {
+    "1413": "The Crossroads"
+  },
+  "graded": {
+    "1420": {
+      "zone": "Tirisfal Glades",
+      "direct": 0.85,
+      "ambient": 0.75,
+      "grey": 0.5,
+      "hue": [
+        0.9,
+        1,
+        0.85
+      ],
+      "haze": 0.25
+    }
+  }
+}

@@ -1,0 +1,6 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: side
+
+horde = Horde
+alliance = Alliance
+side.tip = When this box is ticked, the map shows the {side}'s places. The places both factions can use always show. The character's own faction is ticked each time the page opens

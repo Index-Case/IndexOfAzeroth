@@ -1,0 +1,45 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+## Interface: 16001
+## Title: The Index of Azeroth
+## Notes: Dungeon journal and guide arrow, and the feed for the local web page (a pixel strip in the top left corner).
+## Author: IndexCase
+## Version: 0.1.0-alpha
+## SavedVariables: IndexOfAzerothDB
+## SavedVariablesPerCharacter: IndexOfAzerothCharDB
+## IconTexture: Interface\AddOns\IndexOfAzeroth\Media\icon
+Words.lua
+Strip.lua
+Geo.lua
+UI.lua
+Rules.lua
+QuipLines.lua
+Trace.lua
+Camps.lua
+Arbiter.lua
+Collect.lua
+Status.lua
+Kills.lua
+Objectives.lua
+Ranks.lua
+Entrances.lua
+DungeonData.lua
+Dungeon.lua
+Group.lua
+Pending.lua
+Shared.lua
+Arrow.lua
+Tracks.lua
+ClassTrainers.lua
+Vendors.lua
+Chores.lua
+PathLines.lua
+Options.lua
+Lfg.lua
+Card.lua
+Director.lua
+Drawer.lua
+Targets.lua
+Compass.lua
+Button.lua
+Auction.lua
+IndexOfAzeroth.lua

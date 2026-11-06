@@ -1,0 +1,17 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = Loops
+how-loop = How a loop runs
+how-loop.p1 = A loop runs beside the other guides until the loop is stopped. Each loop is sized so that what was taken has respawned by the next time round.
+how-loop.p2 = Grind, farm and skin loops keep clear of anything too strong for the character.
+options = Options
+options.li1 = <b>AOE</b> picks the densest packs at the character's level or below. AOE is meant for a Frost Mage from level 22 or a Protection Paladin from level 40.
+options.li2 = <b>Include AH prices</b> counts loot at what the loot sells for in the auction house, less the house's 5% cut.
+options.li3 = <b>Daredevil</b> lets a gathering loop go through every mob.
+options.li4 = <b>All levels</b> lets a loop take mobs of any level, with no check for danger.
+making-loop = Making a loop
+making-loop.p1 = A loop searches the area in view, so zoom to the loop's area first.
+making-loop.li1 = <b>Copy</b> gives the line for the in-game arrow.
+making-loop.li2 = <b>Ctrl+right-click</b> the loop's Target key to pick the spell that the Target key casts at the camp's mobs.
+making-loop.li3 = A loop drawn in <b>purple</b> in game comes from an older line. Copying the line again fixes the loop's colour.

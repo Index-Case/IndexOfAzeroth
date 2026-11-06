@@ -1,0 +1,24 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+on-screen = On the screen
+on-screen.help = Every switch here holds on every character.
+button = Add-on button
+button.help = Click the button to open the epic card. Middle-click opens the paste box. The cog opens these options and the arrow reloads the game interface. The Target key slides out beside the button. Type /ioa button to show or hide the button.
+map-paste = Paste guide on the world map
+map-paste.help = The button at the bottom of the world map pastes a guide copied on the page.
+warning-sound = Warning sound
+warning-sound.help = Warnings play the raid warning sound in game and beep on the page. With this off, warnings still show.
+chat-tab = Add-on chat tab
+chat-tab.help = Add-on lines get a chat tab with a Copy key. With this off, add-on lines go to the main chat.
+
+guides = Done by the guides
+guides.help = Hold Shift to do any of these by hand.
+accept = Auto-accept quests
+accept.help = A timed quest in the plan is accepted only when the plan reaches that quest.
+hand-in = Auto-hand-in quests
+hand-in.help = You pick the reward when a quest offers a choice.
+flights = Auto-take flights
+flights.help = The flight is taken only when every guide flies to the same place.
+reward-mark = Mark the best reward
+reward-mark.help = The best quest reward gets a gold edge and a line saying why.

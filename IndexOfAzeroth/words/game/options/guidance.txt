@@ -1,0 +1,27 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+heading = Guidance
+heading.help = Every switch here holds on every character.
+compass = Compass
+places = Places on the compass
+places.tip = The compass shows the places that the map of the current zone names: the towns, the capital, the areas and the dungeon entrances. Towns, capitals, areas and dungeon entrances each have their own icon. The name of the place straight ahead shows under the compass.
+arrows = Navigation arrows
+glow = Glow to objective
+glow.tip = The arrow follows the route and the glow on the arrow shows the objective.
+arrow = Arrow to objective
+arrow.tip = The arrow points at the objective and the glow on the arrow shows the route.
+beacons = Beacons
+minimap-line = Minimap line
+map-line = World map line
+all-off = All guidance is off, so nothing shows the route.
+
+declutter = Dynamic declutter
+declutter.help = When a beacon is in the cone ahead, in the middle of the screen, either the beacon or the arrow to it hides.
+prefer-arrows = Prefer navigation arrows
+prefer-arrows.help = The beacon hides while it is inside the cone.
+prefer-beacons = Prefer beacons
+prefer-beacons.help = The arrow fades out over 1.5 seconds while the beacon is inside the cone.
+cone = Cone ahead
+past = Arrow stays past
+past.help = The arrow stays for a beacon further off than this many yards, even inside the cone.

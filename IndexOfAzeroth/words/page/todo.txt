@@ -1,0 +1,15 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: item, kind, n, max, better, used, held
+
+ammo.buy = Buy {item}
+ammo.buy-kind = Buy {kind}
+ammo.left = {n} left
+ammo.left-of = {n} left of {max} the quiver holds
+ammo.kind.arrows = arrows
+ammo.kind.bullets = bullets
+ammo.kind.any = ammo
+ammo.use = Put {better} in your ammo slot
+ammo.use.why = {better} in your bags is better ammo than {used}. Right-click {better} in your bags to shoot it
+ammo.use.empty = Your ammo slot is empty. Right-click {better} in your bags to shoot it
+grade.ammo = Your level lets you shoot {item}, which is better ammo than {held}
+grade.water = Your level lets you drink {item}, which is better than any drink in your bags
