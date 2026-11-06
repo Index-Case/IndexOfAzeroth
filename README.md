@@ -1,8 +1,12 @@
 ![The Index of Azeroth](IndexOfAzeroth/web/art/landing.webp)
 
+<p><a href="IndexOfAzeroth/shots/epic.webp"><img src="IndexOfAzeroth/shots/epic-small.webp" width="134" alt="A quest epic planned across Tirisfal Glades"></a> <a href="IndexOfAzeroth/shots/night.webp"><img src="IndexOfAzeroth/shots/night-small.webp" width="134" alt="Elwynn Forest and Stormwind at night"></a> <a href="IndexOfAzeroth/shots/places.webp"><img src="IndexOfAzeroth/shots/places-small.webp" width="134" alt="Durotar with its inns and flight masters"></a> <a href="IndexOfAzeroth/shots/road.webp"><img src="IndexOfAzeroth/shots/road-small.webp" width="134" alt="Your road to 60"></a> <a href="IndexOfAzeroth/shots/items.webp"><img src="IndexOfAzeroth/shots/items-small.webp" width="134" alt="Items and gear"></a> <a href="IndexOfAzeroth/shots/alts.webp"><img src="IndexOfAzeroth/shots/alts-small.webp" width="134" alt="Your alts"></a></p>
+
 # The Index of Azeroth
 
 **[Download the latest release](https://github.com/Index-Case/IndexOfAzeroth/releases/latest/download/IndexOfAzeroth.zip)**
+
+**Early days.** This is version 0.1. The Index works, but it still has rough edges, and updates come often while they're smoothed out.
 
 *Being a complete account of everything... probably.*
 
