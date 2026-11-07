@@ -1,11 +1,16 @@
 # The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
-# placeholders: done, total, size, version
+# placeholders: done, total, size, version, left, minutes, hours
 
 title = The Index of Azeroth
 loading = Loading
 loading-maps = The Index is loading its maps.
 checking = The Index is looking for its newest version.
 installing = The Index is downloading: {done} of {total} MB.
+installing-left = The Index is downloading: {done} of {total} MB, {left}.
+left-soon = less than a minute left
+left-minute = about a minute left
+left-minutes = about {minutes} minutes left
+left-hours = about {hours} hours left
 updated = The Index has been updated to version {version}.
 update-size = The update is {size} MB.
 update = Update
@@ -13,6 +18,8 @@ later = Later
 offline = The Index can't reach its download page. The Index tries again every half a minute.
 refused = The download didn't match the Index's signature, so the Index didn't install it. The Index tries again every half a minute.
 wait-game = The update goes in once World of Warcraft is closed.
+addon-waiting = The Index's addon isn't in the game yet. Close World of Warcraft, and the Index puts its addon into the game.
+addon-new = The Index's addon is in the game now. Start World of Warcraft and check that IndexOfAzeroth is ticked in the AddOns list on the character screen.
 no-client = No World of Warcraft client is installed in any folder the Index checks. Install WoW Forever, and the Index carries on by itself.
 several = Several World of Warcraft clients are installed. Start the client you play once, and the Index records it.
 starting = The Index is starting.

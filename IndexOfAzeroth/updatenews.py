@@ -5,9 +5,10 @@ import os
 import store
 
 WORK = ".update"
-NEWS, CHOICE, STOP = "news.json", "choice.json", "stop"
+NEWS, CHOICE, STOP, ADDON = "news.json", "choice.json", "stop", "addon.json"
 CHOICES = ("update", "later")
 STEPS = ("offer", "downloading", "waiting")
+ADDON_WORDS = ("waiting", "new")
 
 
 def _path(root, name):
@@ -68,8 +69,19 @@ def stop_asked(root):
     return _take(root, STOP) is True
 
 
+def tell_addon(root, word):
+    word = word if word in ADDON_WORDS else None
+    if addon(root) != word:
+        _write(root, ADDON, word)
+
+
+def addon(root):
+    data = _read(root, ADDON)
+    return data if data in ADDON_WORDS else None
+
+
 def clear(root):
-    for name in (NEWS, CHOICE, STOP):
+    for name in (NEWS, CHOICE, STOP, ADDON):
         try:
             os.remove(_path(root, name))
         except OSError:

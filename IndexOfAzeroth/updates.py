@@ -77,7 +77,7 @@ class Updates:
         if self.version:
             if self.stop and updatenews.stop_asked(self.root):
                 start_thread("update stop", self.stop)
-            out["index"] = {"version": self.version, "news": updatenews.news(self.root)}
+            out["index"] = {"version": self.version, "news": updatenews.news(self.root), "addon": updatenews.addon(self.root)}
         return out
 
     def watch(self):

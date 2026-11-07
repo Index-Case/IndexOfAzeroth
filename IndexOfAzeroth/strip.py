@@ -753,7 +753,7 @@ def strip_loop(hub):
             if tap:
                 tap(None, None, {"error": message})
             if message == "anchor not found":
-                message = "The strip isn't visible. Is the WoW window on screen and uncovered, with /ioa strip on?"
+                message = "The strip isn't visible. Is the WoW window on screen and uncovered?"
             if message != last_message:
                 hub.publish(link={"ok": False, "message": message})
                 last_message = message

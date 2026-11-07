@@ -409,7 +409,7 @@ function apply(snap) {
     app.state = s;
     if (waited) step("last seen", () => endLastSeen());
     step("life", () => updateLife(s));
-  } else if (snap.lastSeen) step("last seen", () => takeLastSeen(snap.lastSeen));
+  } else step("last seen", () => takeLastSeen(snap.lastSeen));
   if (snap.status) {
     app.status = snap.status;
     step("player key", () => playerKey());
@@ -541,6 +541,11 @@ const HINTS = [
 ];
 
 const indexSilent = () => !app.lastEvent || Date.now() - app.lastEvent > SERVER_SILENT_MS;
+function addonAwaited() {
+  const a = app.updates?.index?.addon;
+  if (a === "waiting") return word("page.launcher.addon-waiting");
+  return a === "new" && !app.character ? word("page.launcher.addon-new") : null;
+}
 function linkProblem() {
   if (indexSilent()) return app.lastEvent ? "The Index isn't answering" : "Connecting to the Index";
   if (app.link && !app.link.ok) return app.link.message;
@@ -707,7 +712,7 @@ function indexUpdateHtml() {
       + `<button class="key small" data-index-update="update">${esc(word("page.launcher.update"))}</button>`
       + `<button class="key small" data-index-update="later">${esc(word("page.launcher.later"))}</button></div></section>`;
   }
-  const line = n.step === "downloading" ? word("page.launcher.installing", { done: n.done, total: n.total }) : word("page.launcher.wait-game");
+  const line = n.step === "downloading" ? n.line : word("page.launcher.wait-game");
   return `<section class="index-update"><p>${esc(line)}</p></section>`;
 }
 
@@ -775,11 +780,11 @@ function checkAlert() {
       document.body.classList.remove("alerting");
       return;
     }
-    const serverDown = /Index/.test(problem);
+    const serverDown = /Index/.test(problem), addon = !serverDown && addonAwaited();
     $("alert").classList.remove("info");
     $("alert-title").textContent = serverDown ? "The Index is offline" : "The pixel strip can't be read";
-    $("alert-text").textContent = problem.charAt(0).toUpperCase() + problem.slice(1);
-    $("alert-hint").textContent = wordsOf("page.alert")[(HINTS.find(([re]) => re.test(problem)) || [null, "default"])[1]];
+    $("alert-text").textContent = addon || problem.charAt(0).toUpperCase() + problem.slice(1);
+    $("alert-hint").textContent = addon ? "" : wordsOf("page.alert")[(HINTS.find(([re]) => re.test(problem)) || [null, "default"])[1]];
   }
   $("alert").hidden = false;
   document.body.style.setProperty("--alert-h", `${$("alert").offsetHeight}px`);
@@ -821,10 +826,11 @@ function placeInView() {
   return { name: word("page.map.sea"), cont: null, sea };
 }
 
+const WAITING_ZONE = $("zone").textContent;
 function updateHud() {
   const s = app.state;
   if (!s) return;
-  const zone = s.zone || mapName(s.map);
+  const zone = s.zone || (s.seen && nobodySeen(s.seen) ? WAITING_ZONE : mapName(s.map));
   $("zone").textContent = zone;
   const levels = app.maps[s.map]?.levels, range = $("zone-levels");
   range.hidden = !levels || !!app.dungeon;
@@ -4249,7 +4255,10 @@ const lastSeenOnly = () => !!app.state?.seen && !app.state.pos;
 let followBefore = null;
 const FOLLOW_TITLE = $("btn-follow").title;
 function takeLastSeen(seen) {
-  if (seen.map == null) return;
+  if (seen?.map == null) {
+    if (app.state) return;
+    seen = { ...seen, map: WORLD_MAP };
+  }
   const first = !lastSeenOnly();
   app.state = { map: seen.map, pos: null, facing: null, level: seen.level, zone: seen.zone, subzone: seen.subzone, flags: {}, seen };
   if (!first) return;
@@ -4304,7 +4313,8 @@ function drawLastSeenLabel(seen, x, y) {
   redrawIn(agoTurns(seen.at) * 1000);
 }
 const seenLook = () => ({ lit: tint("text"), mid: tint("text-dim"), shade: tint("iron"), edge: null, rim: tint("black"), seen: true });
-const lastSeenText = (seen) => `${seen.name ? `${seen.name} ` : ""}last seen ${ago(seen.at)}`.replace(/^l/, "L");
+const nobodySeen = (seen) => seen.at === undefined;
+const lastSeenText = (seen) => nobodySeen(seen) ? "" : `${seen.name ? `${seen.name} ` : ""}last seen ${ago(seen.at)}`.replace(/^l/, "L");
 
 function setFollow(on, target = "you") {
   if (lastSeenOnly() && target === "you") on = false;

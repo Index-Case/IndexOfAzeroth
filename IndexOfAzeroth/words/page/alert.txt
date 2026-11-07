@@ -3,7 +3,7 @@
 
 window = Start the game. The reader looks for the window of the game client you play.
 minimized = Restore the game window. A minimized window has no picture to read.
-hidden = Keep the top left corner of the game window uncovered. In game, /ioa strip on turns the strip on and /ioa test checks it.
+hidden = Keep the top left corner of the game window uncovered. In game, /ioa test checks the strip.
 brightness = Set Brightness back to its default of 50 in the game's graphics options, then run /ioa test.
 contrast = Set Contrast back to its default of 50 in the game's graphics options, then run /ioa test.
 gamma = Set Gamma back to its default of 1.0 in the game's graphics options, then run /ioa test.

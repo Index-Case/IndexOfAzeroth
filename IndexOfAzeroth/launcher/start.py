@@ -1,4 +1,5 @@
 # The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+import collections
 import http.server
 import json
 import os
@@ -28,6 +29,8 @@ SHOW = 3.0
 MB = 1 << 20
 AUTO = 200 * MB
 CHECK = 3600.0
+PACE = 30.0
+SETTLE = 5.0
 PAGE = os.path.join(HERE, "page.html")
 WEB = os.path.join(INSTALL, "web")
 KINDS = {".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".webp": "image/webp",
@@ -36,6 +39,45 @@ KINDS = {".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf
 
 def by_itself(size):
     return size <= AUTO
+
+
+class Pace:
+
+    def __init__(self):
+        self.seen = collections.deque()
+        self.began = None
+
+    def add(self, now, done):
+        if self.began is None:
+            self.began = now
+        self.seen.append((now, done))
+        while len(self.seen) > 2 and now - self.seen[1][0] >= PACE:
+            self.seen.popleft()
+
+    def left(self, total):
+        if not self.seen or self.seen[-1][0] - self.began < SETTLE:
+            return None
+        (t0, d0), (t1, d1) = self.seen[0], self.seen[-1]
+        if t1 <= t0 or d1 <= d0:
+            return None
+        return max(0, total - d1) * (t1 - t0) / (d1 - d0)
+
+
+def time_left(seconds):
+    if seconds < 60:
+        return words.say("page.launcher.left-soon")
+    if seconds < 120:
+        return words.say("page.launcher.left-minute")
+    if seconds < 90 * 60:
+        return words.say("page.launcher.left-minutes", {"minutes": round(seconds / 60)})
+    return words.say("page.launcher.left-hours", {"hours": round(seconds / 3600)})
+
+
+def downloading_line(done, total, left=None):
+    values = {"done": f"{done // MB:,}", "total": f"{total // MB:,}"}
+    if left is None:
+        return words.say("page.launcher.installing", values)
+    return words.say("page.launcher.installing-left", {**values, "left": time_left(left)})
 
 
 class WindowClosed(Exception):
@@ -56,9 +98,11 @@ class Launch:
         self.declined = None
         self.lock = threading.Lock()
         self.done = self.total = 0
+        self.pace = Pace()
         self.say("page.launcher.checking")
         self.choice, self.chosen = None, threading.Event()
         self.addon_waits = False
+        self.addon_new = False
         self.news = None
         self.news_seen = False
         self.clock = time.monotonic
@@ -80,7 +124,8 @@ class Launch:
     def state(self):
         with self.lock:
             self.seen_at = self.clock()
-            line = words.say(self.phase, self.values) or ""
+            line = (self.downloading() if self.phase == "page.launcher.installing"
+                    else words.say(self.phase, self.values)) or ""
             out = {"phase": self.phase.rsplit(".", 1)[-1], "line": line, "done": self.done, "total": self.total,
                    "title": words.say("page.launcher.title")}
             if self.phase == "page.launcher.updated":
@@ -118,24 +163,32 @@ class Launch:
             self.still_open()
             self.sleep(1)
 
+    def downloading(self):
+        return downloading_line(self.done, self.total, self.pace.left(self.total))
+
     def download(self, manifest, tell=None):
         todo = updater.needed(self.install, manifest, self.public_key)
         with self.lock:
             self.done, self.total = 0, updater.Manifest.total_size(todo)
+            self.pace = Pace()
+            self.pace.add(self.clock(), 0)
         before = 0
         for pack in todo:
             def progress(got, _size, base=before):
                 with self.lock:
                     was = self.done // MB
                     self.done = base + got
-                    self.values = {"done": self.done // MB, "total": self.total // MB}
+                    self.pace.add(self.clock(), self.done)
+                    line = self.downloading()
                 if tell and self.done // MB != was:
-                    tell(self.done // MB, self.total // MB)
+                    tell(self.done // MB, self.total // MB, line)
             if tell:
-                tell(before // MB, self.total // MB)
+                with self.lock:
+                    line = self.downloading()
+                tell(before // MB, self.total // MB, line)
             else:
                 self.still_open()
-                self.say("page.launcher.installing", done=before // MB, total=self.total // MB)
+                self.say("page.launcher.installing")
             updater.download_pack(pack, self.install, self.get, progress)
             before += pack.size
 
@@ -224,12 +277,17 @@ class Launch:
             game.forget()
 
     def addon(self):
-        if self.running():
-            return False
         held = os.path.join(self.install, "addon", ADDON)
         if not os.path.isdir(held):
             return True
-        put_addon(held, os.path.join(self.load_game().game_addons_dir(), ADDON))
+        target = os.path.join(self.load_game().game_addons_dir(), ADDON)
+        if self.running():
+            updatenews.tell_addon(self.install, None if toc_version(target) else "waiting")
+            return False
+        if not toc_version(target):
+            self.addon_new = True
+        put_addon(held, target)
+        updatenews.tell_addon(self.install, "new" if self.addon_new else None)
         return True
 
     def serve(self):
@@ -328,10 +386,11 @@ class Launch:
             updatenews.tell(self.install, None)
 
     def fetch(self, manifest, told):
-        def progress(done, total):
-            updatenews.tell(self.install, {"step": "downloading", "version": manifest.version, "done": done, "total": total})
+        def progress(done, total, line):
+            updatenews.tell(self.install, {"step": "downloading", "version": manifest.version, "done": done, "total": total,
+                                           "line": line})
         try:
-            self.download(manifest, progress if told else (lambda done, total: None))
+            self.download(manifest, progress if told else (lambda done, total, line: None))
         except (OSError, updater.UpdateRefused):
             if told:
                 updatenews.tell(self.install, None)
