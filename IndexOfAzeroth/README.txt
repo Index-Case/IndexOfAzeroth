@@ -42,6 +42,5 @@ HOW TO INSTALL THE INDEX
 HOW TO REMOVE THE INDEX
 =======================
 
-   Close the Index's window. Delete the IndexOfAzeroth folder you
-   unpacked. Then delete the IndexOfAzeroth folder in the game's
-   Interface\AddOns folder.
+   Double-click Uninstall the Index in the IndexOfAzeroth folder.
+   The notes the Index keeps about your characters are set aside first.
