@@ -159,7 +159,7 @@ function pickedName(key, className) {
   return name ? ` (${name})` : "";
 }
 const morePlus = (key) => (PICK_KINDS.has(key) ? html`<button class="fold-plus poi-more" data-more="${key}" aria-expanded="${
-  String(poi.open.has(`more:${key}`))}" title="${word(`page.places.more.${key}`)}"></button>` : "");
+  String(poi.open.has(`more:${key}`))}" title="${wordsOf("page.places.more")[key]}"></button>` : "");
 function pickRows(key) {
   const row = (value, img, name, on, note = "") => html`<label class="poi-pick"><input type="radio" name="poi-pick-${key}"
     data-pick="${key}" value="${value}"${on ? " checked" : ""}>${img ? html`<img src="${img}" alt="">` : ""} ${name}${

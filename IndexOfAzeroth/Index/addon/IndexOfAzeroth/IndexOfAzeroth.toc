@@ -3,7 +3,7 @@
 ## Title: The Index of Azeroth
 ## Notes: Dungeon journal and guide arrow, and the feed for the local web page (a pixel strip in the top left corner).
 ## Author: IndexCase
-## Version: 0.1.3-alpha
+## Version: 0.1.4-alpha
 ## SavedVariables: IndexOfAzerothDB
 ## SavedVariablesPerCharacter: IndexOfAzerothCharDB
 ## IconTexture: Interface\AddOns\IndexOfAzeroth\Media\icon

@@ -1,6 +1,11 @@
 <!-- The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md. -->
 # Changelog
 
+## 0.1.4-alpha
+
+### Fixes
+- Plans and guides follow the ground again everywhere, where they could draw straight lines.
+
 ## 0.1.3-alpha
 
 ### Fixes
