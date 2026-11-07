@@ -64,6 +64,13 @@ def wearable(it, level, profs):
     return need <= have + CRAFT_AHEAD
 
 
+def upgrade(it, me, profs):
+    if not it or not it.get("inv") or not wearable(it, me["level"], profs):
+        return None
+    v = upgrades.verdict(it, {**me, "level": me["level"] + LEVELS_AHEAD})
+    return v if v["up"] and v["u"]["use"] == "yes" and not v["u"].get("lower") and v["cmp"] else None
+
+
 def ways(src, plan, here, gold):
     out = []
 
@@ -111,17 +118,14 @@ def pass_over(look, me, gold, tips, listed=(), table=None):
         return {"known": False, "slots": []}
     level, profs = me["level"], (look.me.get("state") or {}).get("profs")
     table = gamedata.client_table("items.json", "items")[1] if table is None else table
-    ahead = {**me, "level": level + LEVELS_AHEAD}
     picks = {}
     for item in look.items(listed):
         row = table.get(str(item))
         if not row or row[3] or (row[gamedata.ITEM_REQUIRED] if len(row) > gamedata.ITEM_REQUIRED else 0) > level + LEVELS_AHEAD:
             continue
         it = tips.stats(item)
-        if not it or not it.get("inv") or not wearable(it, level, profs):
-            continue
-        v = upgrades.verdict(it, ahead)
-        if not v["up"] or v["u"]["use"] != "yes" or v["u"].get("lower") or not v["cmp"]:
+        v = upgrade(it, me, profs)
+        if not v:
             continue
         got = ways(look.sources(item), look.plan, look.me.get("here"), gold)
         if not got:

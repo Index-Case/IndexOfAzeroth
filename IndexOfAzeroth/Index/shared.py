@@ -169,11 +169,16 @@ def places_line(places):
     return f"  places = {lua_value(places)}," if places else ""
 
 
+def has_rewards(rewards):
+    return bool(rewards and (rewards.get("quests") or rewards.get("recipes")))
+
+
 def rewards_line(rewards):
-    if not rewards or not rewards.get("quests"):
+    if not has_rewards(rewards):
         return ""
-    quests = ", ".join(f"[{int(q)}] = {lua_value(rw)}" for q, rw in sorted(rewards["quests"].items()))
-    return f"  rewards = {{ char = {lua_value(rewards.get('char'))}, quests = {{ {quests} }} }},"
+    quests = ", ".join(f"[{int(q)}] = {lua_value(rw)}" for q, rw in sorted((rewards.get("quests") or {}).items()))
+    recipes = ", ".join(f"[{int(s)}] = {lua_value(tag)}" for s, tag in sorted((rewards.get("recipes") or {}).items()))
+    return f"  rewards = {{ char = {lua_value(rewards.get('char'))}, quests = {{ {quests} }}, recipes = {{ {recipes} }} }},"
 
 
 def has_next(nxt):
@@ -188,7 +193,7 @@ def next_line(nxt):
 
 def render(data, quiet=None, watch=None, stars=None, legacy=None, services=None, rewards=None, nxt=None, towns=None,
            places=None, roles=None):
-    if rewards and not rewards.get("quests"):
+    if not has_rewards(rewards):
         rewards = None
     if not has_next(nxt):
         nxt = None
@@ -489,13 +494,24 @@ def leg(prev, e):
     return []
 
 
+def legs_start(epic):
+    anchor = epic.get("anchor")
+    return tuple(anchor[:3]) if anchor and len(anchor) >= 3 else None
+
+
+def step_legs(out, start=None):
+    prev = {"inst": start[0], "at": list(start[1:3])} if start else None
+    legs = []
+    for e in out:
+        legs.append(leg(prev, e))
+        prev = e
+    return legs
+
+
 def along_legs(out, start=None):
     reach = director_rules.ALONG["reach"].value
-    prev = {"inst": start[0], "at": list(start[1:3])} if start else None
     targets = [(j, e) for j, e in enumerate(out) if e["k"] == "O" and e.get("sp")]
-    for k, e in enumerate(out):
-        walks = leg(prev, e)
-        prev = e
+    for k, (e, walks) in enumerate(zip(out, step_legs(out, start))):
         if not walks:
             e.pop("al", None)
             continue
@@ -573,9 +589,13 @@ def quest_texts(steps, data=None):
 
 def page_form(data):
     epic = data.get("epic")
+    if not epic:
+        return {"version": data.get("version"), "epic": epic}
+    legs = step_legs(epic["steps"], legs_start(epic))
     return {"version": data.get("version"),
-            "epic": epic and {**{k: v for k, v in epic.items() if k not in ("steps", "qt")},
-                              "steps": [{k: s[k] for k in PAGE_STEP if k in s} for s in epic["steps"]]}}
+            "epic": {**{k: v for k, v in epic.items() if k not in ("steps", "qt")},
+                     "steps": [{**{k: s[k] for k in PAGE_STEP if k in s}, **({"lg": lg} if lg else {})}
+                               for s, lg in zip(epic["steps"], legs)]}}
 
 
 class Shared:
@@ -691,7 +711,7 @@ class Shared:
         return self.set_part("roles", roles or None, roles_line)
 
     def set_rewards(self, rewards):
-        return self.set_part("rewards", rewards if rewards and rewards.get("quests") else None, rewards_line)
+        return self.set_part("rewards", rewards if has_rewards(rewards) else None, rewards_line)
 
     def set_next(self, nxt):
         return self.set_part("next", nxt if has_next(nxt) else None, next_line)
@@ -716,8 +736,7 @@ class Shared:
     def table_text(self, data):
         epic = (data or {}).get("epic") or {}
         if epic.get("steps"):
-            anchor = epic.get("anchor")
-            dress_steps(epic["steps"], self.find_spawns, tuple(anchor[:3]) if anchor and len(anchor) >= 3 else None)
+            dress_steps(epic["steps"], self.find_spawns, legs_start(epic))
         return render(data, self.quiet, self.watch, self.stars, self.legacy, self.services, self.rewards, self.next,
                       self.towns, self.places, self.roles)
 

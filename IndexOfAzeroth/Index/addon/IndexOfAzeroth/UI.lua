@@ -9,6 +9,7 @@ local C = {
   gold = { 1, 0.82, 0, token = "gold" }, cyan = { 0.32, 0.8, 0.93 }, ivory = { 0.97, 0.93, 0.85 },
   muted = { 0.62, 0.62, 0.62 }, green = { 0.4, 0.85, 0.35 }, red = { 1, 0.29, 0.24 }, yellow = { 1, 0.82, 0.25 },
   blue = { 0, 0.71, 1, token = "forever-blue" },
+  debatable = { 0.867, 0.831, 0.604 },
   kill = { 0.694, 0.247, 0.302, token = "kill-crimson" }, bone = { 0.945, 0.914, 0.863, token = "bone-white" },
   mining = { 0.247, 0.525, 0.839, token = "mining-blue" }, herbalism = { 0.490, 1, 0.561, token = "herbalism-leaf" },
   fishing = { 0.980, 0.541, 0.447, token = "fishing-salmon" }, treasure = { 0.659, 0.471, 0.047, token = "treasure-gold" },

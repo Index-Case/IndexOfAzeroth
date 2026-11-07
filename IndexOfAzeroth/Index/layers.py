@@ -1555,14 +1555,16 @@ class WorldLayers:
             got[3][faction] = frozenset(k for k, city in got[2].items() if city in enemy)
         return got[3][faction]
 
-    def nearest(self, map_id, fx, fy, faction, cats, items=(), ammo=None, detail=None, goods=()):
+    def nearest(self, map_id, fx, fy, faction, cats, items=(), ammo=None, detail=None, goods=(), npcs=()):
         here = self.geo.to_world(map_id, fx, fy)
         if not here:
             return None
         px, py, instance = here
-        want, ids = set(items or ()), list(goods or ())
+        want, ids, only = set(items or ()), list(goods or ()), set(npcs or ())
 
         def keep(sv, kind):
+            if only and sv.get("id") not in only:
+                return False
             if want and not want & set(sv.get("sells") or ()):
                 return False
             if ids and not sells(sv, ids):

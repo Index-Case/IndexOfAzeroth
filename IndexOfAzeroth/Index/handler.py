@@ -34,6 +34,7 @@ import crafting
 import farmspots
 import itemsources
 import nextupgrades
+import recipeups
 import hidden
 import mapzones
 from mapzones import (city_names, dock_pois, learnt_entrances, learnt_way_in, nearest_dock, portal_pois, portals_in,
@@ -618,6 +619,14 @@ def get_nextupgrades(h, hub):
     return h.send_json(nextupgrades.answer(hub))
 
 
+@serves("GET", "/api/profupgrades")
+def get_profupgrades(h, hub):
+    q = h.query()
+    line = whole(q.get("line"))
+    body = recipeups.answer(hub, line, q.get("q", "").strip()[:60] or None) if line else None
+    return h.send_json(body) if body else h.send_error(404)
+
+
 @serves("GET", "/api/gathersearch")
 def get_gathersearch(h, hub):
     q = h.query()
@@ -1089,6 +1098,7 @@ def get_nearest(h, hub):
         map_id, fx, fy = int(q["map"]), finite(q["x"]), finite(q["y"])
         detail = int(q["detail"]) if q.get("detail") else None
         goods = [int(i) for i in q.get("goods", "").split(",") if i]
+        npcs = [int(i) for i in q.get("npcs", "").split(",") if i]
     except (KeyError, ValueError):
         return h.send_error(400)
     cats, items = set(q.get("cats", "").split(",")), [i for i in q.get("items", "").split("|") if i]
@@ -1098,6 +1108,7 @@ def get_nearest(h, hub):
         return h.send_json(world.nearest_entrance(map_id, fx, fy, q.get("faction", ""), cats, journal=hub.dungeons))
     ammo = q.get("ammo") if q.get("ammo") in ("arrow", "bullet") else None
     best = (goods and world.nearest(map_id, fx, fy, q.get("faction", ""), cats, goods=goods)) or \
+        (npcs and world.nearest(map_id, fx, fy, q.get("faction", ""), cats, npcs=npcs)) or \
         (items and world.nearest(map_id, fx, fy, q.get("faction", ""), cats, items, ammo)) or \
         world.nearest(map_id, fx, fy, q.get("faction", ""), cats, ammo=ammo, detail=detail)
     return h.send_json(best)

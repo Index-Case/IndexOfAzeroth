@@ -1,5 +1,5 @@
 # The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
-# placeholders: item, running, epic, count, have, vendor, zone, quest, coins, name
+# placeholders: item, running, epic, count, have, vendor, zone, quest, coins, name, from, to, colour
 
 title = {item} Crafting epic
 label = the {item} crafting epic
@@ -10,6 +10,8 @@ back.tip = This closes the crafting epic and opens {epic} again where you were, 
 back.done = {epic} is back where you were. Type /reload in game to pick it up there
 back.failed = Nothing to go back to
 materials = Materials
+route = Crafts
+route.row = {from} to {to}: Craft about {count} {item}, which is {colour} for you.
 row.need = You need {count} {item} and you have {have}.
 row.pattern = You need {item} to learn the recipe.
 row.vendor = The plan buys {item} from {vendor}.

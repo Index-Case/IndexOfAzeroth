@@ -1,5 +1,5 @@
 # The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
-# placeholders: item, count, items, station, skill, need, have, recipe
+# placeholders: item, count, items, station, skill, need, have, recipe, colour, to, at, cap, rank
 
 name = {item} crafting epic
 grind = Grind until you have {count} {item}.
@@ -11,8 +11,13 @@ craft = Craft {item}.
 craft.station = Craft {item} at {station}.
 craft.some = Craft {count} {item}.
 craft.some.station = Craft {count} {item} at {station}.
+level = Craft about {count} {item}, which is {colour} for you, to reach {to} {skill}.
+level.station = Craft about {count} {item} at {station}, which is {colour} for you, to reach {to} {skill}.
 skill = Needs {skill} {need}, you have {have}
 none = Get {count} {item}. The Index knows no way for you to get {item} yet.
 unlearnt = No source says yet where you learn {recipe}, and the Index asks again every day
+stuck = No recipe you know or a trainer teaches gives {skill} points at {at} yet.
+top = No rank of {skill} goes past {cap} yet.
+unsaid = You are at the cap, and no source says yet what skill {rank} asks for.
 buying = Buying {items}
 materials = materials for {item}

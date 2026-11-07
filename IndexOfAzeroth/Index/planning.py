@@ -542,6 +542,7 @@ def profession_summary(hub):
     me = hub.characters.playing() or {}
     books, trainers = me.get("recipes") or {}, me.get("profTrainers") or {}
     known = hub.characters.known_spells() or set()
+    pd = prof_data()
     skills = [(p["name"], p.get("rank"), p.get("max")) for p in me.get("professions") or ()]
     named = {name for name, _, _ in skills}
     skills += [(name, b.get("skill"), b.get("max")) for name, b in sorted(books.items()) if name not in named]
@@ -550,9 +551,11 @@ def profession_summary(hub):
         book, seen = books.get(name), trainers.get(name)
         ranks = [s for s in (seen or {}).get("ranks") or () if not s.get("known") and s["spell"] not in known]
         nxt = min(ranks, key=lambda s: (s["skill"], s["level"], s["spell"])) if ranks else None
+        line = pd.by_name.get(name)
         out.append({"name": name, "rank": rank, "max": top, "recipes": len(book["known"]) if book else None,
                     "at": book["at"] if book else None, "trainerAt": seen["at"] if seen else None,
-                    "next": {k: nxt[k] for k in ("rank", "skill", "level", "cost")} if nxt else None})
+                    "next": {k: nxt[k] for k in ("rank", "skill", "level", "cost")} if nxt else None,
+                    "line": line, "cat": camping.category(name), "gear": line is not None and pd.gear(line)})
     return out
 
 
@@ -1623,8 +1626,19 @@ def prof_state(hub, facts=None, record=None, money=None):
 
 
 def prof_line(key):
-    rest = key[len(profepics.PREFIX):] if key.startswith(profepics.PREFIX) else ""
-    return int(rest) if rest.isdigit() else None
+    got = profepics.epic_of(key)
+    return got[0] if got and (got[2] is None or got[2] in crafting.MODES) else None
+
+
+def level_of(hub, key):
+    line = prof_line(key)
+    pd = prof_data()
+    if line is None or pd.cd.names.get(line, "") in profepics.OFFERS:
+        return None
+    _, to, way = profepics.epic_of(key)
+    if to is None:
+        to = profepics.status(pd, line, prof_state(hub))["target"]
+    return line, to, way or crafting.BOTH
 
 
 def prof_epics_in(hub, key):
@@ -1637,7 +1651,7 @@ def prof_epics_in(hub, key):
 
 def prof_chores(hub, key, epic, at, errand):
     line, riding = prof_epics_in(hub, key)
-    if line is None and not riding:
+    if line is None and not riding or line is not None and level_of(hub, key):
         return []
     pd, me, notes = prof_data(), prof_state(hub, errand.get("game"), money=errand.get("money")), []
     if line is not None:
@@ -1819,20 +1833,32 @@ def craft_kept(hub, key):
 
 def craft_tree(hub, key, anchor, picks=None, running=False):
     import itemsources
-    item = craft_item(key)
-    if item is None:
+    item, level = craft_item(key), level_of(hub, key)
+    if item is None and level is None:
         return None
     table = craft_kept(hub, key)
     kept = table.get("craft") or {}
+    picks = kept.get("picks") if picks is None else picks
     carry = hub.characters.bags_now() or {}
-    have = carry.get(item, 0)
-    total = kept["total"] if kept.get("total") and (running or kept["total"] > have) else have + 1
     start = table.get("anchor") or anchor
     here = tuple(start[:3]) if start else here_now(hub)
-    src = crafting.Sources(itemsources.lookup(hub), prof_data(), known=spells_of(me_record(hub)) or (), here=here,
+    pd = prof_data()
+    src = crafting.Sources(itemsources.lookup(hub), pd, known=spells_of(me_record(hub)) or (), here=here,
                            quest_seconds=lambda i, q: quest_seconds(hub, i, here), talk=STEP_TALK)
-    made = crafting.materials(item, total, carry, src, kept.get("picks") if picks is None else picks)
-    return {**made, "item": item, "total": total}
+    if level:
+        line, to, way = level
+        up = crafting.levelling(pd, src, prof_state(hub), line, to, way, picks)
+        made = crafting.materials(up["goals"], carry, src, picks, way)
+        return {**made, "walls": up["walls"], "route": up["route"], "line": line, "to": to, "way": way}
+    have = carry.get(item, 0)
+    total = kept["total"] if kept.get("total") and (running or kept["total"] > have) else have + 1
+    up = crafting.craft_goals(pd, src, prof_state(hub), item, total, carry, picks)
+    made = crafting.materials(up["goals"], carry, src, picks)
+    return {**made, "walls": up["walls"], "route": up["route"], "item": item, "total": total}
+
+
+def quested_for(made):
+    return sorted({r["ways"]["quest"]["id"] for r in made["rows"] if r["short"] and r["pick"] == "quest"})
 
 
 def quest_seconds(hub, item, at):
@@ -1849,10 +1875,21 @@ def craft_picks(made):
 def material_rows(made):
     import market
     table = item_table()
-    out = []
-    for r in made["rows"]:
+    out, rows, merged = [], made["rows"], {}
+    for r in rows:
         if r["kind"] == "goal" or not r["short"]:
             continue
+        crafts, p = [], r["parent"]
+        while p is not None and rows[p]["kind"] != "goal":
+            crafts.append(rows[p]["item"])
+            p = rows[p]["parent"]
+        same = (r["item"], r["kind"], tuple(crafts))
+        if same in merged:
+            got = out[merged[same]]
+            for k in ("need", "have", "short", "cost"):
+                got[k] += r[k]
+            continue
+        merged[same] = len(out)
         ways, row = r.get("ways") or {}, table.get(str(r["item"])) or ()
         icon = row[2] if len(row) > 2 and row[2] else None
         spot = ways.get(r["pick"]) if r["pick"] in ("grind", "gather") else None
@@ -1869,12 +1906,14 @@ def material_rows(made):
 
 
 def craft_chores(hub, key, epic, at, errand):
-    made = epic.get("craft")
-    if craft_item(key) is None or not made:
+    made, item = epic.get("craft"), craft_item(key)
+    if not made or item is None and prof_line(key) is None:
         return []
     pd, me = prof_data(), prof_state(hub, errand.get("game"), money=errand.get("money"))
     chores = profepics.Chores(pd, me, errands_of(hub), at, own=True)
-    epic["steps"] = crafting.chores(epic["steps"], made, chores, pd, me)
+    own, label = ((key, made["rows"][made["goals"][-1]]["name"]) if item is not None
+                  else (profepics.epic_key(made["line"]), pd.cd.names.get(made["line"], "")))
+    epic["steps"] = crafting.chores(epic["steps"], made, chores, pd, me, own, label)
     return chores.notes
 
 
@@ -1931,15 +1970,16 @@ def quest_epic(hub, key, anchor, parked=(), close=False, offered=(), at_level=No
         wanted, name, follow, band = [qid], f"{label} quest epic", False, None
     elif kind == CRAFT_EPIC:
         made, label = craft_tree(hub, key, anchor, running=kept is not None), epic_label(hub, key)
-        if not made or not label or made["rows"][0]["pick"] != "craft":
+        if not made or not label or made["rows"][made["goals"][-1]]["pick"] != "craft":
             return None
-        wanted = sorted({r["ways"]["quest"]["id"] for r in made["rows"] if r["short"] and r["pick"] == "quest"})
+        wanted = quested_for(made)
         name, follow, band = crafting.epic_name(label), False, None
     elif prof_line(key) is not None:
         name = epic_label(hub, key)
         if not name:
             return None
-        wanted, follow, band = [], False, None
+        made = craft_tree(hub, key, anchor, running=kept is not None)
+        wanted, follow, band = quested_for(made) if made else [], False, None
     else:
         return None
     planreport.report("log", planreport.log_finds(log_entries(hub)))
@@ -2010,6 +2050,8 @@ def quest_epic(hub, key, anchor, parked=(), close=False, offered=(), at_level=No
             if step.get("kind") == "turnin" and step.get("quest") in wants:
                 step["want"] = wants[step["quest"]]
         plan["craft"], plan["materials"] = made, material_rows(made)
+        if "route" in made:
+            plan["route"] = made["route"]
     if plan and kind == "class":
         for step in plan["steps"]:
             if step.get("quest") is not None:
@@ -2115,7 +2157,8 @@ def start_fresh(hub, key, anchor, mode, close=False, parked=(), asked=None):
             "maybe": epic.get("maybe"),
             "next": epic.get("next"),
             "asked": asked,
-            "craft": {"total": epic["craft"]["total"], "picks": craft_picks(epic["craft"])} if epic.get("craft") else None,
+            "craft": {**({"total": epic["craft"]["total"]} if epic["craft"].get("total") else {}),
+                      "picks": craft_picks(epic["craft"])} if epic.get("craft") else None,
             "aside": aside_of(hub, key),
             **plan_notes(epic)}
     return hub.shared.start_epic(key, epic["steps"], shared_way_finder(hub, mode), meta, shared_route_finder(hub, mode))
@@ -2272,11 +2315,22 @@ class QuestPicks:
         if not me:
             return None
         st = self.hub.status or {}
+        profs = tuple(sorted((p.get("name"), p.get("rank")) for p in (me_record(self.hub).get("professions") or ())))
         return (json.dumps(me, sort_keys=True), (self.hub.state or {}).get("level"), st.get("classId"),
-                tuple(reward_quests(self.hub)), worn_text(self.hub) is not None)
+                tuple(reward_quests(self.hub)), worn_text(self.hub) is not None, profs)
 
     def table(self, wanted):
-        return {"char": json.loads(wanted[0]), "quests": quest_picks(self.hub, wanted[3], self.tips)}
+        return {"char": json.loads(wanted[0]), "quests": quest_picks(self.hub, wanted[3], self.tips),
+                "recipes": recipe_marks(self.hub, self.tips)}
+
+
+def recipe_marks(hub, tips=None):
+    import recipeups
+    me, _ = wearer(hub, tips)
+    if me["worn"] is None:
+        return {}
+    profs = profepics.state_of(me_record(hub), None, None)["profs"]
+    return recipeups.marks(prof_data(), me, profs, tips or ITEM_TIPS)
 
 
 def worn_text(hub):

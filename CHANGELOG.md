@@ -1,6 +1,15 @@
 <!-- The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md. -->
 # Changelog
 
+## 0.1.1-alpha
+
+### Crafting
+- The Player menu lists the recipes you could learn that would be an upgrade for you, and guides you to the trainer or vendor who teaches them.
+- Level it now levels a profession to the skill you pick, gathering or buying the materials your way, and a craft that needs more skill levels it first.
+
+### Fixes
+- A plan waiting for a /reload shows each far step's route instead of a straight line.
+
 ## 0.1.0-alpha
 
 **Early days.** This is version 0.1 alpha. The Index works, but it still has rough edges, and updates come often while they're smoothed out.

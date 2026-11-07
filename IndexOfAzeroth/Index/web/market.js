@@ -452,9 +452,12 @@ function questForIt(find) {
   market.toggle(false);
   startEpic({ key: `item:${find.item}`, name: find.name });
 }
+function startCraftEpic(item, name) {
+  startEpic({ key: `craft:${item}`, name, label: word("page.craft.label", { item: name }) });
+}
 function craftIt(find) {
   market.toggle(false);
-  startEpic({ key: `craft:${find.item}`, name: find.name, label: word("page.craft.label", { item: find.name }) });
+  startCraftEpic(find.item, find.name);
 }
 function buyItem(find) {
   market.toggle(false);
@@ -516,7 +519,7 @@ if (typeof module === "object") {
                      takeSnapshot, briefChanged, houseName, scanWhy, scanTodo, ahNotice, scanHtml, nextHtml, paintScan, tickScan,
                      wantPrice, ahLineHtml, ahBlockHtml, soldHtml, ahTipHtml, marketFinderHtml, marketHuntText, marketPaintHunt, marketNextLine, marketHuntStart,
                      marketHuntStop, marketHuntTick, marketTyped, marketEntered, askMarket, findLine, findRow, KEYS_OFF, ITEM_KEYS, keyKind, KEY_WORDS, OFF_KEYS,
-                     itemKeyHtml, itemKeyClicked, farmForIt, questForIt, craftIt, buyItem, renderMarketFound, lookUp, openMarket, startMarket,
+                     itemKeyHtml, itemKeyClicked, farmForIt, questForIt, startCraftEpic, craftIt, buyItem, renderMarketFound, lookUp, openMarket, startMarket,
                      UP_LINES, UP_ICON, UP_TAG, UP_WAYS, upTime, upWay, upLine, upSlotName, upgradesHtml, askUpgrades, showSearch,
                      shownFinds, marketClicked, keyHas, marketHuntBusy };
 }

@@ -1,0 +1,11 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = Upgrades you can craft
+intro.p1 = This list shows the recipes that can be learnt from a trainer or a vendor whose item is an upgrade for the character. A recipe learnt only from a drop is left out.
+keys = The keys
+keys.li1 = <b>Guide me</b> on a recipe goes to where the recipe is learnt. <b>Guide me</b> beside the profession's name goes to the closest trainer of that profession.
+keys.li2 = <b>Craft it</b> starts a crafting epic for the item.
+keys.li3 = <b>Level to</b> shows when the recipe asks for more skill than the character has. It starts one crafting epic that levels the profession first and then crafts the item.
+search = The search
+search.p1 = The box finds anything the profession makes by its name, an upgrade or not.

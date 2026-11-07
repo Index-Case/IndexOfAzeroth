@@ -108,8 +108,8 @@ function professionsHtml(list) {
       p.next.rank ? `: ${esc(p.next.rank)}` : ""}${asks ? ` at ${asks}` : ""}${p.next.cost ? ` for ${money(p.next.cost)}` : ""}</div>`
       : p.trainerAt ? `<div class="muted">The last ${esc(p.name)} trainer you saw had no higher rank</div>` : "";
     return `<div class="pl-prof"><img src="/icon/${esc(SKILL_ICONS[p.name] || "inv_misc_questionmark")}.jpg" alt="">
-      <div><div class="pl-prof-name">${esc(p.name)}${p.max ? ` <small>${p.rank ?? 0} / ${p.max}</small>` : ""}</div>
-      ${p.recipes == null || NO_RECIPES.has(p.name) ? "" : `<div>${num(p.recipes)} recipe${p.recipes === 1 ? "" : "s"} known, as your profession window showed them ${ago(p.at)}</div>`}${next}</div></div>`;
+      <div><div class="pl-prof-name">${esc(p.name)}${p.max ? ` <small>${p.rank ?? 0} / ${p.max}</small>` : ""}${recipeKeys(p)}</div>
+      ${p.recipes == null || NO_RECIPES.has(p.name) ? "" : `<div>${num(p.recipes)} recipe${p.recipes === 1 ? "" : "s"} known, as your profession window showed them ${ago(p.at)}</div>`}${next}</div></div>${recipesHtml(p)}`;
   });
   const unread = list.some((p) => (p.recipes == null && !NO_RECIPES.has(p.name)) || !p.trainerAt);
   return `<h3>Professions</h3><div class="pl-profs">${rows.join("")}</div>${unread ? `<p class="muted">Open a profession's window or

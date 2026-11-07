@@ -34,9 +34,34 @@ function wallsTip(p) {
 function levelKey(p) {
   const can = p.offer || ["learn", "train", "raise"].includes(p.state);
   const tip = p.offer ? `This turns on the ${p.offer} layer on the map. ${p.offer === "skinning" ? "Skin here" : "Gather here"} under the zone name then starts a loop for the character's skill`
-    : can ? `This makes the ${p.name} plan the epic, with its trainer, its materials and its crafts at any distance. The ${p.name} plan takes the quest epic's place`
-      : p.text;
+    : !can ? p.text : p.gathering ? `This makes the ${p.name} plan the epic, with its trainer, its materials and its crafts at any distance. The ${p.name} plan takes the quest epic's place`
+      : word("page.profepics.level.tip", { skill: p.name });
   return `<button class="key small" data-prof-level="${p.line}"${can ? "" : " disabled"} title="${esc(tip)}">Level it now</button>`;
+}
+
+const LEVEL_WAYS = {
+  gather: { label: () => word("page.profepics.gather"), tip: () => word("page.profepics.gather.tip") },
+  buy: { label: () => word("page.profepics.buy"), tip: () => word("page.profepics.buy.tip") },
+  both: { label: () => word("page.profepics.both"), tip: () => word("page.profepics.both.tip") },
+};
+const levelAsk = { line: null, way: "both", to: null };
+const levelTop = (p) => Math.max(...(p.walls || []).map((w) => w.cap), p.cap || 0, p.target || 0);
+function levelAskHtml(p) {
+  if (levelAsk.line !== p.line) return "";
+  const to = levelAsk.to ?? p.target ?? "";
+  const ways = Object.entries(LEVEL_WAYS).map(([way, says]) => `<button class="key small" data-prof-way="${way}"${levelAsk.way === way
+    ? ' aria-pressed="true"' : ""} title="${esc(says.tip())}">${esc(says.label())}</button>`).join("");
+  return `<div class="prof-ask"><label class="guide-line">${esc(word("page.profepics.level", { skill: p.name }))}
+      <input type="number" id="prof-to-${p.line}" min="${(p.skill || 0) + 1}" max="${levelTop(p)}" value="${esc(to)}"></label>
+    <div class="guide-cmd">${ways}</div>
+    <div class="guide-cmd"><button class="key small" data-prof-go="${p.line}">${esc(word("page.profepics.start", { skill: p.name }))}</button></div></div>`;
+}
+function levelGo(p) {
+  const typed = parseInt(levelAsk.to ?? p.target, 10);
+  const to = Math.min(levelTop(p), Math.max((p.skill || 0) + 1, Number.isFinite(typed) ? typed : p.target));
+  levelAsk.line = null;
+  renderProfPanels();
+  startEpic({ key: `prof:${p.line}:${to}:${levelAsk.way}`, name: `${p.name} epic`, label: `the ${p.name} epic` });
 }
 
 function profRow(p) {
@@ -45,6 +70,7 @@ function profRow(p) {
     <div class="prof-top"><img class="prof-icon" src="/icon/${esc(profIcon(p.name))}.jpg" alt=""><span class="prof-name">${esc(p.name)}</span>${profBar(p)}</div>
     <div class="guide-line">${esc(p.text)}${inPlan}</div>
     <div class="guide-cmd">${levelKey(p)}<button class="key small" data-prof-hide="${esc(p.name)}" title="This takes the ${esc(p.name)} panel off the page. Its chores keep coming, and Unhide in the Player menu brings the panel back">Hide</button><button class="key small" data-prof-stop="${esc(p.name)}" title="This ends the ${esc(p.name)} epic for this character. If you start the ${esc(p.name)} epic again, the Index builds the epic afresh from the game">Stop</button></div>
+    ${levelAskHtml(p)}
   </div>`;
 }
 
@@ -97,12 +123,27 @@ function altProfRow(key) {
 }
 
 function profClicked(e) {
-  const b = e.target.closest?.("button[data-prof-start], button[data-prof-stop], button[data-prof-hide], button[data-prof-unhide], button[data-prof-level]");
+  const b = e.target.closest?.("button[data-prof-start], button[data-prof-stop], button[data-prof-hide], button[data-prof-unhide], button[data-prof-level], button[data-prof-way], button[data-prof-go]");
   if (!b || b.disabled) return false;
+  const epicOf = (line) => (profs.data?.epics || []).find((x) => String(x.line) === String(line));
   if (b.dataset.profLevel) {
-    const p = (profs.data?.epics || []).find((x) => String(x.line) === b.dataset.profLevel);
+    const p = epicOf(b.dataset.profLevel);
     if (p?.offer) showGatherLayer(p.offer);
-    else if (p) startEpic({ key: `prof:${p.line}`, name: `${p.name} epic`, label: `the ${p.name} epic` });
+    else if (p?.gathering) startEpic({ key: `prof:${p.line}`, name: `${p.name} epic`, label: `the ${p.name} epic` });
+    else if (p) {
+      Object.assign(levelAsk, levelAsk.line === p.line ? { line: null } : { line: p.line, way: "both", to: null });
+      renderProfPanels();
+    }
+    return true;
+  }
+  if (b.dataset.profWay) {
+    levelAsk.way = b.dataset.profWay;
+    renderProfPanels();
+    return true;
+  }
+  if (b.dataset.profGo) {
+    const p = epicOf(b.dataset.profGo);
+    if (p) levelGo(p);
     return true;
   }
   const [what, name] = b.dataset.profStart ? ["start", b.dataset.profStart] : b.dataset.profStop ? ["stop", b.dataset.profStop]
@@ -112,6 +153,9 @@ function profClicked(e) {
   return true;
 }
 document.addEventListener("click", profClicked);
+document.addEventListener("input", (e) => {
+  if (String(e.target?.id || "").startsWith("prof-to-")) levelAsk.to = e.target.value;
+});
 
 function laterProfKey(e) {
   const name = e?.prof;

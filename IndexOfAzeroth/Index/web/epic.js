@@ -54,9 +54,16 @@ function backEpic() {
 
 const PICK_KEY = { vendor: "buy", auction: "buy", grind: "grind", gather: "grind", quest: "quest", craft: "craft" };
 function materialsHtml(t) {
-  const rows = isCraft(t?.key) ? t.data?.materials : null;
+  const rows = t?.data?.materials, crafts = craftsHtml(t);
+  if (!rows?.length) return crafts;
+  return `${crafts}<div class="plan-materials"><span class="plan-next-label">${esc(word("page.craft.materials"))}</span>${rows.map(materialRowHtml).join("")}</div>`;
+}
+function craftsHtml(t) {
+  const rows = t?.data?.route;
   if (!rows?.length) return "";
-  return `<div class="plan-materials"><span class="plan-next-label">${esc(word("page.craft.materials"))}</span>${rows.map(materialRowHtml).join("")}</div>`;
+  const line = (r) => `<div class="guide-line">${esc(word("page.craft.route.row", { from: r.from, to: r.to, count: num(r.crafts),
+    item: r.item, colour: r.colour }))}</div>`;
+  return `<div class="plan-next"><span class="plan-next-label">${esc(word("page.craft.route"))}</span><div>${rows.map(line).join("")}</div></div>`;
 }
 const MATERIAL_WAY = { vendor: (f) => word("page.craft.row.vendor", f), grind: (f) => word("page.craft.row.grind", f),
   gather: (f) => word("page.craft.row.gather", f), quest: (f) => word("page.craft.row.quest", f), craft: (f) => word("page.craft.row.craft", f) };
@@ -200,12 +207,11 @@ function writtenPlan(t) {
 const STEP_WORDS = { noun: "step", first: "the first step" };
 const writtenKey = (w) => `plan ${w.version}`;
 function planLeg(plan, k) {
-  const s = plan.steps[k], before = plan.steps[k - 1], a = plan.anchor;
-  const from = k ? (before?.inst === s.inst ? before.at : null) : (a?.[0] === s.inst ? a.slice(1) : null);
-  return { inst: s.inst, way: [from, ...(s.way || []), s.at].filter(Boolean).map((p) => [p[0], p[1]]) };
+  const s = plan.steps[k];
+  return { inst: s.inst, walks: s.lg || [] };
 }
 const planStepSpans = (plan) => plan.steps.map((s, k) => ({ inst: s.inst, name: s.text, id: k, outOnly: true,
-  pts: [...planLeg(plan, k).way, ...(s.loop || []).map((p) => [p[0], p[1]])] }));
+  pts: [...(s.lg?.length ? planLeg(plan, k).walks.flat() : [s.at]), ...(s.loop || [])].filter(Boolean).map((p) => [p[0], p[1]]) }));
 const pickedStep = (t, w = writtenPlan(t)) => legIndex(planStepSpans(w.epic), "epic", writtenKey(w));
 function lookedLeg(t) {
   const w = t?.kind === "epic" && writtenPlan(t);

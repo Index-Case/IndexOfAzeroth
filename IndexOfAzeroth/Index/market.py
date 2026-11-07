@@ -61,7 +61,7 @@ def matches(words, folded, name_words, full):
     return True
 
 
-def search(text, full=False, listed=None, book=None):
+def search(text, full=False, listed=None, book=None, only=None):
     book = book or BOOK
     text = fold(str(text or "")[:TEXT_MOST])
     words = text.split()[:WORDS_MOST]
@@ -70,6 +70,8 @@ def search(text, full=False, listed=None, book=None):
     listed = listed or {}
     found, typos = [], 0
     for folded, name_words, item_id, name, q, icon in book.entries():
+        if only is not None and item_id not in only:
+            continue
         if matches(words, folded, name_words, False):
             found.append((folded, item_id, name, q, icon))
         elif matches(words, folded, name_words, True):

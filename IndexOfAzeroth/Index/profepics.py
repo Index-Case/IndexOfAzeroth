@@ -23,6 +23,7 @@ SHOWN = 2
 ROUTE_MOST = 300
 UNSAID = 9999
 CONSUMABLE, BAG = 0, 1
+GEAR = (2, 4)
 
 
 def skin_skill(level):
@@ -107,7 +108,18 @@ class ProfData:
             return True
         return e["cls"] == CONSUMABLE and (e.get("rl") or 0) <= level
 
-    def route(self, line, skill, target, known, level, carry=None, have_prof=True):
+    def makes(self, line):
+        out = {}
+        for spell in self.cd.profs.get(str(line), {}).get("recipes") or ():
+            made = (self.cd.recipe(spell).get("makes") or [None])[0]
+            if made is not None and spell not in self.camping:
+                out.setdefault(int(made), []).append(int(spell))
+        return out
+
+    def gear(self, line):
+        return any(self.cd.item(i).get("cls") in GEAR for i in self.makes(line))
+
+    def route(self, line, skill, target, known, level, carry=None, have_prof=True, per_craft=None, cuts=()):
         cd, carry = self.cd, carry or {}
         known = set(known or ())
         options = []
@@ -136,11 +148,14 @@ class ProfData:
             def rank(e):
                 o, p = e
                 keen = o["useful"] and colour_of(o["colours"], at) in ("orange", "yellow")
+                if per_craft:
+                    nowhere, first, second = per_craft(o["spell"])
+                    return (not keen, nowhere, first / p, second / p, o["how"] != "known", -o["learnt"], o["spell"])
                 unpriced = sum(n for _, n, price in o["takes"] if price is None)
                 cost = sum(n * price for _, n, price in o["takes"] if price is not None)
-                return (not keen, unpriced / p, cost / p, o["how"] != "known", -o["learnt"], o["spell"])
+                return (not keen, False, unpriced / p, cost / p, o["how"] != "known", -o["learnt"], o["spell"])
             o, p = min(here, key=rank)
-            if segments and segments[-1]["spell"] == o["spell"]:
+            if segments and segments[-1]["spell"] == o["spell"] and at not in cuts:
                 segments[-1]["to"], segments[-1]["expect"] = at + 1, segments[-1]["expect"] + 1 / p
             else:
                 segments.append({"spell": o["spell"], "from": at, "to": at + 1, "expect": 1 / p, "how": o["how"],
@@ -232,7 +247,7 @@ def status(pd, line, me):
     out = {"line": line, "name": name, "primary": kind == "primary", "gathering": name in OFFERS,
            "skill": have["rank"] if have else None, "cap": have["max"] if have else None, "min": None, "rank": None,
            "walls": [{k: r[k] for k in ("name", "cap", "skill", "level", "cost")} for r in rs], "offer": None, "route": None,
-           "points": None}
+           "points": None, "target": target_of(have and have["rank"], have and have["max"], rs)}
     if not have:
         first = rs[0] if rs else None
         if not room_for(pd, line, me):
@@ -271,6 +286,27 @@ def status(pd, line, me):
     get = f". You need {names(short)}" if short else ""
     return {**out, "state": "raise",
             "text": f"Craft about {first['crafts']} {first['name']}{learn}, which is {first['colour']} for you, to reach {first['to']} {name}{get}"}
+
+
+def target_of(skill, cap, rs):
+    if skill is None:
+        return rs[0]["cap"] if rs else None
+    if skill < (cap or 0):
+        return cap
+    return next((r["cap"] for r in rs if r["cap"] > (cap or 0)), cap)
+
+
+def epic_key(line, to=None, way=None):
+    return f"{PREFIX}{line}" + (f":{to}:{way}" if to is not None and way else "")
+
+
+def epic_of(key):
+    parts = key[len(PREFIX):].split(":") if key.startswith(PREFIX) else []
+    if len(parts) == 1 and parts[0].isdigit():
+        return int(parts[0]), None, None
+    if len(parts) == 3 and parts[0].isdigit() and parts[1].isdigit() and parts[2]:
+        return int(parts[0]), int(parts[1]), parts[2]
+    return None
 
 
 def gather_text(pd, name, skill, me, to):
@@ -410,7 +446,7 @@ class Chores:
                   takes={"items": [i for i, *_ in seg["takes"]], "recipes": [seg["spell"]], "skills": [name]})
         return "planned"
 
-    def learn(self, steps, st, first, hi=None):
+    def learn(self, steps, st, first, hi=None, lo=0):
         name, line, rank = st["name"], st["line"], st["rank"]
         need = {"skills": [[name, 1]]} if first else {"caps": [[name, rank["cap"]]]}
         key = f"{PREFIX}{line}:learn" if first else f"{PREFIX}{line}:rank{rank['step']}"
@@ -420,7 +456,7 @@ class Chores:
             text = f"Learn {name} at {n}" if first else f"Train {said} at {n}"
             return self.chore("learn", key, text, n, p, need, rank.get("cost"), rank.get("level"),
                               takes=None if first else {"skills": [name]})
-        return self.paid(steps, 0, self.trainers(name, rank["spell"]), make, rank.get("cost"), "learn",
+        return self.paid(steps, lo, self.trainers(name, rank["spell"]), make, rank.get("cost"), "learn",
                          f"{'Learning' if first else 'Training'} {said}", said, hi=hi)
 
     def recipe_cost(self, spell):

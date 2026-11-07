@@ -573,8 +573,11 @@ function drawTrack(t, style, s, size, scale) {
   }
   const leg = lookedLeg(t);
   if (leg) {
-    const legScreen = screenIn(leg.inst, size, scale), line = leg.way.map(legScreen).filter(Boolean);
-    if (line.length > 1) drawWay(line, style.color, { screen: legScreen });
+    const legScreen = screenIn(leg.inst, size, scale);
+    for (const walk of leg.walks) {
+      const line = walk.map(legScreen).filter(Boolean);
+      if (line.length > 1) drawWay(line, style.color, { screen: legScreen });
+    }
     return drawTrackMark(t, style, t.step?.at ? screen(t.step.at) : null);
   }
   if (t.inst !== inst && !r) return;

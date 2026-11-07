@@ -1,0 +1,23 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: skill, name, npc, pattern, level, need
+
+expand = This shows the {skill} recipes that would be an upgrade for you.
+collapse = This collapses the {skill} recipes.
+guide = Guide me
+guide.trainer = This guides you to the closest {skill} trainer.
+guide.learn = This guides you to {npc}, where you learn the recipe for {name}.
+heading = Upgrades you can craft
+find = Find anything {skill} makes
+learn.known = You know this recipe.
+learn.trainer = Learn the recipe from {npc}.
+learn.trainer.far = Learn the recipe from a {skill} trainer.
+learn.vendor = Buy the pattern {pattern} from {npc}.
+learn.vendor.far = A vendor sells the pattern {pattern}.
+from = From level {level}
+level = Level to {need}, then craft
+level.hover = This starts a crafting epic for {name} that levels {skill} to {need} first and then crafts {name}.
+empty = No recipe you can learn makes an upgrade for you right now.
+quip = The trainers went through every pattern twice and found nothing that beats what you wear, so they blamed the apprentice.
+unknown = The Index lists your upgrade recipes once the game has said what you wear.
+none = Nothing {skill} makes has that name.
+failed = The recipe books stayed shut, so the upgrade recipes didn't come in.

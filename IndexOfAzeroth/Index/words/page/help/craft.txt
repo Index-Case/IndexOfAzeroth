@@ -7,6 +7,6 @@ materials = The materials
 materials.p1 = For each material missing from the bags, the plan buys it from a vendor when one sells it, and buys it at the auction house when that costs less than farming it. Otherwise the plan grinds, gathers, quests or crafts the material, whichever is quickest.
 materials.p2 = Each material's row under <b>Materials</b> has a key for each way to get it, and the plan's way is lit. Pressing another key makes the plan get that material that way.
 skill = The skill
-skill.p1 = When the recipe asks for more skill than the character has, the epic still gets the materials, and its last step waits for the skill.
+skill.p1 = When the recipe asks for more skill than the character has, the epic levels the profession to that skill first and then crafts the item. <b>Crafts</b> on the panel lists the crafts on the way.
 back = Back to
 back.p1 = A crafting epic started while a quest epic runs keeps that quest epic with its plan and progress. <b>Back to</b> opens the quest epic again where it was.
