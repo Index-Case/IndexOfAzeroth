@@ -348,10 +348,9 @@ class Launch:
         while self.serving(last):
             if self.addon_waits:
                 self.addon_waits = not self.addon()
-            if self.ready:
-                if not self.running():
-                    self.put_in_running(*self.ready)
-                    last[0] = self.clock()
+            if self.ready and not self.running():
+                self.put_in_running(*self.ready)
+                last[0] = self.clock()
             elif self.offered:
                 self.answered()
             elif self.clock() >= due:
@@ -365,7 +364,8 @@ class Launch:
         except (OSError, updater.UpdateRefused):
             return
         installed = updater.installed_manifest(self.install, self.public_key)
-        if not installed or manifest.version in (installed.version, self.declined):
+        waiting = self.ready[0].version if self.ready else None
+        if not installed or manifest.version in (installed.version, self.declined, waiting):
             return
         size = self.size(manifest)
         if by_itself(size):
@@ -398,8 +398,7 @@ class Launch:
                 updatenews.tell(self.install, None)
             return
         self.ready = (manifest, told)
-        if told:
-            updatenews.tell(self.install, {"step": "waiting", "version": manifest.version})
+        updatenews.tell(self.install, {"step": "waiting", "version": manifest.version})
 
     def put_in_running(self, manifest, told):
         updatenews.ask_stop(self.install)
@@ -420,7 +419,7 @@ class Launch:
             self.declined = manifest.version
         self.serve()
         installed = updater.installed_manifest(self.install, self.public_key)
-        if self.ready and told:
+        if self.ready:
             updatenews.tell(self.install, {"step": "waiting", "version": manifest.version})
         elif not self.ready and (not installed or installed.version != manifest.version):
             self.declined = manifest.version

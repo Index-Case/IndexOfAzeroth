@@ -1,6 +1,12 @@
 <!-- The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md. -->
 # Changelog
 
+## 0.1.6-alpha
+
+### Fixes
+- The Index tells you when an update is downloaded and waiting for you to close World of Warcraft.
+- A newer update is found while an older one waits, so you always get the newest.
+
 ## 0.1.5-alpha
 
 ### Fixes
