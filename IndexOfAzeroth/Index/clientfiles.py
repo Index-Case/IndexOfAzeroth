@@ -300,6 +300,22 @@ class Absent(urllib.error.HTTPError):
         super().__init__(url, 404, "empty answer: the build doesn't hold the file", {}, None)
 
 
+def kept_or_installed(url, cache=None):
+    if cache:
+        try:
+            return kept_file(cache)
+        except NotBuilt:
+            pass
+    file = addressed_file(url)
+    data = casc.read(*file) if file else None
+    if not data:
+        raise NotBuilt(("file", cache or url))
+    if cache:
+        os.makedirs(CACHE, exist_ok=True)
+        store.write_fetched(os.path.join(CACHE, cache), data)
+    return data
+
+
 def _download(url):
     file = addressed_file(url)
     if file is None:
@@ -371,9 +387,7 @@ def fetch_dropped(url, cache):
 
 def fetch(url, cache=None, max_age=None):
     if is_stored_only():
-        if not cache:
-            raise NotBuilt(("file", url))
-        return kept_file(cache)
+        return kept_or_installed(url, cache)
     path = cache and os.path.join(CACHE, cache)
     versioned = "version=" in url
     if cache and versioned:

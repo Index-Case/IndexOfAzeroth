@@ -1,6 +1,11 @@
 <!-- The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md. -->
 # Changelog
 
+## 0.1.5-alpha
+
+### Fixes
+- Caves and buildings show on the map the first time you walk into them.
+
 ## 0.1.4-alpha
 
 ### Fixes
