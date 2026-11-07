@@ -3,11 +3,11 @@
 
 name = Trees
 trees = Trees
-trees.text = This draws the game's trees and their shadows on the detailed map while Map lighting is on
+trees.text = Draws the game's trees and their shadows on the detailed map while Map lighting is on
 tree-transparency = Tree transparency
-tree-transparency.text = This makes the trees nearly clear over roads and buildings and thins the trees around the character's arrow
+tree-transparency.text = Makes the trees nearly clear over roads and buildings and thins the trees around the character's arrow
 canopy = Canopy
-canopy.text = This picks the zones that show their canopy, the big tree crowns that grow together into a roof over the forest. A zone left unticked shows only its single trees
+canopy.text = Picks the zones that show their canopy, the big tree crowns that grow together into a roof over the forest. A zone left unticked shows only its single trees
 canopy.shown = {n} zones show their canopy
 canopy.shown.one = {n} zone shows its canopy
 canopy.none = No zone with a canopy is known yet

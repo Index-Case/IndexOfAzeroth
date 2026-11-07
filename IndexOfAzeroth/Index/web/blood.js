@@ -38,6 +38,7 @@ class Blood {
     Object.assign(this, { layer, doc, kept, keep, drawn, aspect, random, now });
     Object.assign(this, { phase: undefined, health: null, owed: 0, mended: 0, fought: false, lastAlive: null, screen: [], trail: [],
                           savedAt: 0 });
+    this.look = { screen: true, map: true, pool: true, screenShare: 1, mapShare: 1 };
     this.pics = new Map();
     const names = [...BLOOD_BANDS.flatMap((b) => Array.from({ length: BLOOD_EACH }, (_, k) => [`${b.name}_${k + 1}`, b.yards])),
                    [BLOOD_POOL.name, BLOOD_POOL.yards]];
@@ -51,7 +52,7 @@ class Blood {
   }
 
   get bleeding() {
-    return this.phase === "fight" && this.fought;
+    return this.phase === "fight" && this.fought && this.look.map;
   }
 
   report(state, { character = null, where = null } = {}) {
@@ -152,19 +153,29 @@ class Blood {
     Object.assign(el.style, { left: `${(s.x * 100).toFixed(2)}%`, top: `${(s.y * 100).toFixed(2)}%`,
       width: `${(BLOOD.UNIT * yards * 100).toFixed(2)}vmin`, transform: `translate(-50%, -50%) rotate(${s.rot}rad)` });
     this.layer.appendChild(el);
-    this.layer.hidden = false;
     this.screen.push(s);
     if (this.screen.length > BLOOD.MOST) {
       this.screen.shift();
       this.layer.firstElementChild.remove();
     }
+    this.layScreen();
   }
 
   clearScreen() {
     this.screen = [];
     this.mended = 0;
     this.layer.replaceChildren();
-    this.layer.hidden = true;
+    this.layScreen();
+  }
+
+  layScreen() {
+    this.layer.hidden = !this.look.screen || !this.screen.length;
+    this.layer.style.opacity = this.look.screenShare < 1 ? String(this.look.screenShare) : "";
+  }
+
+  shown(look) {
+    Object.assign(this.look, look);
+    this.layScreen();
   }
 
   over() {
@@ -181,7 +192,9 @@ class Blood {
   }
 
   paint(g, { project, turn = 0, map = null, dpr = 1, width = Infinity, height = Infinity }) {
-    if (!this.trail.length) return 0;
+    const { map: trailOn, pool: poolOn, mapShare } = this.look;
+    const trail = this.trail.filter((s) => (s.pic === BLOOD_POOL.name ? poolOn : trailOn));
+    if (!trail.length) return 0;
     const perYard = new Map();
     const stain = this.stainFor(g), to = stain ? stain.getContext("2d") : g;
     let drawn = 0;
@@ -191,9 +204,9 @@ class Blood {
       to.setTransform(1, 0, 0, 1, 0, 0);
       to.clearRect(0, 0, stain.width, stain.height);
     } else {
-      to.globalAlpha = BLOOD.MAP_ALPHA;
+      to.globalAlpha = BLOOD.MAP_ALPHA * mapShare;
     }
-    for (const s of this.trail) {
+    for (const s of trail) {
       const pic = this.pics.get(s.pic), img = pic?.img;
       if (!img?.complete || !img.naturalWidth || (s.floor != null && s.floor !== map)) continue;
       const at = project(s.inst, s.n, s.w);
@@ -221,14 +234,14 @@ class Blood {
     if (stain && drawn) {
       g.save();
       g.setTransform(1, 0, 0, 1, 0, 0);
-      g.globalAlpha = BLOOD.MAP_ALPHA;
+      g.globalAlpha = BLOOD.MAP_ALPHA * mapShare;
       g.drawImage(stain, 0, 0);
       g.restore();
     }
     const body = this.outline;
     if (bodies.length && body?.complete && body.naturalHeight) {
       g.save();
-      g.globalAlpha = 1;
+      g.globalAlpha = mapShare;
       for (const { c, n, at, perYard: py } of bodies) {
         const high = BLOOD_OUTLINE.yards * BLOOD.MAP_SCALE * py, wide = (high * body.naturalWidth) / body.naturalHeight;
         g.setTransform(c, n, -n, c, at[0] * dpr, at[1] * dpr);

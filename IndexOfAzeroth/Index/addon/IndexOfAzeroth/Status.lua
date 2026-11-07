@@ -654,14 +654,51 @@ function ns.NeedMet(need)
   if any then return true end
 end
 
-function ns.FarmObjective(s)
-  local e = type(s) == "table" and s.kind == "S" and s.what == "farm" and type(s.need) == "table"
-    and type(s.need.items) == "table" and s.need.items[1]
-  local id, need = type(e) == "table" and tonumber(e[1]), type(e) == "table" and tonumber(e[2]) or 1
-  if not id then return nil end
-  local have = math.min(Count(id), need)
-  return { text = string.format("%s: %d/%d", s.target or s.text or "", have, need), numFulfilled = have, numRequired = need,
-           finished = have >= need }
+local function ItemsGot(s)
+  if type(s) ~= "table" or s.kind ~= "S" or (s.what ~= "farm" and s.what ~= "supplies") then return nil end
+  local items = type(s.need) == "table" and type(s.need.items) == "table" and s.need.items or nil
+  if not items or #items == 0 then return nil end
+  local out = {}
+  for _, e in ipairs(items) do
+    local id = type(e) == "table" and tonumber(e[1])
+    if id then
+      local name = s.what == "farm" and s.target or PlainText(Call(C_Item.GetItemNameByID, id))
+      if not name or name == "" then
+        Call(C_Item.RequestLoadItemDataByID, id)
+        return nil
+      end
+      local need = tonumber(e[2]) or 1
+      out[#out + 1] = { id = id, name = name, have = math.min(Count(id), need), need = need }
+    end
+  end
+  return #out > 0 and out or nil
+end
+
+function ns.ItemObjectives(s)
+  local got = ItemsGot(s)
+  if not got then return nil end
+  local out = {}
+  for k, g in ipairs(got) do
+    out[k] = { text = string.format("%s: %d/%d", g.name, g.have, g.need), numFulfilled = g.have, numRequired = g.need,
+               finished = g.have >= g.need }
+  end
+  return out
+end
+
+function ns.ItemStepLine(s)
+  local got = s and s.what == "supplies" and ItemsGot(s)
+  if not got then return nil end
+  local parts = {}
+  for _, g in ipairs(got) do
+    if g.have < g.need then parts[#parts + 1] = ns.Count("both.craft.got", g.need - g.have, { item = g.name }) end
+  end
+  if #parts == 0 then return nil end
+  local items = parts[#parts]
+  if #parts > 1 then
+    items = ns.Word("both.craft.list", { rest = table.concat(parts, ", ", 1, #parts - 1), last = parts[#parts] })
+  end
+  if type(s.key) == "string" and s.key:match(":auction$") then return ns.Word("both.craft.auction", { items = items }) end
+  return ns.Word("both.craft.buy", { items = items, npc = s.npc })
 end
 
 function ns.EncodeWatched()

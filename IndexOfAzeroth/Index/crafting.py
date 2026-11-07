@@ -1,24 +1,23 @@
 # The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
 import math
 
+import farmspots
 import profepics
 import words
-from camping import counted, names
+from camping import buy_line, counted, names
 from facts import RUN_SPEED
 
 WAYS = ("vendor", "auction", "grind", "gather", "quest", "craft")
 MODES = ("gather", "buy", "both")
 BOTH = "both"
 DEPTH_MOST = 4
-HOUR = 3600.0
 BATCH = 10
 KEY = "craft:"
 AUCTION = {"auction"}
 
 
 def farm_seconds(spot, short):
-    per_hour = spot.get("perHour") or 0
-    return (spot.get("trip") or 0) + (short / per_hour * HOUR if per_hour > 0 else math.inf)
+    return farmspots.farm_seconds(spot.get("perHour") or 0, spot.get("trip") or 0, short)
 
 
 def learnable(recipe, skill=None):
@@ -101,7 +100,7 @@ class Tree:
             recipe = src.recipe(item) if kind != "pattern" and item not in path and depth < DEPTH_MOST else None
         if kind == "goal":
             return {**dict.fromkeys(WAYS), "craft": recipe}
-        grind, gather = src.spot(item, "grind"), src.spot(item, "gather")
+        grind, gather = src.spot(item, "grind", short), src.spot(item, "gather", short)
         return {"vendor": src.vendor(item), "auction": src.auction(item, [s for s in (grind, gather) if s]),
                 "grind": grind, "gather": gather, "quest": src.quest(item) if short == 1 else None, "craft": recipe}
 
@@ -115,6 +114,8 @@ class Tree:
 
     def rule(self, node, ways, depth, path, pool):
         vendor, house = ways["vendor"], ways["auction"]
+        if vendor and vendor.get("limited"):
+            return self.rule(node, {**ways, "vendor": None}, depth, path, pool) or "vendor"
         if vendor and self.mode != "gather":
             return "vendor"
         if house and (self.mode == "buy" or self.mode == BOTH and house.get("cheaper")):
@@ -225,7 +226,8 @@ class Sources:
             v = self.look.vendor(item)
             if not v:
                 return None
-            return {"name": v.get("name"), "price": self.pd.unit_price(item), "seconds": (v.get("yards") or 0) / RUN_SPEED + self.talk}
+            return {"name": v.get("name"), "price": self.pd.unit_price(item), "seconds": (v.get("yards") or 0) / RUN_SPEED + self.talk,
+                    "limited": bool(v.get("limited"))}
         return self._kept("vendor", item, make)
 
     def auction(self, item, spots):
@@ -234,8 +236,8 @@ class Sources:
             return got and {**got, "seconds": self.talk}
         return self._kept(("auction", tuple(s.get("score") for s in spots)), item, make)
 
-    def spot(self, item, way):
-        return self._kept(("spot", way), item, lambda: self.look.spot(item, way, self.here))
+    def spot(self, item, way, short=None):
+        return self._kept(("spot", way, short), item, lambda: self.look.spot(item, way, self.here, short))
 
     def quest(self, item):
         def make():
@@ -267,7 +269,7 @@ def levelling(pd, src, me, line, to, mode=BOTH, picks=None):
     name = cd.names.get(line, "")
     have = (me.get("profs") or {}).get(name)
     level = me.get("level") or 1
-    rs = pd.ranks(line, (me.get("game_ranks") or {}).get(name))
+    rs = pd.ranks(line, (me.get("game_ranks") or {}).get(name), me.get("prices"))
     skill, cap = (have["rank"] or 1, have["max"] or 0) if have else (1, rs[0]["cap"] if rs else 0)
     costs = {}
 
@@ -409,13 +411,14 @@ class Placer:
 
     def auction(self, house):
         name = self.cd.item_name
-        said = names([counted(self.target(i, ("auction",)) - self.carry.get(i, 0), name(i)) for i in sorted(house)])
+        left = [(name(i), self.target(i, ("auction",)) - self.carry.get(i, 0)) for i in sorted(house)]
+        said = names([counted(n, item) for item, n in left])
         cost = sum(int(round(r["ways"]["auction"]["price"] * r["short"])) for r in self.rows
                    if r["item"] in house and r["short"] and r["pick"] == "auction")
         need = {"items": [[i, self.target(i, ("auction",))] for i in sorted(house)]}
 
         def make(n, p, *_):
-            return self.c.chore("supplies", f"{self.key}:auction", words.say("both.craft.auction", {"items": said}), n, p, need, cost)
+            return self.c.chore("supplies", f"{self.key}:auction", buy_line(left), n, p, need, cost)
         at, _ = self.c.paid(self.steps, 0, self.c.errands.places(AUCTION, self.c.side, ids=True), make, cost, "supplies",
                             words.say("both.craft.buying", {"items": said}), said)
         if at is None:

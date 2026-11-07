@@ -23,7 +23,7 @@ from errands import ANY_NPC, HERE, LAND_REACH, TODO_LINES, Errands, addon_chores
 import carried
 import game
 import nav
-from routes import name_hash
+from routes import RIDE_WORDS, name_hash
 from epic import closed_by, discrete_spots, heat_patches, if_offered, walks_alone
 import plansteps
 import planunits
@@ -48,7 +48,7 @@ import moblevels
 from mapzones import world_pos, zone_holding
 from serverlog import log_error, start_thread
 import storedonly
-from gamedata import ITEM_TIPS, TRAINER_PRICES, client_table, item_name, load_class_spells, silenced_todos, stat_weights
+from gamedata import ITEM_TIPS, TRAINER_PRICES, client_table, item_name, load_class_spells, recipe_prices, silenced_todos, stat_weights
 from shared import plan_notes
 from shared import placed_step
 from shared import WAY_MOST
@@ -358,7 +358,7 @@ def camp_state(hub, facts=None, money=None):
             "caps": {SKILL_LINES[p["name"]]: p["max"] for p in profs if p.get("max")},
             "known": facts.get("recipes") or {}, "items": facts.get("items"), "auras": facts.get("auras") or {},
             "cooldowns": facts.get("cooldowns") or {}, "colours": colours, "skipped": camp_skipped(hub), "now": time.time(),
-            "npc": npc, "camped": me.get("camped"), "money": money}
+            "npc": npc, "camped": me.get("camped"), "money": money, "prices": seen_prices(hub)}
 
 
 def grade_state(hub):
@@ -1518,9 +1518,7 @@ def bind_inns(hub):
 
 
 def leg_travel(hub, speed):
-    walk, memo = reckoned_walk(speed), {}
-    st = hub.status or {}
-    side = (st.get("strs") or {}).get("faction") or None
+    walk, route = reckoned_walk(speed), route_travel(hub, speed)
 
     def travel(a, b):
         if not a or not b:
@@ -1528,18 +1526,33 @@ def leg_travel(hub, speed):
         yards = math.hypot(a[1] - b[1], a[2] - b[2]) if a[0] == b[0] else math.inf
         if yards < WAY_MOST:
             return walk(a, b)
+        try:
+            seconds = route(a, b)
+        except Exception:
+            seconds = None
+        return seconds if seconds else (yards * STEP_DETOUR / speed if a[0] == b[0] else STEP_FAR)
+    return travel
+
+
+def route_travel(hub, speed=None):
+    memo = {}
+    side = ((hub.status or {}).get("strs") or {}).get("faction") or None
+
+    def best(a, b):
         key = (a[0], round(a[1]), round(a[2]), b[0], round(b[1]), round(b[2]))
         if key not in memo:
-            seconds = None
-            try:
-                race, spells, bags = travel_means(hub, side)
-                plans = hub.routes.plans(tuple(a[:3]), tuple(b[:3]), "", side, hub.characters.known_taxi(), None, speed,
-                                         race=race, spells=spells, bags=bags, wait=True)
-                seconds = plans[0]["yards"] / speed if plans else None
-            except Exception:
-                seconds = None
-            memo[key] = seconds if seconds else (yards * STEP_DETOUR / speed if a[0] == b[0] else STEP_FAR)
+            pace = speed or hub.characters.travel_speed() or questplan.RUN
+            race, spells, bags = travel_means(hub, side)
+            plans = hub.routes.plans(tuple(a[:3]), tuple(b[:3]), "", side, hub.characters.known_taxi(), None, pace,
+                                     race=race, spells=spells, bags=bags, wait=True)
+            memo[key] = (plans[0]["yards"] / pace, a[0] != b[0] or any(leg.get("vehicle") in RIDE_WORDS for leg in plans[0]["legs"])) \
+                if plans else None
         return memo[key]
+
+    def travel(a, b):
+        got = best(a, b)
+        return None if got is None else got[0]
+    travel.ridden = lambda a, b: bool(best(a, b) and best(a, b)[1])
     return travel
 
 
@@ -1616,13 +1629,18 @@ def zone_mapper(hub):
 def prof_state(hub, facts=None, record=None, money=None):
     if record is not None:
         return profepics.state_of(record, record.get("level"), record.get("faction"),
-                                  profepics.game_ranks(record, getattr(hub, "trainer_prices", None)), None, zone_mapper(hub))
+                                  profepics.game_ranks(record, getattr(hub, "trainer_prices", None)), None, zone_mapper(hub),
+                                  prices=seen_prices(hub))
     s, st = hub.state or {}, hub.status or {}
     facts = ticks.game_facts(hub) if facts is None else facts
     me = me_record(hub)
     return profepics.state_of(me, s.get("level") or 1, (st.get("strs") or {}).get("faction", ""),
                               profepics.game_ranks(me, getattr(hub, "trainer_prices", None)), facts.get("items"),
-                              zone_mapper(hub), here_now(hub), money)
+                              zone_mapper(hub), here_now(hub), money, seen_prices(hub))
+
+
+def seen_prices(hub):
+    return recipe_prices(getattr(hub, "trainer_prices", None), camping.load().priced)
 
 
 def prof_line(key):
@@ -1870,6 +1888,39 @@ def quest_seconds(hub, item, at):
 
 def craft_picks(made):
     return {str(r["item"]): r["pick"] for r in made["rows"] if r["short"] and r["pick"] and r["kind"] != "goal"}
+
+
+def carried_now(hub, epic):
+    chars = getattr(hub, "characters", None)
+    bags = chars.bags_now() if epic and hasattr(chars, "bags_now") else None
+    if bags is None:
+        return epic
+    made = epic.get("craft")
+    if made and made.get("rows") and epic.get("materials"):
+        total = {}
+        for r in made["rows"]:
+            if r["kind"] != "goal" and not r.get("level"):
+                total[r["item"]] = total.get(r["item"], 0) + r["need"]
+        rows = []
+        for r in epic["materials"]:
+            need, have = total.get(r["item"], r["need"]), bags.get(r["item"], 0)
+            if have >= need:
+                continue
+            cost = int(round(r["cost"] * (need - have) / r["short"])) if r["short"] else r["cost"]
+            rows.append({**r, "need": need, "have": have, "short": need - have, "cost": cost})
+        epic["materials"] = rows
+    name = prof_data().cd.item_name
+    for s in epic.get("steps") or ():
+        if s.get("what") != "supplies":
+            continue
+        left = [(name(int(i)), int(n) - bags.get(int(i), 0)) for i, n in (s.get("need") or {}).get("items") or ()
+                if int(n) > bags.get(int(i), 0)]
+        if left:
+            auction = str(s.get("key") or "").endswith(":auction")
+            s["text"] = camping.buy_line(left, None if auction else s.get("npc"))
+            if "questName" in s:
+                s["questName"] = s["text"]
+    return epic
 
 
 def material_rows(made):

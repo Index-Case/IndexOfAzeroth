@@ -64,7 +64,15 @@ function D.Counted(g)
 end
 
 
+D.SLIDE_OPTION = { drift = "drift", nextzone = "nextZones", classquest = "classQuest" }
+function D.Shown(kind)
+  local key = D.SLIDE_OPTION[kind]
+  return not key or ns.Options().card[key]
+end
+ns.OnOptions(function() for kind in pairs(D.SLIDE_OPTION) do if not D.Shown(kind) then D.Drop(kind) end end end)
+
 function D.Ask(kind, ask)
+  if not D.Shown(kind) then return D.Drop(kind) end
   ask.kind, ask.at = kind, ask.at or D.Now()
   D.asks[kind] = ask
   if D.open and D.open.kind == kind and not PAGE_ONLY[kind] then
@@ -422,7 +430,7 @@ function D.ClassLook(level)
   local nx = D.NextTable()
   local list = nx and type(nx.cq) == "table" and nx.cq or nil
   level = level or Plain(Call(UnitLevel, "player"))
-  if not (list and level) or D.asks.classquest then return end
+  if not (list and level) or D.asks.classquest or not D.Shown("classquest") then return end
   local sv, g = D.Saved(), ns.GuideInfo()
   for _, c in ipairs(list) do
     local id = type(c) == "table" and tonumber(c.c)

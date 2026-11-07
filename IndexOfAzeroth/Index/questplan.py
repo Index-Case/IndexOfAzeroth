@@ -1034,12 +1034,15 @@ class QuestPlan(Epic):
     def window(self, route, k, hold_late=False):
         return self.window_of(route[:k] + route[k + 1:], route[k], hold_late)
 
+    def put(self, n):
+        if n["kind"] == "stop":
+            return False
+        return n["kind"] not in ("pickup", "objective", "turnin") or self.timed(n["quest"]) or bool(n.get("inside"))
+
     def window_of(self, rest, n, hold_late=False):
         if n["kind"] == "stop":
             return 0, len(rest)
-        if n["kind"] not in ("pickup", "objective", "turnin"):
-            return None
-        if self.timed(n["quest"]) or n.get("inside"):
+        if self.put(n):
             return None
         q = self.by_id[n["quest"]]
         own = [i for i, m in enumerate(rest) if m.get("quest") == n["quest"] or n["quest"] in (m.get("quests") or ())]
@@ -1193,7 +1196,10 @@ class QuestPlan(Epic):
 
     def gather(self, route, feel=False):
         runs = planunits.runs_at([n.get("spot") for n in route])
-        current = self.feel(route)[0] if feel else None
+        got = self.feel(route) if feel else None
+        current, past = (got[0], {id(route[m]) for _, m, *_ in got[4]}) if feel else (None, set())
+        walk = lambda r: planunits.walk_of([m.get("spot") for m in r], self.gap, self.anchor)
+        walked, ready = walk(route), self.ready_of(route)
         k = -1 if self.anchor else 0
         while k < len(route):
             if (self.anchor if k < 0 else route[k].get("spot")) is None:
@@ -1202,33 +1208,66 @@ class QuestPlan(Epic):
             planreport.weighing(route, k)
             slack = planunits.reach("slack", runs[min(max(k, 0), len(runs) - 1)] if runs else None)
             end, close = self.visit_of(route, k, runs)
-            for j in range(end + 2, len(route)):
+            back, j = self.left_place(route, k, runs), end + 2
+            while j < len(route):
                 n = route[j]
-                if not close(n):
+                if not close(n) and not (ready[j] == k and planunits.behind(back, lambda q: node_reach(n, q))):
+                    j += 1
                     continue
-                rest = route[:j] + route[j + 1:]
+                chunk = self.with_place(route, [j], n["spot"], k + 1, ready)
+                moving = [route[x] for x in chunk]
+                rest = route[:j] + route[chunk[-1] + 1:]
                 w = self.window_of(rest, n, hold_late=feel)
                 lo, hi = (max(w[0], k + 1), min(w[1], end + 1)) if w else (1, 0)
-                if lo > hi:
+                i = self.best_place(rest, n["spot"], lo, hi) if lo <= hi else None
+                trial = rest[:i] + moving + rest[i:] if i is not None else None
+                cheap = trial is not None and walk(trial) <= walked + slack
+                if trial is None or not (cheap or feel) or not self.feasible(trial) \
+                        or (len(moving) > 1 and not self.in_order(trial)):
+                    j += 1
                     continue
-                i = self.best_place(rest, n["spot"], lo, hi)
-                if i is None:
-                    continue
-                cheap = self.cost(rest, i, n["spot"]) <= self.cost(rest, j, n["spot"]) + slack
-                if not cheap and not feel:
-                    continue
-                trial = rest[:i] + [n] + rest[i:]
-                if not self.feasible(trial):
-                    continue
+                undo = None
                 if feel:
-                    f = self.feel(trial)[0]
-                    if f > current + (slack if cheap else -plansteps.TIE):
+                    got, bar = self.feel(trial), current + (slack if cheap else -plansteps.TIE)
+                    new = sum(c for _, m, c, *_ in got[4] if id(trial[m]) not in past)
+                    if got[0] > bar >= got[0] - new:
+                        trial, got, undo = self.with_passes(trial)
+                    if got[0] > bar:
+                        if undo:
+                            undo()
+                        j += 1
                         continue
-                    current = f
+                    current, past = got[0], {id(trial[m]) for _, m, *_ in got[4]}
+                was, by = (route[k] if k >= 0 else None), {id(m): r for m, r in zip(route, runs)}
                 route[:] = trial
-                runs.insert(i, runs.pop(j))
-                end += 1
+                runs[:] = [by[id(m)] for m in route]
+                walked, ready = walk(route), self.ready_of(route)
+                if undo is None:
+                    end += len(moving)
+                    j += len(moving)
+                    continue
+                k = next(x for x, m in enumerate(route) if m is was) if was is not None else -1
+                last = max(x for x, m in enumerate(route) if any(m is y for y in moving))
+                end = max(self.visit_of(route, k, runs)[0], last)
+                back, j = self.left_place(route, k, runs), end + 2
             k += 1
+
+    def left_place(self, route, k, runs):
+        if k < 0:
+            return []
+        vs = planunits.visits([n.get("spot") for n in route], runs)
+        v = next((v for v, xs in enumerate(vs) if k in xs), 0)
+        return [route[x].get("spot") for x in vs[v - 1]] if v else []
+
+    def with_passes(self, trial):
+        chosen = [(m, m["spot"], m["step"]) for m in trial if m.get("givers")]
+        trial = list(trial)
+        self.pass_givers(trial)
+
+        def undo():
+            for m, spot, step in chosen:
+                m["spot"], m["step"] = spot, step
+        return trial, self.feel(trial), undo
 
     def visit_of(self, route, k, runs):
         here = self.anchor if k < 0 else route[k].get("spot")
@@ -1313,9 +1352,14 @@ class QuestPlan(Epic):
         hop = director_rules.RUN["hop"].value
         chunk = [j for j in range(i, m) if givers[j] and ready[j] < s and planunits.apart(route[j].get("spot"), at) <= hop]
         chunk.append(m)
-        for j in range(m + 1, len(route)):
-            if planunits.apart(route[j].get("spot"), at) > hop or not (ready[j] < s or ready[j] in chunk) \
-                    or (route[j].get("quest") is not None and self.timed(route[j]["quest"])):
+        return self.with_place(route, chunk, at, s, ready)
+
+    def with_place(self, route, chunk, at, s, ready):
+        hop = director_rules.RUN["hop"].value
+        for j in range(chunk[-1] + 1, len(route)):
+            m = route[j]
+            if planunits.apart(m.get("spot"), at) > hop or not (ready[j] < s or ready[j] in chunk) or self.put(m) \
+                    or m.get("late"):
                 break
             chunk.append(j)
         return chunk

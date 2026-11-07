@@ -2,6 +2,7 @@
 import math
 
 import datafiles
+import director_rules
 from facts import RUN_SPEED
 import layers
 from layers import camp_blocks, camp_hourly, camp_spots, camp_timing
@@ -10,14 +11,44 @@ NODE_LAYERS = ("mining", "herbalism")
 NODE_YIELD = 1.0
 FARM_SECONDS = 3600.0
 OTHER_CONTINENT_SECONDS = 1200.0
+RIDE_TEDIUM = director_rules.COST["far"].value / RUN_SPEED
 SPOTS_MOST = 5
+TRIPS_ASKED = 80
 APART = 3 * layers.CAMP_CELL
 NODE_WALK_MOST = APART
 LEAST = 4
 
 
-def farm_score(per_hour, trip):
-    return per_hour * FARM_SECONDS / (FARM_SECONDS + max(0.0, trip))
+def farm_seconds(per_hour, trip, need=None):
+    if per_hour <= 0:
+        return math.inf
+    return max(0.0, trip) + (FARM_SECONDS if need is None else need * 3600.0 / per_hour)
+
+
+def farm_score(per_hour, trip, need=None):
+    seconds = farm_seconds(per_hour, trip, need)
+    return 0.0 if seconds == math.inf else (per_hour if need is None else need) * 3600.0 / max(seconds, 1e-9)
+
+
+def ranked(camps, here, need=None, travel=None):
+    cheap = sorted(((farm_score(c[0], trip_seconds(here, *c[1:4]), need), trip_seconds(here, *c[1:4]), c) for c in camps),
+                   key=lambda r: -r[0])
+    if travel is None or not here:
+        return cheap
+    ridden = getattr(travel, "ridden", lambda a, b: a[0] != b[0])
+    out = []
+    for k, (guess, line, c) in enumerate(cheap):
+        if k >= TRIPS_ASKED or sum(1 for r in out if r[0] >= guess) >= SPOTS_MOST:
+            break
+        try:
+            trip = travel(here, tuple(c[1:4]))
+            if trip is not None and ridden(here, tuple(c[1:4])):
+                trip += RIDE_TEDIUM
+        except Exception:
+            trip = line
+        if trip is not None:
+            out.append((farm_score(c[0], trip, need), trip, c))
+    return sorted(out, key=lambda r: -r[0])
 
 
 def camp_kind(gives, block, skinning=0):
@@ -29,7 +60,7 @@ def trip_seconds(here, inst, north, west):
     if not here:
         return 0.0
     if here[0] != inst:
-        return OTHER_CONTINENT_SECONDS
+        return OTHER_CONTINENT_SECONDS + RIDE_TEDIUM
     return math.hypot(here[1] - north, here[2] - west) / RUN_SPEED
 
 
@@ -86,8 +117,8 @@ class Farm:
         return [(layer, node) for layer, node in self.nodes_of(item)
                 if not skills.get(layer) or node.get("skill", 0) <= skills[layer]]
 
-    def kill_rows(self, item, level, faction, skinning, keep=True):
-        return self.world.camp_rows(self.zones(), level, faction, item=item, skinning=skinning, keep=keep)
+    def kill_rows(self, item, level, faction, skinning, keep=True, one_offs=False):
+        return self.world.camp_rows(self.zones(), level, faction, item=item, skinning=skinning, keep=keep, one_offs=one_offs)
 
     def grinds(self, item, level, faction, skinning):
         return any(self.kill_rows(item, level, faction, skinning, keep=False).values())
@@ -132,18 +163,17 @@ class Farm:
                 if layers is None or layer in layers
                 for score, block, cn, cw in camp_blocks(pts, None, None, LEAST, timing=camp_timing, rate=camp_hourly)]
 
-    def spots(self, item, level, faction, here=None, skills=None, kill=True, layers=None):
+    def spots(self, item, level, faction, here=None, skills=None, kill=True, layers=None, need=None, travel=None):
         skills = skills or {}
         camps = (self.kill_camps(item, level, faction, skills.get("skinning") or 0) if kill else []) \
             + (self.gather_camps(item, level, faction, skills, layers) if layers is None or layers else [])
-        ranked = sorted(((farm_score(per_hour, trip_seconds(here, inst, cn, cw)), per_hour, kind, block, inst, cn, cw)
-                         for per_hour, kind, block, inst, cn, cw in camps), key=lambda c: -c[0])
         picked = []
-        for score, per_hour, kind, block, inst, cn, cw in ranked:
+        for score, trip, (per_hour, inst, cn, cw, kind, block) in ranked(
+                [(per_hour, inst, cn, cw, kind, block) for per_hour, kind, block, inst, cn, cw in camps], here, need, travel):
             if len(picked) >= SPOTS_MOST:
                 break
             if score > 0 and apart(picked, inst, cn, cw):
-                picked.append(self.spot(kind, block, inst, cn, cw, per_hour, score, trip_seconds(here, inst, cn, cw)))
+                picked.append(self.spot(kind, block, inst, cn, cw, per_hour, score, trip))
         name, icon, _ = self.names().get(item, (None, None, None))
         price = self.world.ah_prices()[1].get(item)
         return {"item": item, "name": name, "icon": icon, "spots": picked, "price": price,

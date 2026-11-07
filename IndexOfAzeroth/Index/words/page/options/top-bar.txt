@@ -3,6 +3,6 @@
 
 name = Top bar
 key-names = Key names
-key-names.text = This picks whether a top bar key with more than one name turns its names round like a drum or shows them all on one line, which slides along to show the rest while the pointer is over the key
+key-names.text = Picks whether a top bar key with more than one name turns its names round like a drum or shows them all on one line, which slides along to show the rest while the pointer is over the key
 key-names.turning = Turning names
 key-names.fixed = Fixed names

@@ -316,6 +316,7 @@ const UP_WAYS = {
   vendor: (w) => word("page.items.up.way.vendor", { vendor: w.vendor }),
   auction: () => word("page.items.up.way.auction"),
   drop: (w) => word("page.items.up.way.drop", { mob: w.mob, kills: num(w.kills) }),
+  once: (w) => wordCount("page.items.up.way.once", w.respawn, { mob: w.mob, kills: num(w.kills) }),
   craft: (w) => {
     const what = { what: w.skill ? `${w.profession} ${w.skill}` : w.profession };
     return w.takeUp ? word("page.items.up.way.craft.new", what) : word("page.items.up.way.craft", what);

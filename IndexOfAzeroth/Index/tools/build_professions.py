@@ -354,8 +354,9 @@ def build(tables, fill, build_id=None):
                "places": theirs.get("places") or part("places", []),
                "nodes": theirs.get("nodes") or {"fill": FILL["nodes"], "names": {}, "skills": {}}}
 
+    rank_words = fill.get("ranks") or {}
     for p, v in profs.items():
-        v["ranks"] = c["steps"].get(p, [])
+        v["ranks"] = [{**r, **rank_words.get(str(r["spell"]), {})} for r in c["steps"].get(p, [])]
         v["groups"] = keyed(c["by_prof"].get(p, {}))
         v["recipes"] = sorted(sid for sid, r in found.items() if r["prof"] == p)
     stations = {num(r["ID"]): r.get("Name_lang") or "" for r in tables["SpellFocusObject"]}

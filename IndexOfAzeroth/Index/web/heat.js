@@ -39,8 +39,12 @@ function heatTailStyle(t, base) {
   const stops = [`rgba(${heatAt(0, base)}, 0) 0%`, ...heatStops(base).filter(([p]) => p < t).map(([p]) => `rgb(${heatAt(p, base)}) ${along(p)}%`),
     `rgb(${heatAt(t, base)}) 100%`];
   const width = HEAT.TAIL_LO + (HEAT.TAIL_HI - HEAT.TAIL_LO) * t;
-  return `width:${width.toFixed(1)}%;opacity:${(0.3 + 0.7 * t).toFixed(2)};--streak:${heatBloom(t).toFixed(2)};`
+  return `width:${width.toFixed(1)}%;opacity:calc(${(0.3 + 0.7 * t).toFixed(2)} * var(--heat-strength, 1));--streak:${heatBloom(t).toFixed(2)};`
     + `background:linear-gradient(to right, ${stops.join(", ")})`;
+}
+
+function heatStrength(share, root = document.documentElement) {
+  root.style.setProperty("--heat-strength", String(share));
 }
 
 const heatEdgeStyle = (t, base) => `--heat:${heatAt(t, base)};--bloom:${heatBloom(t).toFixed(2)}`;

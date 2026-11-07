@@ -851,7 +851,8 @@ HIT_KINDS = {1: "hit", 2: "heal"}
 def parse_hits(data):
     r = Reader(data)
     most, count = r.u24(), r.take("<H")
-    last = [{"kind": HIT_KINDS.get(kind), "amount": amount} for kind, amount in (r.take("<BH") for _ in range(r.take("<B")))]
+    last = [{"kind": HIT_KINDS.get(kind), "amount": amount or None}
+            for kind, amount in (r.take("<BH") for _ in range(r.take("<B")))]
     return {"most": most or None, "count": count, "last": last}
 
 

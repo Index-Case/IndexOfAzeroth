@@ -93,8 +93,9 @@ def trips(spots, vs, ready, kinds, gap, runs=None):
             stay += 1
         there = [j for v in vs[k:stay + 1] for j in v if spots[j]]
         away = [j for v in vs[came + 1:k] for j in v if spots[j]]
-        left_over = [ready[j] <= left and kinds[j] != "errand" for j in there]
-        if there and all(left_over):
+        left_over = [ready[j] <= left and kinds[j] != "errand" for j in there] \
+            if not finishing(spots, vs, ready, came, k) else []
+        if there and left_over and all(left_over):
             prev = next((spots[j] for j in reversed(range(first[k])) if spots[j]), None)
             out.append(("far", came, k, gap(prev, b) if prev else 0.0))
         if any(left_over) and len(away) <= plan_value("lone") and all(kinds[j] in TALKS for j in away):
@@ -112,7 +113,7 @@ def trips(spots, vs, ready, kinds, gap, runs=None):
         ac, ab = yards(spots[a[0]], spots[c[0]]), yards(spots[a[0]], spots[b[0]])
         if ac is None or ab is None or ac > reach("visit", run) or ab < reach("visit", run):
             continue
-        if not any(b[0] <= ready[j] <= b[-1] for j in c):
+        if not any(b[0] <= ready[j] <= b[-1] for j in c) and not finishing(spots, vs, ready, k - 1, k + 1):
             out.append(("return", k - 1, k + 1, reach("visit", run)))
     return out
 
@@ -237,6 +238,20 @@ def walked_past(spots, ready, givers, runs=None, start=None, gap=None, ridden=No
     return sorted((i, m, 2 * gap(spots[i], q), q, s) for m, hits in out.items() for i, q, s in hits)
 
 
+def behind(places, off):
+    hop = director_rules.RUN["hop"].value
+    return any(off(q) <= hop for q in places if q)
+
+
+def finishing(spots, vs, ready, came, k):
+    away = [j for v in vs[came + 1:k] for j in v if spots[j]]
+    if came < 1 or not away:
+        return False
+    f, hop = away[0], director_rules.RUN["hop"].value
+    return vs[came][0] <= ready[f] <= vs[came][-1] and behind([spots[j] for j in vs[came - 1]], lambda q: apart(q, spots[f])) \
+        and all(apart(spots[f], spots[j]) <= hop for j in away)
+
+
 def skips(spots, vs, ready, kinds, runs=None):
     out = []
     for k in range(len(vs) - 1):
@@ -246,9 +261,11 @@ def skips(spots, vs, ready, kinds, runs=None):
         on = (yards(spots[i], spots[vs[k + 1][0]]) if spots[i] and spots[vs[k + 1][0]] else None)
         if on is None or on < near:
             continue
+        back = [spots[j] for j in vs[k - 1]] if k else []
         for v in vs[k + 2:]:
             m = next((m for m in v if spots[m] and ready[m] <= i and kinds[m] not in ("errand", "dungeon")
-                      and apart(spots[i], spots[m]) <= near), None)
+                      and (apart(spots[i], spots[m]) <= near
+                           or ready[m] >= vs[k][0] and behind(back, lambda q: apart(q, spots[m])))), None)
             if m is not None:
                 out.append((k, m))
                 break

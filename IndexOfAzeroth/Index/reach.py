@@ -20,6 +20,9 @@ MUTATORS = frozenset({"append", "extend", "insert", "update", "setdefault", "add
                       "intersection_update", "symmetric_difference_update", "__setitem__", "__delitem__"})
 BEYOND = frozenset({"open", "exec", "eval", "compile", "__import__", "globals", "vars", "setattr", "delattr", "print",
                     "input", "breakpoint", "exit", "quit", "help"})
+OWN_DECORATORS = frozenset({"property", "staticmethod", "classmethod", "cached_property"})
+ON, AT_LOAD = "on:", "at load:"
+LUA_LOOKS = frozenset({"debug.getinfo", "type", "tostring", "rawequal"})
 
 
 def marks(tree, mark=MARK):
@@ -215,6 +218,7 @@ def _reach_from(used, inside, names, uses_of):
 
 def load_reading(tree, text):
     names = module_names(tree)
+    classes = own_classes(tree)
     scopes = _scopes(text)
     uses_of = {}
     for node in tree.body:
@@ -250,7 +254,8 @@ def load_reading(tree, text):
             continue
         decorators = getattr(node, "decorator_list", [])
         if plain(node) and not decorators:
-            out.append((node, names_bound, "named", [(n, code) for n in sorted(names_bound)]))
+            keys = class_keys(node, classes) if isinstance(node, ast.ClassDef) else [(n, code) for n in sorted(names_bound)]
+            out.append((node, names_bound, "named", keys))
             continue
         if decorators:
             used = {n.id for d in decorators for n in ast.walk(d) if isinstance(n, ast.Name)}
@@ -283,6 +288,33 @@ def load_reading(tree, text):
         out.append((node, names_bound, "kept", [(k, code) for k in sorted(touched)]
                     + [(AT_IMPORT + k, code) for k in sorted(touched)]))
     return {"statements": out, "held": held, "kept": kept, "outside": outside, "fills": fills, "bare": bare}
+
+
+def own_classes(tree):
+    return frozenset(n.name for n in tree.body if isinstance(n, ast.ClassDef))
+
+
+def class_methods(node, ours):
+    if node.keywords or not all(isinstance(b, ast.Name) and (b.id == "object" or b.id in ours) for b in node.bases):
+        return []
+    return [n for n in node.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and not (n.name.startswith("__") and n.name.endswith("__"))
+            and all(isinstance(d, ast.Name) and d.id in OWN_DECORATORS for d in n.decorator_list)]
+
+
+def class_shell(node, ours):
+    own = {id(m) for m in class_methods(node, ours)}
+    shell = ast.ClassDef(name=node.name, bases=node.bases, keywords=node.keywords,
+                         body=[n for n in node.body if id(n) not in own] or [ast.Pass()],
+                         decorator_list=node.decorator_list)
+    if hasattr(node, "type_params"):
+        shell.type_params = node.type_params
+    return shell
+
+
+def class_keys(node, ours):
+    return [(node.name, digest(class_shell(node, ours)))] + [(f"{node.name}.{m.name}", digest(m))
+                                                             for m in class_methods(node, ours)]
 
 
 def _writes(code, names):
@@ -367,10 +399,10 @@ def a_name(key):
     return key not in (LOAD, MAIN) and not key.startswith((IMPORT, AT_IMPORT, TAKEN, KEY, STORE))
 
 
-def changed_names(before, after, script=False):
+def changed_names(before, after, script=False, lua=False):
     try:
-        if script:
-            a, b = js_keyed(before), js_keyed(after)
+        if script or lua:
+            a, b = (lua_keyed if lua else js_keyed)(before), (lua_keyed if lua else js_keyed)(after)
             kept, outside = set(), set()
         else:
             (a, kept_a, out_a), (b, kept_b, out_b) = _keyed(before), _keyed(after)
@@ -381,10 +413,11 @@ def changed_names(before, after, script=False):
     for k in [k for k in out if a_name(k)]:
         if k in a and k not in b:
             out.add(TAKEN + k)
-        if k in outside:
+        owner = k if script or lua else k.partition(".")[0]
+        if owner in outside:
             out.add(LOAD)
-        elif k in kept:
-            out.add(AT_IMPORT + k)
+        elif owner in kept:
+            out.add(AT_IMPORT + owner)
     return out
 
 
@@ -542,4 +575,274 @@ def js_keyed(text):
             out.setdefault(name, []).append(h)
         if load:
             out.setdefault(LOAD, []).append(h)
+    return out
+
+
+
+LUA_OPEN = frozenset({"function", "do", "if", "repeat"})
+LUA_CLOSE = frozenset({"end", "until"})
+LUA_WORDS = frozenset({"and", "break", "do", "else", "elseif", "end", "false", "for", "function", "goto", "if", "in",
+                       "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while"})
+LUA_NUMBER = re.compile(r"0[xX][0-9a-fA-F]+|(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?")
+LUA_OPS = ("...", "..", "==", "~=", "<=", ">=", "::")
+LUA_LONG = re.compile(r"\[(=*)\[")
+LUA_WORD = re.compile(r"[A-Za-z_]\w*")
+
+
+def lua_tokens(text):
+    out, i, n = [], 0, len(text)
+    while i < n:
+        ch = text[i]
+        if ch in " \t\r\n\f\v":
+            i += 1
+        elif text.startswith("--", i):
+            m = LUA_LONG.match(text, i + 2)
+            if m:
+                j = text.find("]" + m.group(1) + "]", m.end())
+                if j < 0:
+                    return None
+                i = j + len(m.group(1)) + 2
+            else:
+                j = text.find("\n", i)
+                i = n if j < 0 else j
+        elif ch in "'\"":
+            j = i + 1
+            while j < n and text[j] != ch and text[j] != "\n":
+                j += 2 if text[j] == "\\" else 1
+            if j >= n or text[j] != ch:
+                return None
+            out.append(("s", text[i + 1:j], i))
+            i = j + 1
+        elif ch == "[" and LUA_LONG.match(text, i):
+            m = LUA_LONG.match(text, i)
+            close = "]" + m.group(1) + "]"
+            j = text.find(close, m.end())
+            if j < 0:
+                return None
+            out.append(("s", text[m.end():j], i))
+            i = j + len(close)
+        elif ch.isalpha() or ch == "_":
+            j = i + 1
+            while j < n and (text[j].isalnum() or text[j] == "_"):
+                j += 1
+            out.append(("n", text[i:j], i))
+            i = j
+        elif ch.isdigit() or (ch == "." and text[i + 1:i + 2].isdigit()):
+            m = LUA_NUMBER.match(text, i)
+            out.append(("#", m.group(), i))
+            i = m.end()
+        else:
+            op = next((o for o in LUA_OPS if text.startswith(o, i)), ch)
+            out.append(("o", op, i))
+            i += len(op)
+    return out
+
+
+def _lua_chain(toks, k):
+    if k >= len(toks) or toks[k][0] != "n" or toks[k][1] in LUA_WORDS:
+        return None, k
+    name, k = toks[k][1], k + 1
+    while k + 1 < len(toks) and toks[k][1] in (".", ":") and toks[k][0] == "o" and toks[k + 1][0] == "n" \
+            and toks[k + 1][1] not in LUA_WORDS:
+        name, k = name + toks[k][1] + toks[k + 1][1], k + 2
+    return name, k
+
+
+def _lua_close(toks, k):
+    depth = 0
+    for j in range(k, len(toks)):
+        kind, t = toks[j][0], toks[j][1]
+        if (kind == "o" and t in ("(", "[", "{")) or (kind == "n" and t in LUA_OPEN):
+            depth += 1
+        elif (kind == "o" and t in (")", "]", "}")) or (kind == "n" and t in LUA_CLOSE):
+            depth -= 1
+            if depth == 0:
+                return j
+    return None
+
+
+def _lua_bodies(toks):
+    out, k = [], 0
+    while k < len(toks):
+        if toks[k][:2] == ("n", "function"):
+            j = _lua_close(toks, k)
+            if j is None:
+                return None
+            out.append((k, j))
+            k = j + 1
+        else:
+            k += 1
+    return out
+
+
+def _lua_calls(toks, spans):
+    inside = {j for a, b in spans for j in range(a, b + 1)}
+    for k in range(len(toks) - 1):
+        if k in inside or k + 1 in inside:
+            continue
+        kind, t = toks[k][0], toks[k][1]
+        if (kind == "n" and t not in LUA_WORDS) or (kind == "o" and t in (")", "]")):
+            nk, nt = toks[k + 1][0], toks[k + 1][1]
+            if nk == "s" or (nk == "o" and nt in ("(", "{")):
+                return True
+    return False
+
+
+def _lua_words(toks):
+    out = set()
+    for kind, t, *_ in toks:
+        if kind == "n":
+            out.add(t)
+        elif kind == "s":
+            out.update(LUA_WORD.findall(t))
+    return out
+
+
+def _lua_hash(toks):
+    return hashlib.sha1("\0".join(kind + t for kind, t, *_ in toks).encode()).hexdigest()
+
+
+def _lua_args(toks, k):
+    close = _lua_close(toks, k)
+    out, start, depth = [], k + 1, 0
+    for j in range(k + 1, close):
+        kind, t = toks[j][0], toks[j][1]
+        if (kind == "o" and t in ("(", "[", "{")) or (kind == "n" and t in LUA_OPEN):
+            depth += 1
+        elif (kind == "o" and t in (")", "]", "}")) or (kind == "n" and t in LUA_CLOSE):
+            depth -= 1
+        elif depth == 0 and toks[j][:2] == ("o", ","):
+            out.append((start, j - 1))
+            start = j + 1
+    if start < close:
+        out.append((start, close - 1))
+    return out
+
+
+def _lua_held(params, body):
+    out = []
+    for place, p in enumerate(params):
+        stored, ok = False, True
+        for i, (kind, t, *_) in enumerate(body):
+            if kind != "n" or t != p or (i and body[i - 1][1] in (".", ":")):
+                continue
+            after = body[i + 1][:2] if i + 1 < len(body) else ("", "")
+            if after == ("o", "=") and i and body[i - 1][1] in ("{", ","):
+                continue
+            if after[0] == "s" or after in (("o", "("), ("o", "{")):
+                ok = False
+                break
+            depth, j = 0, i - 1
+            while j >= 0:
+                bt = body[j][1] if body[j][0] == "o" else None
+                if bt in (")", "]", "}"):
+                    depth += 1
+                elif bt in ("(", "[", "{"):
+                    if depth == 0:
+                        break
+                    depth -= 1
+                j -= 1
+            opener = body[j][1] if j >= 0 else None
+            if opener == "{":
+                stored = True
+            elif opener == "(" and j > 0:
+                callee = []
+                m = j - 1
+                while m >= 0 and ((body[m][0] == "n" and body[m][1] not in LUA_WORDS) or body[m][1] in (".", ":")):
+                    callee.insert(0, body[m][1])
+                    m -= 1
+                if "".join(callee) not in LUA_LOOKS:
+                    ok = False
+                    break
+            else:
+                ok = False
+                break
+        if ok and stored:
+            out.append(place)
+    return out
+
+
+def lua_statements(text):
+    toks = lua_tokens(text)
+    if toks is None:
+        return None
+    starts, depth = [], 0
+    for k, (kind, t, at) in enumerate(toks):
+        if depth == 0 and (at == 0 or text[at - 1] == "\n"):
+            starts.append(k)
+        if (kind == "o" and t in ("(", "[", "{")) or (kind == "n" and t in LUA_OPEN):
+            depth += 1
+        elif (kind == "o" and t in (")", "]", "}")) or (kind == "n" and t in LUA_CLOSE):
+            depth -= 1
+            if depth < 0:
+                return None
+    if depth:
+        return None
+    if toks and (not starts or starts[0] != 0):
+        starts.insert(0, 0)
+    out = []
+    for a, b in zip(starts, starts[1:] + [len(toks)]):
+        out.append(_lua_statement(toks[a:b]))
+    return out
+
+
+def _lua_statement(st):
+    words, whole = _lua_words(st), _lua_hash(st)
+    load = {"kind": "load", "keys": [(LOAD, whole)], "words": set(), "load": words, "gates": set()}
+    local = st[0][:2] == ("n", "local")
+    if st[0][:2] == ("n", "function") or (local and len(st) > 1 and st[1][:2] == ("n", "function")):
+        name, k = _lua_chain(st, 2 if local else 1)
+        if not name or k >= len(st) or st[k][:2] != ("o", "("):
+            return load
+        close = _lua_close(st, k)
+        if close is None:
+            return load
+        params = [t for kind, t, *_ in st[k + 1:close] if kind == "n"]
+        return {"kind": "def", "keys": [(name, whole)], "words": words, "load": set(),
+                "gates": {re.split(r"[.:]", name)[-1]}, "name": name, "holds": _lua_held(params, st[close + 1:])}
+    spans = _lua_bodies(st)
+    if spans is None:
+        return load
+    targets, k = [], 1 if local else 0
+    while True:
+        name, k2 = _lua_chain(st, k)
+        if not name or ":" in name:
+            break
+        targets.append(name)
+        k = k2
+        if k < len(st) and st[k][:2] == ("o", ","):
+            k += 1
+            continue
+        break
+    if targets and ((local and k == len(st)) or (k < len(st) and st[k][:2] == ("o", "="))):
+        if _lua_calls(st, spans):
+            return load
+        return {"kind": "named", "keys": [(n, whole) for n in targets], "words": words, "load": set(),
+                "gates": {n.split(".")[-1] for n in targets}}
+    callee, k = _lua_chain(st, 0)
+    if not callee or not spans or k >= len(st) or st[k][:2] != ("o", "(") or _lua_close(st, k) != len(st) - 1:
+        return load
+    args = _lua_args(st, k)
+    literals = [place for place, (first, last) in enumerate(args) if st[first][:2] == ("n", "function")
+                and _lua_close(st, first) == last]
+    if not literals:
+        return load
+    inside = {j for place in literals for j in range(args[place][0], args[place][1] + 1)}
+    code = [t for j, t in enumerate(st) if j in inside]
+    rest = [t for j, t in enumerate(st) if j not in inside]
+    strings = sorted({t for kind, t, *_ in rest if kind == "s"})
+    said = callee + "|" + ",".join(strings)
+    return {"kind": "call", "keys": [(ON + said, _lua_hash(code)), (AT_LOAD + said, _lua_hash(rest))],
+            "words": _lua_words(code), "load": _lua_words(rest),
+            "gates": {w for s in strings for w in LUA_WORD.findall(s)}, "callee": callee, "literals": literals}
+
+
+def lua_keyed(text):
+    got = lua_statements(text)
+    if got is None:
+        raise ValueError("a Lua file left open")
+    out = {}
+    for s in got:
+        for key, h in s["keys"]:
+            out.setdefault(key, []).append(h)
     return out

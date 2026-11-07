@@ -29,13 +29,15 @@ drag.line.art = drag.line:CreateTexture(nil, "ARTWORK")
 drag.line.art:SetAllPoints()
 drag.line.art:SetColorTexture(C.ivory[1], C.ivory[2], C.ivory[3], drag.LINE_ALPHA)
 drag.line:Hide()
+function drag.Scale() return compass:GetScale() end
 function drag.Place(left, top)
-  local off = math.abs(left + compass:GetWidth() / 2 - UIParent:GetWidth() / 2)
+  local s = drag.Scale()
+  local off = math.abs(left + compass:GetWidth() * s / 2 - UIParent:GetWidth() / 2)
   compass:ClearAllPoints()
   if off <= drag.PULL then
-    compass:SetPoint("TOP", UIParent, "BOTTOM", 0, top)
+    compass:SetPoint("TOP", UIParent, "BOTTOM", 0, top / s)
   else
-    compass:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left, top)
+    compass:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left / s, top / s)
   end
   drag.line:SetShown(off <= drag.NEAR)
   return off <= drag.PULL
@@ -48,7 +50,8 @@ compass:SetScript("OnDragStart", function(self)
   local x, y = UI.Cursor()
   local left, top = self:GetLeft(), self:GetTop()
   if not (x and left and top) then return end
-  drag.from, drag.on = { x - left, y - top }, false
+  local s = drag.Scale()
+  drag.from, drag.on = { x - left * s, y - top * s }, false
   drag.Follow()
 end)
 compass:SetScript("OnDragStop", function(self)
@@ -58,7 +61,8 @@ compass:SetScript("OnDragStop", function(self)
   drag.line:Hide()
   local left, top = self:GetLeft(), self:GetTop()
   if not (left and top) then return end
-  ns.GuideSaved().compassPos = { left, top, center = drag.on or nil }
+  local s = drag.Scale()
+  ns.GuideSaved().compassPos = { left * s, top * s, center = drag.on or nil }
   ui.PlaceCompass()
 end)
 function drag.Tick()
@@ -67,13 +71,15 @@ function drag.Tick()
 end
 ns.compassDrag = drag
 function ui.PlaceCompass()
+  compass:SetScale(ns.Options().nav.compassSize / 100)
   local pos = ns.GuideSaved().compassPos
   if type(pos) ~= "table" then return end
+  local s = drag.Scale()
   compass:ClearAllPoints()
   if pos.center then
-    compass:SetPoint("TOP", UIParent, "BOTTOM", 0, pos[2] or 0)
+    compass:SetPoint("TOP", UIParent, "BOTTOM", 0, (pos[2] or 0) / s)
   else
-    compass:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", pos[1] or 0, pos[2] or 0)
+    compass:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", (pos[1] or 0) / s, (pos[2] or 0) / s)
   end
 end
 
@@ -725,6 +731,7 @@ function more.BuildBand()
 end
 more.BuildBand()
 ns.OnOptions(function()
+  ui.PlaceCompass()
   more.bandSig = nil
   more.LayoutBand()
   ui.Compass()

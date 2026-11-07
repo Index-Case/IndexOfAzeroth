@@ -1266,6 +1266,28 @@ end
 ns.On("HEARTHSTONE_BOUND", function() if guide then pcall(chore.BindMoved) end end)
 ns.GuideBindMoved = chore.BindMoved
 
+function chore.SoldOut()
+  local name = Plain(Call(UnitName, "npc"))
+  if not (guide and name) then return end
+  local listed = {}
+  for i = 1, Plain(Call(GetMerchantNumItems)) or 0 do
+    local id = Plain(Call(GetMerchantItemID, i))
+    if id then listed[id] = true end
+  end
+  local sv = Saved()
+  for _, s in ipairs(guide.steps) do
+    local limited = s.what == "supplies" and s.npc == name and s.key and (s.need or {}).limited
+    for _, id in ipairs(type(limited) == "table" and limited or {}) do
+      if not listed[tonumber(id)] and not sv.skippedErrands[s.key] and ns.NeedMet(s.need) ~= true then
+        sv.skippedErrands[s.key] = Plain(Call(UnitLevel, "player")) or 0
+        ns.epicDirty = true
+      end
+    end
+  end
+end
+ns.On({ "MERCHANT_SHOW", "MERCHANT_UPDATE" }, function() if guide then pcall(chore.SoldOut) end end)
+ns.GuideSoldOut = chore.SoldOut
+
 chore.HEARTH = { ITEM = 6948, CAST = 20, LEAST = 30, DETOUR = 1.25, RUN = 7, COOLDOWN = 3600, FAR = 600 }
 function chore.HearthReady()
   local H = chore.HEARTH
@@ -1892,6 +1914,8 @@ local function Evaluate()
   local marks = sv.parked[guide.key] or {}
   for id in pairs(marks) do if Turned(id) then marks[id] = nil end end
   for i, s in ipairs(guide.steps) do
+    local line = ns.ItemStepLine and ns.ItemStepLine(s)
+    if line and line ~= s.text then s.text, s.name, changed = line, line, true end
     local st, why, base = StepState(s)
     guide.base[i] = base
     if guide.state[i] ~= st or guide.why[i] ~= why then
@@ -3441,8 +3465,19 @@ function view.Paint(f, color, art, tint, look)
   if look or f.mark then ns.UI.Mark(f, look, view.MARK_SIZE) end
 end
 
+function view.Layer()
+  if not view.layer then
+    view.layer = CreateFrame("Frame", nil, UIParent)
+    view.layer:SetAllPoints(UIParent)
+    local function Strength() view.layer:SetAlpha(ns.Options().nav.beaconStrength / 100) end
+    Strength()
+    ns.OnOptions(Strength)
+  end
+  return view.layer
+end
+
 local function MakeMark(color, art)
-  local f = CreateFrame("Frame", nil, UIParent)
+  local f = CreateFrame("Frame", nil, view.Layer())
   f:SetSize(40, 40)
   f.icon = f:CreateTexture(nil, "ARTWORK")
   f.icon:SetAllPoints()
@@ -3845,7 +3880,7 @@ end
 ns.BeaconLoopBox = view.LoopBox
 
 function view.MakeBracket(side)
-  local f = CreateFrame("Frame", nil, UIParent)
+  local f = CreateFrame("Frame", nil, view.Layer())
   f:SetSize(view.BRACKET_W, view.BRACKET_H)
   f.glow = f:CreateTexture(nil, "BACKGROUND")
   f.glow:SetPoint("TOPLEFT", -4, 4)
@@ -3874,7 +3909,7 @@ function view.SpanGlow(f, from)
   return t
 end
 function view.MakeSpan()
-  local f = CreateFrame("Frame", nil, UIParent)
+  local f = CreateFrame("Frame", nil, view.Layer())
   f.glows = { view.SpanGlow(f, "LEFT"), view.SpanGlow(f, "RIGHT") }
   f.dist = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   f.dist:SetPoint("TOP", f, "BOTTOM", 0, -4)
@@ -3919,7 +3954,8 @@ function view.BracketsUpdate(self, dt)
   local left, right = self.left, self.right
   local t, colour = LoopGuide()
   if t and t.route and t.route:NextRide() then t = nil end
-  if not t or not BeaconOn() or (not (tracked and tracked.kind == "loop") and (self.faded or 1) <= 0) then
+  if not t or not BeaconOn() or not ns.NavOn("brackets")
+     or (not (tracked and tracked.kind == "loop") and (self.faded or 1) <= 0) then
     left:SetAlpha(0); right:SetAlpha(0); self.span:SetAlpha(0); view.StopOnBeacon(self.span, 0); return
   end
   local continent, px, py = ns.PlayerWorldPos()
@@ -3956,7 +3992,7 @@ end
 
 local function BeaconFrame()
   if not view.brackets then
-    view.brackets = CreateFrame("Frame", nil, UIParent)
+    view.brackets = CreateFrame("Frame", nil, view.Layer())
     view.brackets.left, view.brackets.right = view.MakeBracket("left"), view.MakeBracket("right")
     view.brackets.span = view.MakeSpan()
     ns.OnTick(view.brackets, "the loop's brackets", nil, view.BracketsUpdate)
@@ -4127,6 +4163,7 @@ function ns.QuestRewards()
 end
 
 function ns.GuideRewardPick(qid)
+  local byPrice = ns.Options().general.sellPrice
   local rw = nil
   for _, s in ipairs(guide and guide.steps or {}) do
     if s.kind == "T" and s.rw and s.ids[1] == qid then rw = s.rw end
@@ -4135,12 +4172,13 @@ function ns.GuideRewardPick(qid)
     local quests = ns.QuestRewards()
     rw = quests and type(quests[qid]) == "table" and quests[qid] or nil
   end
-  if not rw then return nil, "" end
+  if not rw and not byPrice then return nil, "" end
+  rw = rw or {}
   local changed = false
   for _, worn in ipairs(type(rw.worn) == "table" and rw.worn or {}) do
     changed = changed or (Plain(Call(GetInventoryItemID, "player", worn[1])) or 0) ~= worn[2]
   end
-  if changed then return nil, ", because you wear other gear than the Index's verdicts went by" end
+  if changed and not byPrice then return nil, ", because you wear other gear than the Index's verdicts went by" end
   local judged, choices, dear, price, all, priced = {}, {}, nil, -1, rw.known, true
   for _, id in ipairs(type(rw.ids) == "table" and rw.ids or {}) do judged[id] = true end
   for i = 1, Plain(Call(GetNumQuestChoices)) or 0 do
@@ -4159,20 +4197,24 @@ function ns.GuideRewardPick(qid)
   for _, p in ipairs(type(rw.picks) == "table" and rw.picks or {}) do
     local c = choices[p.id]
     if p.sell then vendor = vendor or (c and { c, p.sell })
-    elseif c and (c.usable or p.want) then c.want = p.want; return c, p.v end
+    elseif c and (p.want or (c.usable and not byPrice)) then c.want = p.want; return c, p.v end
   end
   if all and vendor and not priced then dear, price = vendor[1], vendor[2] end
-  if all and dear and price > 0 then
+  if (all or (byPrice and priced)) and dear and price > 0 then
     dear.vendor = true
-    return dear, "a vendor pick, since no reward is an upgrade and this one sells for the most: " .. (ns.Coins and ns.Coins(price) or (price .. "c"))
+    local coins = ns.Coins and ns.Coins(price) or (price .. "c")
+    if byPrice then return dear, "the reward that sells for the most: " .. coins end
+    return dear, "a vendor pick, since no reward is an upgrade and this one sells for the most: " .. coins
   end
+  if byPrice then return nil, ", because no vendor price is known" end
   if all then return nil, ", because no reward is an upgrade and no vendor price is known" end
   return nil, ", because the Index couldn't judge every reward when the plan was written"
 end
 
 local rewardMark = nil
 local PICK = { silver = { 0.78, 0.80, 0.84 },
-  why = { wear = "Index pick: best upgrade", vendor = "Index pick: no upgrade, best sell price", want = "Index pick: the item you asked for" } }
+  why = { wear = "Index pick: best upgrade", vendor = "Index pick: no upgrade, best sell price", want = "Index pick: the item you asked for",
+    price = "Index pick: best sell price" } }
 function ns.GuideMarkReward(i, vendor, want)
   local rf = _G.QuestInfoRewardsFrame
   local button = (rf and rf.RewardButtons and rf.RewardButtons[i]) or _G["QuestInfoRewardsFrameQuestInfoItem" .. i]
@@ -4184,7 +4226,8 @@ function ns.GuideMarkReward(i, vendor, want)
   end
   local edge = vendor and PICK.silver or EPIC_BLUE
   rewardMark:SetBackdropBorderColor(edge[1], edge[2], edge[3], 1)
-  rewardMark.why = (want and PICK.why.want) or (vendor and PICK.why.vendor) or PICK.why.wear
+  rewardMark.why = (want and PICK.why.want) or (vendor and (ns.Options().general.sellPrice and PICK.why.price or PICK.why.vendor))
+    or PICK.why.wear
   rewardMark.vendor, rewardMark.edge = vendor or false, edge
   if not button.ccPickHooked and button.HookScript then
     button.ccPickHooked = true

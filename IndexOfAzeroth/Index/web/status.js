@@ -206,8 +206,17 @@ const BAR_END = tintRgb("error");
 
 const BAR_PROGRESS = tintRgb("cyan-deep");
 
+const skillGlows = (bar) => !!bar?.heat && options.get("skillglow");
+function heatSwitched() {
+  if (!app.state) return;
+  updateXp();
+  renderStatus();
+  heatWatch();
+}
+for (const id of ["xpglow", "skillglow", "levelflare"]) options.hooks[id] = { changed: heatSwitched };
+
 function barHot(bar) {
-  if (!bar?.heat || !(bar.max > 0) || bar.dir !== "progress") return false;
+  if (!skillGlows(bar) || !(bar.max > 0) || bar.dir !== "progress") return false;
   const stage = heatStage(Math.min(1, bar.value / bar.max), 1 / bar.max);
   return stage === "glow" || stage === "fire";
 }
@@ -216,10 +225,11 @@ function barHtml(bar) {
   if (!bar || !(bar.max > 0)) return "";
   const frac = Math.max(0, Math.min(1, bar.value / bar.max));
   if (bar.dir === "progress") {
-    const age = bar.heat ? heatLevelled(`${bar.heat}:${heatWho()}:${bar.max}`, frac >= 1 ? 1 : 0) : null;
+    const levelled = bar.heat ? heatLevelled(`${bar.heat}:${heatWho()}:${bar.max}`, frac >= 1 ? 1 : 0) : null;
+    const age = options.get("levelflare") ? levelled : null;
     if (frac >= 1 && age == null) return "";
     const [r, g, b] = BAR_PROGRESS;
-    const heat = bar.heat ? heatEdgeHtml(frac, 1 / bar.max) + heatBurstHtml(age) : "";
+    const heat = bar.heat ? (skillGlows(bar) ? heatEdgeHtml(frac, 1 / bar.max) : "") + heatBurstHtml(age) : "";
     return `<span class="st-bar" style="width:${Math.max(frac * 100, 3)}%;background:rgba(${r},${g},${b},0.4);box-shadow:inset -2px 0 0 ${tint("cyan", 0.9)}">${heat}</span>`;
   }
   const toBad = bar.dir === "fill" ? (frac - 0.5) / 0.5 : (0.5 - frac) / 0.5;
@@ -227,6 +237,34 @@ function barHtml(bar) {
   const t = Math.min(1, toBad);
   const [r, g, b] = BAR_START.map((c, i) => Math.round(c + (BAR_END[i] - c) * t));
   return `<span class="st-bar" style="width:${Math.max(frac * 100, 3)}%;background:rgba(${r},${g},${b},0.34);box-shadow:inset -2px 0 0 rgba(${r},${g},${b},0.9)"></span>`;
+}
+
+const STATUS_ROWS = {
+  class: { 3: ["pet", "petLoyalty", "petTraining", "ammo"], 9: ["shards", "healthstones", "soulstones", "demon"],
+    8: ["arcanePowder", "runeTeleport", "runePortals", "lightFeather", "manaGems"],
+    4: ["mhPoison", "ohPoison", "poisons", "flashPowder", "blindingPowder"], 5: ["holyCandles", "sacredCandles"],
+    11: ["rebirthSeeds", "giftReagents"], 2: ["divinitySymbols", "kingsSymbols"],
+    7: ["ankhs", "reincarnation", "earthTotem", "fireTotem", "waterTotem", "airTotem", "totems"] },
+  supplies: ["food", "water", "bandages"], gold: ["money", "moneySession", "moneyHour", "bags", "special"], gear: ["durability", "ammo"],
+  weapon: ["all"], skills: ["all"], leveling: ["xpHour", "toLevel", "kills", "restedKills"], travel: ["hearth", "quests", "rep"],
+  time: ["server", "session", "played", "levelPlayed"], party: ["all"], finder: ["all"],
+};
+function statusRowChoices(heading, st) {
+  const rows = heading === "class" ? STATUS_ROWS.class[st?.classId] || []
+    : heading === "gear" && st?.classId === 3 ? STATUS_ROWS.gear.filter((v) => v !== "ammo") : STATUS_ROWS[heading];
+  return rows.map((v) => ({ value: v, name: CHARACTER_WORDS[`${heading}.${v.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`] }));
+}
+function statusRowChoice(key, heading) {
+  if (heading === "weapon" || heading === "skills") return "all";
+  if (key === "petHappiness" || key === "petNone") return "pet";
+  return /^totem\d$/.test(key) ? "totems" : key;
+}
+const statusRowShown = (heading, value) => !options.get(`rows${heading}`).includes(value);
+const shownSections = (secs) => secs.map((sec) => ({ ...sec, rows: sec.rows.filter((r) => statusRowShown(sec.id, statusRowChoice(r.key, sec.id))) }))
+  .filter((sec) => sec.rows.length);
+for (const heading of Object.keys(STATUS_ROWS)) {
+  options.hooks[`rows${heading}`] = { choices: () => statusRowChoices(heading, app.status), shown: () => statusRowChoices(heading, app.status).length > 0,
+    changed: () => { if (app.status) renderStatus(); } };
 }
 
 function sections(st, pos) {
@@ -273,10 +311,10 @@ function sections(st, pos) {
     }
   }
   const classRows = cls.filter(Boolean);
-  if (classRows.length) out.push({ title: st.className || "Class", classColor: CLASS_COLORS[st.className], rows: classRows });
+  if (classRows.length) out.push({ id: "class", title: st.className || "Class", classColor: CLASS_COLORS[st.className], rows: classRows });
 
   const supplies = [counted("food", "Food"), counted("water", "Water"), counted("bandages", "Bandages")].filter(Boolean);
-  if (supplies.length) out.push({ title: "Supplies", rows: supplies });
+  if (supplies.length) out.push({ id: "supplies", title: "Supplies", rows: supplies });
 
   const hours = (n.sessionSeconds || 0) / 3600;
   const gold = [row("money", "Gold", money(n.money || 0))];
@@ -285,23 +323,23 @@ function sections(st, pos) {
   gold.push(Object.assign(row("bags", "Free bag slots", `${n.bagFree ?? "?"} <small>of ${n.bagSlots ?? "?"}</small>`, n.bagFree === 0 ? "zero" : "",
     { value: (n.bagSlots || 0) - (n.bagFree || 0), max: n.bagSlots, dir: "fill" }), { hover: "bags" }));
   if (n.specialFree) gold.push(row("special", "Quiver or pouch free", num(n.specialFree)));
-  out.push({ title: "Gold and bags", rows: gold });
+  out.push({ id: "gold", title: "Gold and bags", rows: gold });
 
   const gear = [];
   if ("durability" in n) gear.push(row("durability", "Lowest durability", `${n.durability}%${durabilityItem(n)}`, "", { value: n.durability, max: 100, dir: "empty" }));
   if ("ammo" in n && st.classId !== 3) gear.push(row("ammo", esc(ammoLabel(s)), num(n.ammo), "", n.ammoMax ? { value: n.ammo, max: n.ammoMax, dir: "empty" } : null));
-  if (gear.length) out.push({ title: "Gear", rows: gear });
+  if (gear.length) out.push({ id: "gear", title: "Gear", rows: gear });
   const profs = app.professions || [];
   const skills = (st.skills || []).filter((sk) => !profs.some((p) => p.name === sk.name))
     .map((sk) => row(`skill-${sk.name}`, esc(sk.name), `${sk.rank} <small>/ ${sk.max}</small>`, "",
       { value: sk.rank, max: sk.max, dir: "progress", heat: `skill:${sk.name}` }));
-  if (skills.length) out.push({ title: "Weapon skill", rows: skills });
+  if (skills.length) out.push({ id: "weapon", title: "Weapon skill", rows: skills });
   const levelled = profs.map((p) => {
     const up = skillRise(p.name, p.rank, n.sessionSeconds);
     return row(`skill-${p.name}`, esc(p.name), `${p.rank} <small>/ ${p.max}</small>${up > 0 ? ` <small class="st-up">+${up}</small>` : ""}`,
       skillRose(p.name, p.rank) ? "rose" : "", { value: p.rank, max: p.max, dir: "progress", heat: `skill:${p.name}` });
   });
-  if (levelled.length) out.push({ title: "Skills", rows: levelled });
+  if (levelled.length) out.push({ id: "skills", title: "Skills", rows: levelled });
 
   if (pos && pos.xpMax && !(app.maxLevel != null && pos.level >= app.maxLevel)) {
     const left = pos.xpMax - pos.xp;
@@ -313,7 +351,7 @@ function sections(st, pos) {
       lvl.push(row("kills", "Kills to level", `${num(Math.ceil(left / n.lastKillXP))} <small>at ${num(n.lastKillXP)} XP</small>`));
       if (n.lastKillRested && pos.rested) lvl.push(row("restedKills", "Rested lasts", `${num(Math.ceil(pos.rested / (n.lastKillXP / 2)))} kills`));
     }
-    out.push({ title: "Leveling", rows: lvl });
+    out.push({ id: "leveling", title: "Leveling", rows: lvl });
   }
 
   const travel = [];
@@ -322,14 +360,14 @@ function sections(st, pos) {
     n.quests >= n.questsMax ? "zero" : "", { value: n.quests, max: n.questsMax, dir: "fill" }));
   if (s.repName) travel.push(row("rep", esc(s.repName), `${REACTIONS[n.repReaction] || ""} <small>${num(n.repValue || 0)} / ${num(n.repMax || 0)}</small>`, "",
     { value: n.repValue || 0, max: n.repMax || 0, dir: "progress" }));
-  if (travel.length) out.push({ title: "Travel and quests", rows: travel });
+  if (travel.length) out.push({ id: "travel", title: "Travel and quests", rows: travel });
 
   const time = [];
   if ("serverMinutes" in n) time.push(row("server", "Server time", `${String(Math.floor(n.serverMinutes / 60)).padStart(2, "0")}:${String(n.serverMinutes % 60).padStart(2, "0")}`));
   if ("sessionSeconds" in n) time.push(row("session", "Session", clock(n.sessionSeconds)));
   if ("playedSeconds" in n) time.push(row("played", "Played", playedText(n.playedSeconds)));
   if ("levelSeconds" in n) time.push(row("levelPlayed", "This level", playedText(n.levelSeconds)));
-  if (time.length) out.push({ title: "Time", rows: time });
+  if (time.length) out.push({ id: "time", title: "Time", rows: time });
   return out;
 }
 
@@ -405,8 +443,9 @@ function renderStatus() {
   const levels = {};
   for (const w of st.warnings || []) levels[WARNING_ROW[w.key]] = w.level;
   const zeroKeys = new Set(Object.keys(st.nums).filter((k) => st.nums[k] === 0 && !ZERO_IS_FINE.has(k)));
-  const help = helpButton("status"), party = partySection(help);
-  const html = queueLineHtml() + party + sections(st, app.state).map((sec, i) => {
+  const help = helpButton("status"), party = statusRowShown("party", "all") ? partySection(help) : "";
+  const finder = statusRowShown("finder", "all") ? queueLineHtml() : "";
+  const html = finder + party + shownSections(sections(st, app.state)).map((sec, i) => {
     const mine = !party && i === 0 ? help : "";
     const head = sec.classColor
       ? `<div class="st-head class" style="color:${sec.classColor}">${stIcon(`classicon_${(st.className || "").toLowerCase()}`, "st-hic")}${esc(sec.title)}${mine}</div>`

@@ -15,3 +15,6 @@ far.on = Out to 41 yards
 friends = Friendly nameplates
 friends.help = Near a guide NPC whose height isn't known yet, the add-on turns friendly nameplates on to place the beacon at the NPC's height. Your own setting comes back when the guide moves on, at logout and at /reload.
 friends.on = Turned on when needed
+
+loop-marks = Loop marks
+loop-marks.help = Marks the loop's mobs on their nameplates.

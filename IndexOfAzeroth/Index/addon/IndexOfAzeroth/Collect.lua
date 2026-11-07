@@ -14,13 +14,17 @@ local function Acted() idle.acts = (idle.acts + 1) % 256 end
 
 local EVENTS_KEPT = 4
 local HIT, HEAL = 1, 2
+local HIDDEN = 0
 local hits = { count = 0, last = {}, changed = false, sentAt = -math.huge }
 local HITS_EVERY = 1
 ns.hits = hits
-ns.On("UNIT_COMBAT", function(_, _, what, _, amount)
-  what, amount = PlainText(what), PlainNumber(amount)
+ns.On("UNIT_COMBAT", function(_, _, what, _, raw)
+  what = PlainText(what)
   local kind = what == "WOUND" and HIT or what == "HEAL" and HEAL or nil
-  if not (kind and amount and amount > 0) then return end
+  local amount = PlainNumber(raw)
+  if amount == nil and issecretvalue and issecretvalue(raw) then amount = HIDDEN
+  elseif not (amount and amount > 0) then amount = nil end
+  if not (kind and amount) then return end
   hits.count = (hits.count + 1) % 65536
   table.insert(hits.last, { kind, math.min(65535, math.floor(amount)) })
   if #hits.last > EVENTS_KEPT then table.remove(hits.last, 1) end

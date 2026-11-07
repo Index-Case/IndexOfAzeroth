@@ -389,7 +389,7 @@ on("snapshot", (snap) => {
 });
 
 function popNewest() {
-  if (lr.open != null || app.state?.flags?.combat || !lr.char || lr.char !== app.character) return;
+  if (!options.get("levelreport") || lr.open != null || app.state?.flags?.combat || !lr.char || lr.char !== app.character) return;
   if (!directorAllows("levelup")) return;
   const fresh = lr.reports.filter((r) => !r.seen);
   if (!fresh.length) return;

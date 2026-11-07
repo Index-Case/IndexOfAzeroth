@@ -14,6 +14,12 @@ arrow.tip = The arrow points at the objective and the glow on the arrow shows th
 beacons = Beacons
 minimap-line = Minimap line
 map-line = World map line
+brackets = Loop brackets
+brackets.help = Draws the loop's brackets round where the loop runs, with the loop's name.
+beacon-strength = Beacon strength
+beacon-strength.help = Sets how strong the beacons show.
+compass-size = Compass size
+compass-size.help = Sets the size of the compass.
 all-off = All guidance is off, so nothing shows the route.
 
 declutter = Dynamic declutter

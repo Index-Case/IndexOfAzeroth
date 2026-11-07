@@ -94,8 +94,10 @@ function animateRouteWeighing(now) {
   return more;
 }
 on("animate", animateRouteWeighing);
+options.hooks.routeweigh = { changed: () => redraw() };
 
 function drawRouteWeighing(size, scale) {
+  if (!options.get("routeweigh")) return;
   const now = performance.now();
   for (const w of weighing.values()) {
     if (!w.drawn.list.length) continue;

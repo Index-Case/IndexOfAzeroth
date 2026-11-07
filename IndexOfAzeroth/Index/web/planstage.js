@@ -27,7 +27,7 @@ function planStageLine(stage, count) {
 function syncPlanStage() {
   const box = $("plan-stage");
   if (!box) return;
-  const t = compose.t, said = t && compose.mode === "making" && app.plan?.progress?.key === t.key ? app.plan.progress : null;
+  const t = compose.t, said = t && compose.mode === "making" && app.plan?.progress?.key === t.key && options.get("planmap") ? app.plan.progress : null;
   const stage = planStageOf(said);
   if (!stage) {
     if (planStage.key && !box.classList.contains("leaving")) box.classList.add("leaving");
@@ -111,6 +111,8 @@ function planStageGone(e) {
   }
 }
 $("plan-stage")?.addEventListener("transitionend", planStageGone);
+
+options.hooks.planmap = { changed: () => { syncPlanLegend(); syncPlanStage(); redraw(); } };
 
 if (typeof module === "object") {
   module.exports = { STAGE_GAP, STAGE_EDGE, STAGE_CLEAR, PLAN_STAGE_WORDS, planStage, planStageOf, planStageCount, planStageLine,

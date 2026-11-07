@@ -4,3 +4,8 @@
 horde = Horde
 alliance = Alliance
 side.tip = When this box is ticked, the map shows the {side}'s places. The places both factions can use always show. The character's own faction is ticked each time the page opens
+
+more.class = This + lists every class. Pick a class to show that class's trainers on the map
+more.weapons = This + lists the weapon skills. Pick a weapon skill to show the weapon masters who teach it
+pick.yours = the character's class
+pick.every = Every weapon skill

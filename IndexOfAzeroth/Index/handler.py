@@ -54,9 +54,9 @@ import talentplan
 import youtube
 from serverlog import log_error, log_note
 from gamedata import ITEM_TIPS, SPELL_TIPS, item_ids, item_infos, load_todo, save_todo, spell_icons, stat_weights, stored_icon, todo_lock
-from planning import (build_epic, covered_split, danger_stretches, game_prices, playing_char, playing_now, prof_panel,
+from planning import (build_epic, carried_now, covered_split, danger_stretches, game_prices, playing_char, playing_now, prof_panel,
                       profession_summary, quest_zones, round_or_through, start_fresh, wanted, weigh_route, camp_opens,
-                      camp_state, class_chains, planned_blind)
+                      camp_state, class_chains, planned_blind, route_travel)
 from gathering import (GATHER_SEARCH_KEEP, GRIND_MAPS_MOST, GRIND_SEARCH_SECONDS, SEARCHES_MOST, GatherSearch,
                        _searches_lock, camp_walk, safest_way)
 from shared import quiet_table
@@ -536,7 +536,7 @@ def get_epic(h, hub):
     try:
         anchor = (int(q["inst"]), finite(q["n"]), finite(q["w"])) if q.get("inst") else None
         parked = {int(p) for p in (q.get("parked") or "").split(".") if p}
-        body = build_epic(hub, q["key"], anchor, parked=parked, close=q.get("close") == "1")
+        body = carried_now(hub, build_epic(hub, q["key"], anchor, parked=parked, close=q.get("close") == "1"))
     except (KeyError, ValueError):
         return h.send_error(400)
     if body is None:
@@ -584,7 +584,8 @@ def get_grindloop(h, hub):
                                     ah=q.get("ah") == "1",
                                     skinning=itemsources.skinning(itemsources.me_of(hub)) if item else whole(q.get("skinning")),
                                     leathers=leather_ids(q.get("leathers")),
-                                    item=item)
+                                    item=item,
+                                    travel=route_travel(hub) if item else None)
     except (KeyError, ValueError):
         return h.send_error(400)
     return h.send_json(body)
@@ -602,7 +603,7 @@ def get_gatherspot(h, hub):
         return h.send_error(400)
     skills = {k: whole(q.get(k)) for k in ("mining", "herbalism")}
     spots = farmspots.farm_for(hub.world).spots(item, max(1, whole(q.get("level"), 1)), q.get("faction", ""), here, skills,
-                                                kill=False)["spots"]
+                                                kill=False, travel=route_travel(hub))["spots"]
     return h.send_json(spots[0] if spots else None)
 
 
@@ -1072,6 +1073,11 @@ def post_update(h, hub, body):
     if not updatenews.choose(watch.root, body.get("choice") if isinstance(body, dict) else None):
         return h.send_error(400)
     return h.send_json({"ok": True})
+
+
+@serves("GET", "/api/weaponskills")
+def get_weapon_skills(h, hub):
+    return h.send_json(hub.world.weapon_skills)
 
 
 @serves("GET", "/api/poi")

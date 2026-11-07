@@ -1,5 +1,16 @@
 # The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
 # placeholders: none
 
+along = Along the way
+along.help = Lists the objectives and quest givers close by under the step on the card.
+did = What the guide did
+did.help = Shows a line above the card for each quest the guide accepts or hands in and each flight it takes.
 heading = In combat
 fold = Epic card collapses in combat
+slide-outs = Slide-outs
+drift = Drift nudge
+drift.help = Slides out a Replan offer when the character wanders far from the plan.
+next-zones = Next zones
+next-zones.help = Slides out the zones the character's level has reached.
+class-quest = Class quest offer
+class-quest.help = Slides out an offer to plan a class quest when one opens.

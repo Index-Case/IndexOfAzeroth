@@ -318,10 +318,13 @@ class Errands:
             self.places_cache[key] = out
         return out
 
-    def vendors_of(self, items, faction, sold):
+    def vendors_of(self, items, faction, sold, stocked=None):
+        places = self.places(MERCHANT, faction, ids=True)
+        stocked = stocked or {}
+        sure = {i for i in items if any(p[3] in stocked.get(i, ()) for p in places)}
         by = {}
-        for p in self.places(MERCHANT, faction, ids=True):
-            mine = [i for i in items if p[3] in sold.get(i, ())]
+        for p in places:
+            mine = [i for i in items if p[3] in (stocked[i] if i in sure else sold.get(i, ()))]
             if mine:
                 by.setdefault(len(mine), []).append((p, mine))
         return [by[n] for n in sorted(by, reverse=True)]
@@ -505,6 +508,8 @@ class Errands:
 
     @staticmethod
     def step(what, key, text, name, place, need, cost=None):
+        if (need or {}).get("limited"):
+            key = f"{key}:{name}"
         return {"kind": "errand", "what": what, "key": key, "quest": None, "questName": text, "text": text, "npc": name,
                 "inst": place[0], "at": [round(place[1], 1), round(place[2], 1)] + ([round(place[3], 1)] if place[3] is not None else []),
                 "need": need, **({"cost": int(round(cost))} if cost else {}),

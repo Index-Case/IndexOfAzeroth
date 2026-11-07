@@ -173,6 +173,7 @@ def day_record(hub):
 
 class HealthGuess:
     SETTLE_S = 6
+    HIDDEN_SHARE = 5.0
 
     def __init__(self):
         self.sent, self.health, self.fighting, self.dead = None, None, False, False
@@ -228,8 +229,8 @@ class HealthGuess:
         new = 0 if self.sent is None else count - self.sent if count >= self.sent else count
         self.sent = count
         for e in hits["last"][-new:] if new else ():
-            if self.health is not None and hits["most"] and e["amount"]:
-                share = e["amount"] * 100 / hits["most"]
+            if self.health is not None and hits["most"]:
+                share = e["amount"] * 100 / hits["most"] if e["amount"] else self.HIDDEN_SHARE
                 self.health = min(100.0, max(0.0, self.health + (share if e["kind"] == "heal" else -share)))
                 self.hit = now if e["kind"] == "hit" else self.hit
 

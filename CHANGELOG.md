@@ -1,6 +1,32 @@
 <!-- The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md. -->
 # Changelog
 
+## 0.1.2-alpha
+
+### Options
+- The Options window has new sections for Map, Combat, Guides, Character and Levelling, and the add-on has new options for its card, guidance and nameplates.
+
+### Crafting
+- Buy and gather steps count what's in your bags right now.
+- A vendor's limited stock is planned as a maybe, with vendors who always stock the item first.
+- Gathering spots are picked by the trip there, so a common ore no longer sends you to another continent.
+- Recipe and class training prices match what the trainers charge since launch.
+- Mark the best reward can pick by sell price.
+
+### Places and NPCs
+- The Places menu lists your own class's trainers, with a + to pick another class's, and weapon masters by the weapon skill they teach.
+- Clicking an NPC or mob in the NPCs menu moves the map to it.
+
+### Planning
+- Grind loops never target rares or mobs that spawn only once.
+- My Next Upgrades marks an item from a rare or a single-spawn mob as a one-off kill.
+- A quest you can finish where you stand is finished before the plan moves on.
+
+### Fixes
+- A new install no longer stops on a download the Index refuses.
+- Blood spatters show again in fights.
+- Quests with launch changes to their levels and hand-ins are planned correctly.
+
 ## 0.1.1-alpha
 
 ### Crafting

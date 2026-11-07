@@ -439,7 +439,7 @@ function drawZoneLayers(size, scale) {
   const continent = app.maps[app.displayMap]?.type === 2;
   for (const g of glows) {
     noteOverlay(g.title, g.base, g.hot, "", g.bands);
-    drawLit(g.title, g.base, () => {
+    drawLayerGlow(g.title, g.base, () => {
       ctx.save();
       ctx.globalAlpha *= strength * ZONE_OPACITY;
       const rest = continent && g.shaped ? drawZoneShapes(g, size, scale) : g.lit;
@@ -530,6 +530,14 @@ function updateLayers() {
 }
 on("update", updateLayers);
 
+function drawLayerGlow(title, base, paint) {
+  drawLit(title, base, () => {
+    ctx.save();
+    ctx.globalAlpha *= app.hotspotShare ?? 1;
+    try { paint(); } finally { ctx.restore(); }
+  });
+}
+
 function drawLayers(s, size, scale) {
   if (zoomedOut()) return drawZoneLayers(size, scale);
   const d = layers.data;
@@ -546,7 +554,7 @@ function drawLayers(s, size, scale) {
     pts = pts.map(([x, y, w]) => [x, y, Math.max(0.15, w)]);
     noteOverlay(layerTitle(layer, style), style.base, style.hot, "", style.bands);
     const ramp = style.gain ? boostRamp(layerRamp(style), style.gain) : layerRamp(style);
-    drawLit(layerTitle(layer, style), style.base, () => renderHeat(pts, radius, ramp));
+    drawLayerGlow(layerTitle(layer, style), style.base, () => renderHeat(pts, radius, ramp));
   }
   drawLitMob(d, size, scale);
   for (const [layer, style] of Object.entries(LAYER_DOTS)) {

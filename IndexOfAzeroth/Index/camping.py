@@ -8,7 +8,8 @@ import planunits
 from questplan import open_to
 import store
 import ticks
-from wordparts import A, ALL, P
+import words
+from wordparts import A, ALL, P, PRICED, TAUGHT, UNSAID
 
 KEY = "camp:epic"
 NAME = "Camping epic"
@@ -31,11 +32,18 @@ def category(name):
 
 
 def counted(n, name):
-    return f"{n} {name}" if n != 1 else f"a {name}"
+    return words.say("both.craft.got.one" if n == 1 else "both.craft.got", {"n": n, "item": name})
 
 
-def names(words):
-    return words[0] if len(words) == 1 else ", ".join(words[:-1]) + " and " + words[-1]
+def names(parts):
+    return parts[0] if len(parts) == 1 else words.say("both.craft.list", {"rest": ", ".join(parts[:-1]), "last": parts[-1]})
+
+
+def buy_line(left, npc=None):
+    items = names([counted(n, name) for name, n in left])
+    if npc is None:
+        return words.say("both.craft.auction", {"items": items})
+    return words.say("both.craft.buy", {"items": items, "npc": npc})
 
 
 class CampData:
@@ -63,9 +71,10 @@ class CampData:
         self.by_name = {}
         for npc, t in (d.get("trainers") or {}).items():
             self.by_name.setdefault(t.get("n"), []).append((int(npc), t.get("prof")))
-            for part in (A, P):
+            for part in TAUGHT:
                 for s, row in ((t.get(part) or {}).get("teaches") or {}).items():
                     self.teachers.setdefault(int(s), {}).setdefault(int(npc), []).append(row)
+        self.priced = {**self.recipes, **{str(r["spell"]): r for p in self.profs.values() for r in p.get("ranks") or ()}}
 
     def recipe(self, spell):
         return self.recipes.get(str(spell)) or {}
@@ -86,11 +95,17 @@ class CampData:
         needs = self.item(self.made.get(spell)).get("needs")
         return needs[1] if needs else (self.recipe(spell).get("colors") or [0])[0]
 
+    def cost(self, spell, seen=None):
+        said = (seen or {}).get(int(spell))
+        if said and said.get("cost") is not None:
+            return said["cost"]
+        return min((row[2] for rows in self.teachers.get(spell, {}).values() for row in rows), default=None)
+
     def learn_rank(self, spell):
         needs = self.item(self.blueprint.get(spell)).get("needs")
         if needs:
             return needs[1]
-        asked = [row[0] for rows in self.teachers.get(spell, {}).values() for row in rows if row[0] < 9999]
+        asked = [row[0] for rows in self.teachers.get(spell, {}).values() for row in rows if row[0] < UNSAID]
         return min(asked) if asked else self.place_rank(spell)
 
     def with_skill(self, spell):
@@ -107,7 +122,22 @@ class CampData:
         e = self.item(item)
         out = {int(n) for part in ALL for n in (e.get(part) or {}).get("sold") or ()}
         return out | {int(n) for n, v in (self.data.get("vendors") or {}).items()
-                      if str(item) in ((v.get(P) or {}).get("sells") or {})}
+                      if any(str(item) in ((v.get(part) or {}).get("sells") or {}) for part in PRICED)}
+
+    def limit(self, npc, item):
+        v = (self.data.get("vendors") or {}).get(str(npc)) or {}
+        said = ((v.get(A) or {}).get("sells") or {}).get(str(item))
+        if isinstance(said, list) and said and said[0]:
+            return int(said[0])
+        said = ((v.get(P) or {}).get("sells") or {}).get(str(item))
+        return int(said["stock"]) if isinstance(said, dict) and said.get("stock") else None
+
+    def stocked(self, item):
+        return {n for n in self.sellers(item) if self.limit(n, item) is None}
+
+    def buy_need(self, npc, counts):
+        limited = [i for i, _ in counts if self.limit(npc, i)]
+        return {"items": [[i, n] for i, n in counts], **({"limited": limited} if limited else {})}
 
     def droppers(self, item):
         e, out = self.item(item), {}
@@ -126,13 +156,12 @@ class CampData:
         return next((prof for layer, prof in (("mining", "Mining"), ("herbalism", "Herbalism"))
                      if set(e.get("gathered") or ()) & set(nodes.get(layer) or ())), None)
 
-    def rank_for(self, prof, skill):
+    def rank_for(self, prof, skill, seen=None):
         for r in sorted(self.profs.get(str(prof), {}).get("ranks") or (), key=lambda r: r["step"]):
             if r["cap"] >= skill:
                 rows = [row for rows in self.teachers.get(r["spell"], {}).values() for row in rows]
                 level = max((row[1] for row in rows), default=0) or RANK_LEVELS.get(r["step"], 0)
-                return {"name": r["n"].strip(), "level": level,
-                        "cost": min((row[2] for row in rows), default=None), "cap": r["cap"]}
+                return {"name": r["n"].strip(), "level": level, "cost": self.cost(r["spell"], seen), "cap": r["cap"]}
         return None
 
     def for_side(self, spell, side):
@@ -195,7 +224,7 @@ class Chores:
 
     def skill_wall(self, prof, need):
         cd, name, cap = self.cd, self.cd.names.get(prof, "?"), self.caps.get(prof)
-        rank = cd.rank_for(prof, cap + 1) if cap is not None and cap < need else None
+        rank = cd.rank_for(prof, cap + 1, self.me.get("prices")) if cap is not None and cap < need else None
         if rank and rank["level"] > (self.me.get("level") or 1):
             return {"kind": "level", "text": f"Reach level {rank['level']} for {rank['name']} {name}", "offer": "level",
                     "min": rank["level"]}
@@ -281,7 +310,8 @@ class Chores:
         return [p for p in found if p[3] in teach] or found
 
     def vendors(self, items):
-        return self.errands.vendors_of(items, self.side, {i: self.cd.sellers(i) for i in items})
+        return self.errands.vendors_of(items, self.side, {i: self.cd.sellers(i) for i in items},
+                                       {i: self.cd.stocked(i) for i in items})
 
     def paid(self, steps, lo, places, make, cost, what, doing, brief):
         at, why = self.errands.fit_paid(steps, lo, len(steps), places, self.anchor, make, cost, self.me.get("money"))
@@ -306,7 +336,7 @@ class Chores:
                                f"Learn {cd.name(spell)} by using {cd.item_name(cd.blueprint[spell])} from your bags", need,
                                takes={**takes, "items": [cd.blueprint[spell]]})
             else:
-                cost = min((row[2] for rows in cd.teachers.get(spell, {}).values() for row in rows), default=None)
+                cost = cd.cost(spell, self.me.get("prices"))
                 at, why = self.paid(steps, lo, self.trainers(cd.prof(spell), spell),
                                     lambda n, p, *_: {**self.errands.step("learn", f"learn:{spell}", f"Learn {cd.name(spell)} at {n}",
                                                                           n, p, need, cost), "takes": takes},
@@ -325,6 +355,7 @@ class Chores:
         buys = {i: n for i, n in wants.items() if n > self.count(i)}
         price_of = lambda items: sum((cd.item(i).get("price") or 0) * (buys[i] - self.count(i)) for i in items)
         words_of = lambda items: names([counted(buys[i] - self.count(i), cd.item_name(i)) for i in items])
+        left = lambda items: [(cd.item_name(i), buys[i] - self.count(i)) for i in items]
         while buys:
             bought, at, whys = [], None, []
             for rows in self.vendors(sorted(buys)):
@@ -333,8 +364,8 @@ class Chores:
                 def make(n, p, prices, npc, sells=sells):
                     items = sells[npc]
                     bought.extend(items)
-                    return self.errands.step("supplies", "supplies", f"Buy {words_of(items)} at {n}", n, p,
-                                             {"items": [[i, buys[i]] for i in items]}, price_of(items))
+                    return self.errands.step("supplies", "supplies", buy_line(left(items), n), n, p,
+                                             cd.buy_need(npc, [[i, buys[i]] for i in items]), price_of(items))
                 at, why = self.errands.fit_paid(steps, lo, len(steps), [place for place, _ in rows], self.anchor, make,
                                                 lambda i, p, sells=sells: price_of(sells[p[3]]), self.me.get("money"))
                 if at is not None:
@@ -416,7 +447,7 @@ class Chores:
         cooks = self.trainers(cd.cooking)
         lo = self.after(steps, cooks, 0)
         if cd.cooking not in self.skills:
-            rank = cd.rank_for(cd.cooking, 1) or {}
+            rank = cd.rank_for(cd.cooking, 1, self.me.get("prices")) or {}
             name = cd.names[cd.cooking]
             least = {"min": rank["level"]} if rank.get("level", 0) > 1 else {}
             at, _ = self.paid(steps, lo, cooks,

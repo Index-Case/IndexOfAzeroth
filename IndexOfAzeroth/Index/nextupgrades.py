@@ -101,6 +101,12 @@ def ways(src, plan, here, gold):
         if chance > 0:
             kills = 1 / chance
             at(d.get("near"), "drop", kills * (d.get("sec") or 0) / 60, mob=d["name"], kills=round(kills))
+    for d in src.get("once") or ():
+        chance = (d.get("kill") or 0) + (d.get("skin") or 0)
+        if chance > 0:
+            kills, wait = 1 / chance, (d.get("respawn") or 0) / 60
+            at(d.get("near"), "once", (d.get("sec") or 0) / 60 + (kills - 1) * wait, mob=d["name"], kills=round(kills),
+               respawn=max(1, round(wait)))
     for c in src["crafts"]:
         need, have = c.get("skill") or 0, c.get("yours")
         short = need - (have or 0)

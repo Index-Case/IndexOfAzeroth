@@ -481,7 +481,7 @@ toastText:SetWordWrap(false)
 ui.toastText = toastText
 local toastLeft = 0
 local function Toast(text)
-  if not card:IsShown() then return ns.Print(text) end
+  if not card:IsShown() or not ns.Options().card.did then return ns.Print(text) end
   toastText:SetText((text:gsub("^%l", string.upper)))
   toastLeft = TOAST_SECONDS
   toast:SetAlpha(1)
@@ -606,7 +606,7 @@ function ns.NextAfter(g) return g and g.cur and AfterOf(g, g.cur) or nil end
 
 local function ThenText(g, from)
   local lines, shown, rows = {}, g.steps[from or 0], {}
-  for _, s in ipairs(ui.AlongSteps(g, from)) do rows[s] = true end
+  for _, s in ipairs(ui.AlongShown(g, from)) do rows[s] = true end
   for _, s in ipairs(ui.ChoreSteps(g)) do rows[s] = true end
   local function OnCard(s)
     return rows[s] or (shown ~= nil and ns.Rules.OnCard(shown.kind, shown.ids, s.kind, s.ids and s.ids[1]))
@@ -627,8 +627,11 @@ end
 local function Objectives(s)
   local out, from = {}, {}
   if s.kind == "P" then return out, from end
-  local farm = ns.FarmObjective(s)
-  if farm then return { farm }, { { id = s.key, k = 1 } } end
+  local items = ns.ItemObjectives(s)
+  if items then
+    for k = 1, #items do from[k] = { id = s.key, k = k } end
+    return items, from
+  end
   for _, id in ipairs(s.ids or {}) do
     for k, o in ipairs(ns.QuestObjectives(id)) do
       if #out < OBJECTIVES_MOST and type(o) == "table" then
@@ -744,6 +747,9 @@ function ui.AlongSteps(g, i)
   end
   table.sort(out, function(a, b) if yards[a] ~= yards[b] then return yards[a] < yards[b] end return at[a] < at[b] end)
   return out
+end
+function ui.AlongShown(g, i)
+  return ns.Options().card.along and ui.AlongSteps(g, i) or {}
 end
 function ui.AlongObjective(s)
   if s.get then return nil end
@@ -1650,7 +1656,7 @@ function ui.Draw()
   ui.Follow()
   local s, i = Shown(g)
   ui.RenderHead(g, s, i)
-  local along = s and ui.AlongSteps(g, i) or {}
+  local along = s and ui.AlongShown(g, i) or {}
   local colours = ui.RowColours(g, s, along)
   ui.still = combatFolded and (not ns.Options or ns.Options().card.foldInCombat) and true or false
   local open = not folded and not ui.still

@@ -4,16 +4,17 @@ local Word = ns.Word
 
 local DEFAULTS = {
   general = { button = true, mapPaste = true, warningSound = true, chatTab = true, accept = true, handIn = true, flights = true,
-              rewardMark = true, minimap = true, minimapAngle = 225 },
-  card = { foldInCombat = true },
+              rewardMark = true, sellPrice = false, minimap = true, minimapAngle = 225 },
+  card = { foldInCombat = true, along = true, did = true, drift = true, nextZones = true, classQuest = true },
   world = { sparkles = false },
   polaroid = { on = true },
   plateCount = { on = true, x = 0, y = 0 },
-  plates = { far = true, friends = true },
+  plates = { far = true, friends = true, loopMarks = true },
   targetKey = { mark = true, world = true, dungeons = false, cardHidden = true, flights = true },
   nav = { compass = true, arrows = true, beacons = true, line = true, mapLine = true, declutter = false, prefer = "beacons",
           cone = 90, arrowPast = 1500, aim = "glow",
-          places = false },
+          places = false,
+          brackets = true, beaconStrength = 100, compassSize = 100 },
 }
 local CONE_LO, CONE_STEP = 10, 5
 local PAST_LO, PAST_HI, PAST_STEP = 500, 3000, 100
@@ -96,7 +97,7 @@ local TREE = {
   { name = Word("game.options.window.targets"), pages = { { key = "nameplates", name = Word("game.options.window.targets.nameplates") },
     { key = "targetkey", name = Word("game.options.window.targets.target-key") } } },
 }
-local W, H, TREE_W, ROW_H, HEAD_H = 560, 540, 140, 22, 34
+local W, H, TREE_W, ROW_H, HEAD_H = 560, 620, 140, 22, 34
 local PAGE_W = W - TREE_W - 30
 local CONTROL_X = 172
 local VALUE_W = 34
@@ -105,11 +106,17 @@ local BUILD = {}
 local win, current
 local rows, pages = {}, {}
 
-local function Toggle(p, ui, y, label, get, set)
+local function Toggle(p, ui, y, label, get, set, words)
   local t = ui.Text(p, "GameFontHighlight", ui.C.ivory)
   t:SetPoint("TOPLEFT", 0, y)
   t:SetWidth(CONTROL_X - 8)
   t:SetText(label)
+  if words then
+    local help = ui.Text(p, "GameFontHighlightSmall", ui.C.muted)
+    help:SetPoint("TOPLEFT", 0, y - 24)
+    help:SetWidth(PAGE_W)
+    help:SetText(words)
+  end
   local on, off
   local function Show(v) on:SetSelected(v); off:SetSelected(not v) end
   on = ui.FlatButton(p, Word("game.options.window.on"), 52, function() set(true); Show(true) end)
@@ -228,9 +235,11 @@ end
 BUILD.general = function(p, ui)
   local function o() return ns.Options().general end
   local shows = {}
-  local function Add(y, key, label, words)
-    shows[#shows + 1] = Check(p, ui, 0, y, label, function() return o()[key] end,
+  local function Add(y, key, label, words, x)
+    local show, row = Check(p, ui, x or 0, y, label, function() return o()[key] end,
       function(v) o()[key] = v; Changed(); p.Refresh() end, words)
+    shows[#shows + 1] = show
+    return row
   end
   Heading(p, ui, Word("game.options.general.on-screen"), Word("game.options.general.on-screen.help"))
   Add(-52, "button", Word("game.options.general.button"), Word("game.options.general.button.help"))
@@ -242,7 +251,14 @@ BUILD.general = function(p, ui)
   Add(-374, "handIn", Word("game.options.general.hand-in"), Word("game.options.general.hand-in.help"))
   Add(-410, "flights", Word("game.options.general.flights"), Word("game.options.general.flights.help"))
   Add(-446, "rewardMark", Word("game.options.general.reward-mark"), Word("game.options.general.reward-mark.help"))
-  return function() for _, show in ipairs(shows) do show() end end
+  local priceRow = Add(-482, "sellPrice", Word("game.options.general.sell-price"), Word("game.options.general.sell-price.help"), 22)
+  ns.optionsPriceRow = priceRow
+  return function()
+    for _, show in ipairs(shows) do show() end
+    local lit = o().rewardMark and 1 or 0.5
+    priceRow:SetAlpha(lit)
+    priceRow.help:SetAlpha(lit)
+  end
 end
 
 local GROUND = {
@@ -299,10 +315,20 @@ BUILD.polaroid = function(p, ui)
 end
 
 BUILD.card = function(p, ui)
-  Heading(p, ui, Word("game.options.card.heading"))
-  local fold = Toggle(p, ui, -30, Word("game.options.card.fold"), function() return ns.Options().card.foldInCombat end,
-    function(v) ns.Options().card.foldInCombat = v; Changed() end)
-  return function() fold() end
+  local function o() return ns.Options().card end
+  local shows = {}
+  local function Add(y, key, label, words)
+    shows[#shows + 1] = Toggle(p, ui, y, label, function() return o()[key] end, function(v) o()[key] = v; Changed() end, words)
+  end
+  Add(-4, "along", Word("game.options.card.along"), Word("game.options.card.along.help"))
+  Add(-54, "did", Word("game.options.card.did"), Word("game.options.card.did.help"))
+  Heading(p, ui, Word("game.options.card.heading"), nil, -112)
+  Add(-142, "foldInCombat", Word("game.options.card.fold"))
+  Heading(p, ui, Word("game.options.card.slide-outs"), nil, -186)
+  Add(-216, "drift", Word("game.options.card.drift"), Word("game.options.card.drift.help"))
+  Add(-266, "nextZones", Word("game.options.card.next-zones"), Word("game.options.card.next-zones.help"))
+  Add(-316, "classQuest", Word("game.options.card.class-quest"), Word("game.options.card.class-quest.help"))
+  return function() for _, show in ipairs(shows) do show() end end
 end
 
 BUILD.navigation = function(p, ui)
@@ -345,26 +371,33 @@ BUILD.navigation = function(p, ui)
   Add(-140, Word("game.options.guidance.beacons"), function() return ns.NavOn("beacons") end, function(v) o().beacons = v end)
   Add(-162, Word("game.options.guidance.minimap-line"), function() return o().line end, function(v) o().line = v end)
   Add(-184, Word("game.options.guidance.map-line"), function() return o().mapLine end, function(v) o().mapLine = v end)
+  Add(-206, Word("game.options.guidance.brackets"), function() return o().brackets end, function(v) o().brackets = v end, 0,
+    Word("game.options.guidance.brackets.help"))
   local warn = ui.Text(p, "GameFontHighlight", ui.C.red)
-  warn:SetPoint("TOPLEFT", 0, -208)
+  warn:SetPoint("TOPLEFT", 0, -246)
   warn:SetWidth(PAGE_W)
   warn:SetText(Word("game.options.guidance.all-off"))
   ns.optionsNavWarn = warn
-  Add(-240, Word("game.options.guidance.declutter"), function() return o().declutter end, function(v) o().declutter = v end, 0,
+  Add(-278, Word("game.options.guidance.declutter"), function() return o().declutter end, function(v) o().declutter = v end, 0,
     Word("game.options.guidance.declutter.help"))
-  local arrows = Add(-288, Word("game.options.guidance.prefer-arrows"), function() return o().prefer == "arrows" end,
+  local arrows = Add(-326, Word("game.options.guidance.prefer-arrows"), function() return o().prefer == "arrows" end,
     function() o().prefer = "arrows" end, 22, Word("game.options.guidance.prefer-arrows.help"), true)
-  local beacons = Add(-326, Word("game.options.guidance.prefer-beacons"), function() return o().prefer ~= "arrows" end,
+  local beacons = Add(-364, Word("game.options.guidance.prefer-beacons"), function() return o().prefer ~= "arrows" end,
     function() o().prefer = "beacons" end, 22, Word("game.options.guidance.prefer-beacons.help"), true)
-  local cone, coneRow = Slider(p, ui, -378, Word("game.options.guidance.cone"), CONE_LO, ConeHi, function() return o().cone end,
+  local cone, coneRow = Slider(p, ui, -416, Word("game.options.guidance.cone"), CONE_LO, ConeHi, function() return o().cone end,
     function(v) o().cone = v; Changed() end, { x = 22, step = CONE_STEP, fmt = function(v) return v .. "°" end })
   shows[#shows + 1] = cone
   ns.optionsConeRow = coneRow
-  local past, pastRow = Slider(p, ui, -408, Word("game.options.guidance.past"), PAST_LO, PAST_HI, function() return o().arrowPast end,
+  local past, pastRow = Slider(p, ui, -446, Word("game.options.guidance.past"), PAST_LO, PAST_HI, function() return o().arrowPast end,
     function(v) o().arrowPast = v; Changed() end, { x = 22, step = PAST_STEP, fmt = tostring,
       words = Word("game.options.guidance.past.help") })
   shows[#shows + 1] = past
   ns.optionsPastRow = pastRow
+  local pct = function(v) return v .. "%" end
+  shows[#shows + 1] = Slider(p, ui, -486, Word("game.options.guidance.beacon-strength"), 20, 100, function() return o().beaconStrength end,
+    function(v) o().beaconStrength = v; Changed() end, { step = 5, fmt = pct, words = Word("game.options.guidance.beacon-strength.help") })
+  shows[#shows + 1] = Slider(p, ui, -522, Word("game.options.guidance.compass-size"), 50, 150, function() return o().compassSize end,
+    function(v) o().compassSize = v; Changed() end, { step = 5, fmt = pct, words = Word("game.options.guidance.compass-size.help") })
   return function()
     for _, show in ipairs(shows) do show() end
     local n = o()
@@ -398,8 +431,10 @@ BUILD.nameplates = function(p, ui)
   local friends, friendsOn, friendsOff = Toggle(p, ui, -390, Word("game.options.nameplates.friends.on"),
     function() return ns.Options().plates.friends end, function(v) ns.Options().plates.friends = v; Changed() end)
   ns.optionsFriends = { on = friendsOn, off = friendsOff }
+  local loop = Toggle(p, ui, -432, Word("game.options.nameplates.loop-marks"), function() return ns.Options().plates.loopMarks end,
+    function(v) ns.Options().plates.loopMarks = v; Changed() end, Word("game.options.nameplates.loop-marks.help"))
   p.preview = true
-  return function() shown(); across(); up(); far(); friends() end
+  return function() shown(); across(); up(); far(); friends(); loop() end
 end
 
 BUILD.targetkey = function(p, ui)

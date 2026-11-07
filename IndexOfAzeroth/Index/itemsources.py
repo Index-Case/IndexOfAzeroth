@@ -11,6 +11,7 @@ GATHER_LAYERS = {"mining": "Mining", "herbalism": "Herbalism"}
 SKINNING = "Skinning"
 DROPPERS_MOST = 10
 SEC = 6
+RESPAWN = 7
 MOB = 10
 
 _rewards = None
@@ -40,9 +41,10 @@ def nearest_spot(rows, here):
 
 class Lookup:
 
-    def __init__(self, farm, me, plan, rewards, pd, seller, auction, auctioneer=None):
+    def __init__(self, farm, me, plan, rewards, pd, seller, auction, auctioneer=None, travel=None):
         self.farm, self.me, self.plan, self.rewards, self.pd = farm, me, plan, rewards, pd
         self.seller, self.auction, self._auctioneer, self._house = seller, auction, auctioneer or (lambda: None), ()
+        self.travel = travel
 
     def auctioneer(self):
         if self._house == ():
@@ -68,11 +70,11 @@ class Lookup:
             return "grind"
         return "gather" if self.nodes(item) else None
 
-    def spot(self, item, way, here=None):
+    def spot(self, item, way, here=None, need=None):
         me = self.me
         skills = {**(me.get("skills") or {}), "skinning": self.skinning()}
         got = self.farm.spots(item, me["level"], me["faction"], here, skills, kill=way == "grind",
-                              layers=() if way == "grind" else self.gathers())["spots"]
+                              layers=() if way == "grind" else self.gathers(), need=need, travel=self.travel)["spots"]
         return got[0] if got else None
 
     def house(self, item, here=None, spots=()):
@@ -83,9 +85,9 @@ class Lookup:
         return {"price": price, "cheaper": self.farm.cheaper(price, best and best["perHour"], self.me["level"],
                                                              self.me["faction"], here)}
 
-    def droppers(self, item):
+    def droppers(self, item, one_offs=False):
         me, gives = self.me, self.farm.world.item_drops().get(item, {})
-        rows = self.farm.kill_rows(item, me["level"], me["faction"], self.skinning())
+        rows = self.farm.kill_rows(item, me["level"], me["faction"], self.skinning(), one_offs=one_offs)
         by_mob = {}
         for inst, rs in rows.items():
             for p in rs:
@@ -97,7 +99,7 @@ class Lookup:
             lo, hi = m[1], m[2]
             inst, p = nearest_spot(spots, me.get("here"))
             out.append({"id": mob, "name": m[0], "levels": f"{lo}" if lo == hi else f"{lo}-{hi}", "kill": kill, "skin": skin,
-                        "near": (inst, p[0], p[1]), "sec": p[SEC]})
+                        "near": (inst, p[0], p[1]), "sec": p[SEC], "respawn": p[RESPAWN]})
         out.sort(key=lambda d: (-(d["kill"] + d["skin"]), d["name"]))
         return out[:DROPPERS_MOST]
 
@@ -132,9 +134,17 @@ class Lookup:
         return out
 
     def vendor(self, item):
-        npc = self.seller(item)
+        cd = self.pd.cd
+        stocked = cd.stocked(item)
+        limited = bool(cd.sellers(item) - stocked)
+        npc = self.seller(item, npcs=stocked) if limited and stocked else None
+        if npc:
+            limited = False
+        else:
+            npc = self.seller(item)
         if not npc:
             return None
+        npc = {**npc, "limited": True} if limited else npc
         price = gamedata.item_buy_price(item) or (self.pd.cd.items.get(str(item)) or {}).get("price")
         return {**npc, **({"price": price} if price else {})}
 
@@ -158,7 +168,8 @@ class Lookup:
         nodes = [{"layer": layer, "name": node["n"], "skill": node.get("skill", 0)} for layer, node in self.nodes(item)]
         ah = self.auction([item]).get(str(item))
         return {"item": item, "auction": ah, "auctioneer": self.auctioneer() if ah else None, "vendor": self.vendor(item),
-                "grind": self.droppers(item), "gather": nodes, "quests": self.quests(item), "crafts": self.crafts(item),
+                "grind": self.droppers(item), "once": self.droppers(item, one_offs=True), "gather": nodes,
+                "quests": self.quests(item), "crafts": self.crafts(item),
                 "keys": self.keys(item, ah or {})}
 
 
@@ -186,10 +197,10 @@ def lookup(hub):
     faction = me["faction"]
     pos = s.get("pos")
 
-    def seller(item):
+    def seller(item, npcs=()):
         if not pos or not s.get("map"):
             return None
-        return hub.world.nearest(s["map"], pos["x"], pos["y"], faction, None, goods=[item])
+        return hub.world.nearest(s["map"], pos["x"], pos["y"], faction, None, goods=[item], npcs=npcs)
 
     def auctioneer():
         if not pos or not s.get("map"):
@@ -197,4 +208,5 @@ def lookup(hub):
         return hub.world.nearest(s["map"], pos["x"], pos["y"], faction, ["auction"])
     import questplan
     return Lookup(farmspots.farm_for(hub.world), me, planning.quest_reader(hub), reward_index(questplan.book()),
-                  planning.prof_data(), seller, lambda ids: hub.auction.summaries(ids)["items"], auctioneer)
+                  planning.prof_data(), seller, lambda ids: hub.auction.summaries(ids)["items"], auctioneer,
+                  planning.route_travel(hub))

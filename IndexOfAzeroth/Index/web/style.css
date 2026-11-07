@@ -554,6 +554,9 @@ textarea, [contenteditable]:not([contenteditable="false"]) { cursor: text; }
 .poi-fold:hover { color: var(--ivory); }
 .poi-on { margin-left: auto; font: 600 11px var(--sans); color: var(--cyan); letter-spacing: 0; text-transform: none; }
 .poi-menu label.poi-cat { padding-left: 34px; }
+.poi-menu .poi-more { align-self: center; padding: 0 2px; background: none; border: 0; box-shadow: none; cursor: var(--cursor-open, pointer); }
+.poi-menu label.poi-pick { padding: 2px 14px 2px 58px; font-size: 14px; }
+.poi-menu label.poi-pick img { width: 16px; height: 16px; }
 .poi-menu label.poi-cat .mob-go { margin-left: auto; align-self: center; }
 .poi-menu label.poi-cat small ~ .mob-go { margin-left: 8px; }
 .poi-menu label.poi-cat .mob-go[data-routes] + .mob-go { margin-left: 6px; }
@@ -1211,7 +1214,8 @@ body.alerting .drawer { top: var(--alert-h, 84px); }
 .heat-tail::before { top: -1px; }
 .heat-tail::after { bottom: -1px; width: 55%; }
 .heat-edge { position: absolute; top: 50%; right: 0; width: 0; height: 0; pointer-events: none; }
-.heat-layer { position: fixed; inset: 0; z-index: 45; pointer-events: none; overflow: hidden; --gw: 0.63; --gh: 0.855; }
+.heat-layer { position: fixed; inset: 0; z-index: 45; pointer-events: none; overflow: hidden; --gw: 0.63; --gh: 0.855;
+  opacity: var(--heat-strength, 1); }
 .heat-tip { position: absolute; width: 0; height: 0; }
 .heat-tip > *, .heat-pt > * { position: absolute; left: 0; top: 0; border-radius: 50%; }
 .heat-tip > b, .heat-pt > b { transform: translate(-50%, -50%); }
@@ -1265,7 +1269,7 @@ body.alerting .drawer { top: var(--alert-h, 84px); }
   from { opacity: 0.75; transform: translate(-50%, -52%) scale(0.9, 1.1); }
   to { opacity: 1; transform: translate(-54%, -48%) scale(1.12, 0.88); }
 }
-.heat-burst { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: screen;
+.heat-burst { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: screen; filter: opacity(var(--heat-strength, 1));
   animation: heat-cool 10s cubic-bezier(0.2, 0.6, 0.3, 1) forwards; }
 .heat-burst::after { content: ""; position: absolute; inset: 25% 1px; border-radius: 2px;
   background: linear-gradient(color-mix(in srgb, var(--white) 0%, transparent), color-mix(in srgb, var(--white-hot) 95%, transparent) 50%, color-mix(in srgb, var(--white) 0%, transparent));
@@ -1687,6 +1691,7 @@ button.j-pin:hover { background: var(--boss-pin-hover); border-color: var(--gold
 @keyframes npc-caret { 50% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .npc-hunt .npc-glass, .npc-line.typing::after { animation: none; } }
 .npc-row { display: flex; align-items: center; gap: 6px; padding: 3px 12px 3px 14px; }
+.npc-row[title] { cursor: var(--cursor-open, pointer); }
 .npc-row:hover { background: color-mix(in srgb, var(--list-blue) 45%, transparent); }
 .npc-row .mob-name { color: var(--gold); font: 15px var(--serif); overflow-wrap: anywhere; }
 .npc-zone { flex: none; max-width: 124px; text-align: right; font: 12px var(--sans); color: var(--text);

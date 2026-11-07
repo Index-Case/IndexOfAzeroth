@@ -1,5 +1,5 @@
 # The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
-# placeholders: item, count, items, station, skill, need, have, recipe, colour, to, at, cap, rank
+# placeholders: item, count, items, station, skill, need, have, recipe, colour, to, at, cap, rank, npc, n, rest, last
 
 name = {item} crafting epic
 grind = Grind until you have {count} {item}.
@@ -7,6 +7,10 @@ skin = Kill and skin beasts until you have {count} {item}.
 herbalism = Gather herbs until you have {count} {item}.
 mining = Mine until you have {count} {item}.
 auction = Buy {items} at the auction house.
+buy = Buy {items} at {npc}
+got = {n} {item}
+got.one = a {item}
+list = {rest} and {last}
 craft = Craft {item}.
 craft.station = Craft {item} at {station}.
 craft.some = Craft {count} {item}.

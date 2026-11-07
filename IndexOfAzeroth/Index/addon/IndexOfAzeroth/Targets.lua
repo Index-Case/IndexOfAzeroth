@@ -1358,7 +1358,7 @@ local function GrindMark(plate)
 end
 local grindWants, grindKey = {}, ""
 local function GrindWants()
-  local t = ns.TrackTarget and ns.TrackTarget("g")
+  local t = ns.Options().plates.loopMarks and ns.TrackTarget and ns.TrackTarget("g")
   local mobs = t and t.mobs or {}
   local key = table.concat(mobs, ";")
   if key ~= grindKey then

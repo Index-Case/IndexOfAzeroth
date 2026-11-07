@@ -250,7 +250,7 @@ function showQuestNames() {
 }
 
 function flyPlaced(steps) {
-  if (lessMotion() || !steps.length) return;
+  if (lessMotion() || !steps.length || !options.get("planmap")) return;
   const w = stepFlights.waiting;
   w.push(...steps);
   stepFlights.gap = spreadGap(w.length);

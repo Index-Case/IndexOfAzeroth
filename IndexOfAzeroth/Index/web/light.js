@@ -507,6 +507,7 @@ class MapLight {
     this.dpr = 1;
     this.castBox = null;
     this.cursors = { open: null, held: null };
+    this.pointerOn = true;
     this.showing = null;
     this.fading = null;
     this.clock = null;
@@ -639,8 +640,20 @@ class MapLight {
   setCursor(kind, value) {
     if (this.cursors[kind] === value) return;
     this.cursors[kind] = value;
+    if (this.pointerOn) this.writeCursor(kind, value);
+  }
+
+  writeCursor(kind, value) {
     if (kind === "open") this.root.style.setProperty("--cursor-open", value);
     else this.root.style.setProperty("--cursor-held", value);
+  }
+
+  pointerShown(on) {
+    on = !!on;
+    if (on === this.pointerOn) return;
+    this.pointerOn = on;
+    if (!this.root) return;
+    for (const kind of ["open", "held"]) this.writeCursor(kind, on ? this.cursors[kind] : "");
   }
 
   report(minutes) {

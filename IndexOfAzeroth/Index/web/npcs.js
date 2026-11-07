@@ -144,7 +144,8 @@ function npcRow(n, i) {
   if (off) noteGap("npc-place", n.id, "npcs", n.name);
   const to = n.dungeon ? `the entrance of ${n.zone}` : n.kind === "mob" ? `the nearest spawn of ${n.name}` : n.name;
   const nowhere = `We have no information yet on where ${n.name} stands`;
-  return html`<div class="npc-row" data-npc="${i}"><span class="mob-name">${n.name}<small>${detailHtml(n)}</small></span>
+  const show = off ? "" : html` title="${word("page.search.show", { name: n.name })}"`;
+  return html`<div class="npc-row" data-npc="${i}"${show}><span class="mob-name">${n.name}<small>${detailHtml(n)}</small></span>
     <span class="npc-zone" title="${zonesTitle(n)}">${n.zone || "Unknown"}<small>${n.yards != null ? `${num(n.yards)} yd` : ""}</small></span>
     <button class="mob-go" data-npc-go="${i}"${off} title="${off ? nowhere : `This starts the Navigation Guide to ${to} and copies the line for the in-game arrow`}">Guide me</button>
     <button class="mob-go" data-npc-target="${i}" title="This puts the Target key for ${n.name} in the game. The key shows beside the add-on button after the next /reload, and its line is copied too">Target</button>
@@ -153,8 +154,22 @@ function npcRow(n, i) {
 const foundHtml = () => html`${finder.found.map(npcRow)}`;
 const renderFound = () => setHtml($("npc-found"), foundHtml());
 
+function npcPlace(n) {
+  if (n.at) return { at: n.at };
+  const d = n.dungeon && dungeon.byKey[n.dungeon];
+  return d ? doorFind(d) : null;
+}
 function npcsClicked(e) {
   const b = e.target.closest("button[data-npc-go], button[data-npc-target], button[data-npc-both]");
+  const row = !b && e.target.closest("[data-npc]");
+  if (row) {
+    const p = finder.found[+row.dataset.npc] && npcPlace(finder.found[+row.dataset.npc]);
+    if (p) {
+      toggleMobMenu(false);
+      showPlace(p);
+    }
+    return true;
+  }
   const n = b && !b.disabled && finder.found[+(b.dataset.npcGo ?? b.dataset.npcTarget ?? b.dataset.npcBoth)];
   if (!n) return !!b;
   heatNpc(n);

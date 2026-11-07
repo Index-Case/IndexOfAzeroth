@@ -22,3 +22,5 @@ flights = Auto-take flights
 flights.help = The flight is taken only when every guide flies to the same place.
 reward-mark = Mark the best reward
 reward-mark.help = The best quest reward gets a gold edge and a line saying why.
+sell-price = Pick by sell price
+sell-price.help = Marks the reward that sells for the most in place of the best upgrade.

@@ -1,6 +1,16 @@
 # The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
 # placeholders: none
 
-name = Level report
+name = Levelling
+level-report = Level report
+level-report.text = Opens the level report scroll over the map at each level-up
 polaroid = Polaroid
-polaroid.text = This pins a picture of where the character was at each level-up on the level report
+polaroid.text = Pins a picture of where the character was at each level-up on the level report
+xp-glow = XP bar glow
+xp-glow.text = Makes the XP bar's leading edge glow as the next level nears
+skill-glow = Skill bar glow
+skill-glow.text = Makes a skill bar's leading edge glow as the skill nears the top of its rank
+flare = Level-up flare
+flare.text = Lights the whole bar at a level-up and cools it over ten seconds
+glow-strength = Glow strength
+glow-strength.text = Sets how strong the glows on the XP bar and the skill bars show

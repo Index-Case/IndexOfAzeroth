@@ -10,6 +10,7 @@ import mainstores
 import moblevels
 import store
 from itemtips import ItemTips
+from wordparts import F
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
@@ -28,6 +29,55 @@ TRAINER_PRICES = os.path.join(ROOT, "data", "trainerprices.json")
 
 def load_trainer_prices():
     return seen_builds(store.load_json(mainstores.standing(TRAINER_PRICES), {}))
+
+
+def recipe_prices(prices, recipes, build_at=None):
+    if build_at is None:
+        import clientfiles
+        build_at = clientfiles.build_at
+    seen = []
+    for spell, r in (recipes or {}).items():
+        said = (r or {}).get(F) or {}
+        if said.get("cost") is not None:
+            seen.append((int(spell), said["cost"], said.get("build"), (0,)))
+    for t in ((prices or {}).get("professions") or {}).values():
+        build = build_at(t.get("at") or 0)
+        for s in t.get("services") or ():
+            if s.get("spell") and s.get("cost") is not None:
+                seen.append((int(s["spell"]), s["cost"], build, (1, t.get("at") or 0)))
+    return {spell: {"cost": cost, "build": build} for spell, (cost, build) in newest_seen(seen).items()}
+
+
+def newest_seen(seen):
+    out, best = {}, {}
+    for key, price, build, rank in seen:
+        k = (game.version_key(build), rank)
+        if key not in best or k > best[key]:
+            best[key], out[key] = k, (price, build)
+    return out
+
+
+def shipped_class_prices(prices):
+    levels, builds = prices.get("levels") or {}, prices.get("builds") or {}
+    return {cid: {sid: [(levels.get(cid) or {}).get(sid), copper, (builds.get(cid) or {}).get(sid)]
+                  for sid, copper in sorted(costs.items(), key=lambda kv: int(kv[0]))}
+            for cid, costs in sorted((prices.get("classes") or {}).items(), key=lambda kv: int(kv[0])) if costs}
+
+
+def class_sightings(shipped, own):
+    seen = [((cid, sid), (level, copper), build, 0)
+            for cid, rows in (shipped or {}).items() for sid, (level, copper, build) in rows.items()]
+    own = own or {}
+    for cid, costs in (own.get("classes") or {}).items():
+        for sid, copper in costs.items():
+            seen.append(((cid, sid), (((own.get("levels") or {}).get(cid) or {}).get(sid), copper),
+                         ((own.get("builds") or {}).get(cid) or {}).get(sid), 1))
+    out = {"classes": {}, "levels": {}, "builds": {}}
+    for (cid, sid), ((level, copper), build) in newest_seen(seen).items():
+        out["classes"].setdefault(cid, {})[sid] = copper
+        out["levels"].setdefault(cid, {})[sid] = level
+        out["builds"].setdefault(cid, {})[sid] = build
+    return out
 
 
 def seen_builds(prices):

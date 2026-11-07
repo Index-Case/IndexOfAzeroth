@@ -88,11 +88,20 @@ function updateLife(state) {
     life.want = want;
     cancelLifeFlight();
     if (!want) clearLife(true);
-    else if (first || document.hidden || lessMotion()) landLife(want);
+    else if (first || document.hidden || lessMotion() || !options.get("duelflag")) landLife(want);
     else flyLife(want);
   } else fitMark();
   idleAlarm(want === "combat" ? state : null, first);
 }
+
+function lifeShown() {
+  if (!options.get("idlewarning")) calmAlarm();
+  if (!life.want) return;
+  cancelLifeFlight();
+  stopSmear();
+  landLife(life.want);
+}
+for (const id of ["combatwords", "idlewarning", "edgeglow", "duelflag"]) options.hooks[id] = { changed: lifeShown };
 
 const MARK_GAP = 14;
 function markFor(kind, art) {
@@ -126,9 +135,12 @@ function fitMark(kind = life.want) {
 
 function landLife(kind) {
   const banner = $("life-banner"), k = LIFE[kind];
-  markFor(kind, artFor(kind));
   stopMarkLoop();
-  if (!lessMotion()) life.markRaf = askFrame(markLoop);
+  if (!options.get("duelflag")) $("life-mark").hidden = true;
+  else {
+    markFor(kind, artFor(kind));
+    if (!lessMotion()) life.markRaf = askFrame(markLoop);
+  }
   $("zone").classList.toggle("in-combat", kind === "combat");
   $("zone").classList.toggle("is-dead", kind === "dead");
   banner.innerHTML = fresh(wordHtml(k.word));
@@ -157,9 +169,10 @@ function wordCovered() {
   });
 }
 function wordOrGlow(kind = life.want) {
-  const glow = !!kind && (life.dismissed === kind || (kind === "combat" && alarm.burst) || wordCovered());
-  document.body.classList.toggle("edge-combat", glow && kind === "combat");
-  document.body.classList.toggle("edge-dead", glow && kind === "dead");
+  const glow = !!kind && (!options.get("combatwords") || life.dismissed === kind || (kind === "combat" && alarm.burst) || wordCovered());
+  const edge = glow && options.get("edgeglow");
+  document.body.classList.toggle("edge-combat", edge && kind === "combat");
+  document.body.classList.toggle("edge-dead", edge && kind === "dead");
   if (!kind) return;
   if ($("life-banner").hidden !== glow) $("life-banner").hidden = glow;
   document.body.classList.toggle("life-on", !glow);
@@ -187,7 +200,7 @@ const heartbeat = (p) => Math.min(1, thump(p, 0) + 0.6 * thump(p, 0.24));
 
 function idleAlarm(state, first = false) {
   const lost = state?.idleLost || 0, health = state?.health ?? state?.healthGuess ?? null;
-  if (lost < ALARM.START) return calmAlarm();
+  if (lost < ALARM.START || !options.get("idlewarning")) return calmAlarm();
   alarm.lost = lost;
   if (!alarm.burst && health !== null && health <= ALARM.BURST) burstWord(first);
   if (lessMotion()) return drawAlarm(0, true);
@@ -266,7 +279,7 @@ function drawAlarm(t, still = false) {
   }
   banner.style.setProperty("--halo", onWord ? ((0.3 + 0.7 * k) * (0.3 + 0.7 * beat)).toFixed(3) : "0");
   banner.style.setProperty("--halo-size", (0.92 + 0.1 * k + 0.12 * beat).toFixed(3));
-  const edge = onWord || life.flyer ? 0 : alarm.burst ? 0.7 + 0.3 * beat : (0.1 + 0.45 * k) * (0.35 + 0.65 * beat);
+  const edge = onWord || life.flyer || !options.get("edgeglow") ? 0 : alarm.burst ? 0.7 + 0.3 * beat : (0.1 + 0.45 * k) * (0.35 + 0.65 * beat);
   Object.assign($("edge-alarm").style, { willChange: "opacity", opacity: edge.toFixed(3) });
 }
 
@@ -329,7 +342,7 @@ function lifeImpact(k, [x, y]) {
     const f = i === steps ? 0 : k.shake * (1 - i / steps) ** 2 * (i % 2 ? -1 : 1);
     frames.push({ transform: `translate(${f * (0.6 + Math.random() * 0.4)}px, ${f * (Math.random() - 0.3)}px)` });
   }
-  stage.animate(frames, { duration: 420, easing: "linear" });
+  if (options.get("mapshake")) stage.animate(frames, { duration: 420, easing: "linear" });
   const dust = document.createElement("div");
   dust.className = "life-dust";
   dust.style.left = `${x}px`;

@@ -26,6 +26,13 @@ function nameCase(text, known) {
   }).join(" ");
 }
 
+function doorFind(d, maps = app.maps) {
+  const e = yourSide(d.entrances).find((x) => maps[x.map]?.world);
+  if (!e) return null;
+  const m = maps[e.map];
+  return { name: d.name, kind: d.kind, zone: m.name, key: d.key, at: { inst: m.instance, ...toWorld(m.world, e.x / 100, e.y / 100) } };
+}
+
 function searchPlaces() {
   const maps = app.maps, places = app.detailView?.places || {}, dungeons = dungeon.list || [], stops = travel.data?.flight?.stops || [];
   const from = [maps, places, dungeons, stops], b = mapSearch.built;
@@ -40,11 +47,10 @@ function searchPlaces() {
   }
   const doors = new Set();
   for (const d of dungeons) {
-    const e = yourSide(d.entrances).find((x) => maps[x.map]?.world);
-    if (!e) continue;
-    const m = maps[e.map], zone = m.name;
-    finds.push({ name: d.name, kind: d.kind, zone, key: d.key, at: { inst: m.instance, ...toWorld(m.world, e.x / 100, e.y / 100) } });
-    doors.add(`${fold(d.name)}|${zone}`);
+    const p = doorFind(d, maps);
+    if (!p) continue;
+    finds.push(p);
+    doors.add(`${fold(d.name)}|${p.zone}`);
   }
   for (const s of stops) {
     const at = { inst: s.inst, n: s.n, w: s.w };
@@ -193,6 +199,6 @@ on("start", () => startSearch($("map-search")));
 
 if (typeof module === "object") {
   module.exports = { SEARCH_MOST, FIND_ICONS, SMALL_WORDS, mapSearch, fold, zoneMap, knownWords, nameCase, searchPlaces, ranked, WAY_LINE,
-                     zoneNamedAs, parseSpot, spotFind, findsFor, findIcon, findUnder, searchRow, searchFoundHtml, LIST_GAP_PX, placeList, renderSearch, searchTyped,
+                     doorFind, zoneNamedAs, parseSpot, spotFind, findsFor, findIcon, findUnder, searchRow, searchFoundHtml, LIST_GAP_PX, placeList, renderSearch, searchTyped,
                      closeSearch, showPlace, guidePlace, searchClicked, startSearch };
 }

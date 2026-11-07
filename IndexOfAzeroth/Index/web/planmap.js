@@ -215,6 +215,7 @@ on("animate", animatePlanMap);
 function drawPlanMap(size, scale) {
   const now = performance.now();
   planLinesDrawn.length = 0;
+  if (!options.get("planmap")) return;
   placePlanStage(size, scale);
   if (planMap.key && !planMap.over) {
     const left = planMap.fade ? clamp01(1 - (now - planMap.fade) / PLAN_MAP_FADE) : 1;
@@ -363,7 +364,7 @@ function planLegendHtml(icons) {
 }
 let planLegendSaid = null;
 function syncPlanLegend() {
-  const box = $("plan-legend"), shown = !!planMap.key && !planMap.fade && !planMap.over;
+  const box = $("plan-legend"), shown = !!planMap.key && !planMap.fade && !planMap.over && options.get("planmap");
   const said = shown ? [...planMap.icons].join() : null;
   if (said === planLegendSaid) return;
   planLegendSaid = said;

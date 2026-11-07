@@ -55,9 +55,9 @@ const POI_GROUPS = [
 const POI_LABEL = Object.fromEntries(POI_GROUPS.flatMap(([, cats]) => cats.map(([k, label]) => [k, label])));
 const POI_PROFESSIONS = new Set(POI_GROUPS.find(([g]) => g === "Profession trainers")[1].map(([k]) => k));
 const poiWhat = (cat) => `${POI_LABEL[cat].toLowerCase()}${POI_PROFESSIONS.has(cat) ? " trainer" : ""}`;
-const kindGuidable = (cat) => !!app.state?.pos && (cat !== "class" || !!app.status?.classId);
-function kindGuideKey(cat) {
-  const can = kindGuidable(cat);
+const kindGuidable = (cat, picked = false) => !!app.state?.pos && (cat !== "class" || !!kindDetail(cat, picked));
+function kindGuideKey(cat, picked = false) {
+  const can = kindGuidable(cat, picked);
   return html`<button class="mob-go" data-near="${cat}"${can ? "" : raw(" disabled")} title="${can
     ? `This starts the Navigation Guide to the nearest ${poiWhat(cat)} and copies the line for the in-game arrow`
     : "This key waits for the game to send where the character is"}">Guide me</button>`;
@@ -72,7 +72,15 @@ POI_LABEL.epicmark = "Where the quest epic leads now";
 const PORTAL_ICON = "spell_arcane_portalundercity";
 const POI_SIZE = 22;
 
-const poi = { on: new Set(), open: new Set(), data: null, key: "", loading: false, drawn: [], focused: true };
+const poi = { on: new Set(), open: new Set(), data: null, key: "", loading: false, drawn: [], focused: true,
+              pick: { class: null, weapons: null }, skills: null };
+const kindDetail = (cat, picked = true) => (cat === "class" ? (picked && poi.pick.class) || app.status?.classId || null
+  : cat === "weapons" && picked ? poi.pick.weapons : null);
+function pickShown(p) {
+  const want = kindDetail(p.cat);
+  if (p.cat === "class") return p.detail === want;
+  return !want || p.detail === want || (Array.isArray(p.detail) && p.detail.includes(want));
+}
 try { JSON.parse(localStorage.getItem("cc.poi") || "[]").forEach((c) => poi.on.add(c)); } catch (e) {   }
 try { JSON.parse(localStorage.getItem("cc.poiOpen") || "[]").forEach((g) => poi.open.add(g)); } catch (e) {   }
 try { poi.focused = localStorage.getItem("cc.poiFocused") !== "0"; } catch (e) {   }
@@ -99,7 +107,7 @@ function poiIcon(cat, p = null) {
     return faction === "Horde" ? "ability_mount_wyvern_01" : "ability_mount_gryphon_01";
   }
   if (cat === "battlemaster") return faction === "Horde" ? "inv_bannerpvp_01" : "inv_bannerpvp_02";
-  if (cat === "class") return `classicon_${CLASS_ICONS[app.status?.classId] || "warrior"}`;
+  if (cat === "class") return `classicon_${CLASS_ICONS[p ? p.detail : kindDetail("class")] || "warrior"}`;
   if (cat === "gameguide") return "inv_misc_map_01";
   if (cat === "corpse") return "spell_holy_resurrection";
   if (cat === "rare" || cat === "pin") return "inv_misc_bone_humanskull_01";
@@ -115,6 +123,7 @@ const poiMenu = $("poi-menu"), poiButton = $("btn-poi");
 function buildPoiMenu() {
   if (app.dungeon) return buildDungeonMenu($("poi-list"));
   const className = app.status?.className, asked = poiAsks();
+  if (poi.open.has("more:weapons")) askSkills();
   const note = poisWanted() && app.state?.map && asked.key !== poi.key
     ? html`<p class="menu-note">${askNote(asked.urls, { what: "the places", again: () => { refreshPois(); buildPoiMenu(); } })}</p>` : "";
   const sideBox = (side) => {
@@ -127,10 +136,11 @@ function buildPoiMenu() {
     SIDES.map(sideBox)}</div>${note}${
     POI_GROUPS.map(([group, cats]) => {
       const on = cats.filter(([k]) => poi.on.has(k)).length, open = poi.open.has(group);
-      const rows = open ? cats.map(([key, label, , note]) =>
+      const rows = open ? cats.map(([key, label, , note]) => [
         html`<label class="poi-cat"><input type="checkbox" value="${key}"${poi.on.has(key) ? " checked" : ""}>
-          <img src="/icon/${poiIcon(key)}.jpg" alt=""> ${label}${key === "class" && className ? ` (${className})` : ""}
-          ${note && key !== "class" ? html`<small>${note}</small>` : ""}${travelKey(key)}${kindGuideKey(key)}</label>`) : [];
+          <img src="/icon/${poiIcon(key)}.jpg" alt=""> ${label}${pickedName(key, className)}${morePlus(key)}
+          ${note && key !== "class" ? html`<small>${note}</small>` : ""}${travelKey(key)}${kindGuideKey(key, true)}</label>`,
+        poi.open.has(`more:${key}`) ? pickRows(key) : ""]) : [];
       return html`<div class="poi-group${open ? " open" : ""}">
         <input type="checkbox" data-group="${group}" title="This shows or hides all of ${group}"${on === cats.length ? " checked" : ""}>
         <button class="poi-fold" data-fold="${group}" aria-expanded="${open}">${group}
@@ -141,6 +151,34 @@ function buildPoiMenu() {
     const on = cats.filter(([k]) => poi.on.has(k)).length;
     box.indeterminate = on > 0 && on < cats.length;
   });
+}
+
+const PICK_KINDS = new Set(["class", "weapons"]);
+function pickedName(key, className) {
+  const id = kindDetail(key), name = key === "class" ? (poi.pick.class ? CLASS_NAMES[id] : className) : key === "weapons" ? poi.skills?.[id]?.n : "";
+  return name ? ` (${name})` : "";
+}
+const morePlus = (key) => (PICK_KINDS.has(key) ? html`<button class="fold-plus poi-more" data-more="${key}" aria-expanded="${
+  String(poi.open.has(`more:${key}`))}" title="${word(`page.places.more.${key}`)}"></button>` : "");
+function pickRows(key) {
+  const row = (value, img, name, on, note = "") => html`<label class="poi-pick"><input type="radio" name="poi-pick-${key}"
+    data-pick="${key}" value="${value}"${on ? " checked" : ""}>${img ? html`<img src="${img}" alt="">` : ""} ${name}${
+    note ? html`<small>${note}</small>` : ""}</label>`;
+  if (key === "class") {
+    const own = app.status?.classId, ids = Object.keys(CLASS_NAMES).map(Number);
+    const order = [...ids.filter((id) => id === own), ...ids.filter((id) => id !== own).sort((a, b) => CLASS_NAMES[a].localeCompare(CLASS_NAMES[b]))];
+    return order.map((id) => row(id, `/icon/classicon_${CLASS_ICONS[id]}.jpg`, CLASS_NAMES[id], id === kindDetail("class"),
+      id === own ? word("page.places.pick.yours") : ""));
+  }
+  if (!poi.skills) return "";
+  const skills = Object.entries(poi.skills).sort(([, a], [, b]) => a.n.localeCompare(b.n));
+  return [row("", "", word("page.places.pick.every"), !poi.pick.weapons),
+    ...skills.map(([id, s]) => row(id, s.icon ? `/fileicon/${s.icon}.jpg` : "", s.n, +id === poi.pick.weapons))];
+}
+
+function askSkills() {
+  if (poi.skills) return;
+  getJson("/api/weaponskills", { share: true })?.then((s) => { poi.skills = s; if (!poiMenu.hidden) buildPoiMenu(); }, () => {});
 }
 
 function syncPoiButton() {
@@ -168,15 +206,15 @@ function poiMenuClicked(e) {
   const near = e.target.closest("button[data-near]");
   if (near) {
     e.preventDefault();
-    return guideToKind(near.dataset.near);
+    return guideToKind(near.dataset.near, {}, kindDetail(near.dataset.near));
+  }
+  const more = e.target.closest("button[data-more]");
+  if (more) {
+    e.preventDefault();
+    return toggleOpen(`more:${more.dataset.more}`);
   }
   const fold = e.target.closest("button[data-fold]");
-  if (fold) {
-    const g = fold.dataset.fold;
-    if (poi.open.has(g)) poi.open.delete(g); else poi.open.add(g);
-    try { localStorage.setItem("cc.poiOpen", JSON.stringify([...poi.open])); } catch (err) {   }
-    return buildPoiMenu();
-  }
+  if (fold) return toggleOpen(fold.dataset.fold);
   const all = e.target.closest("button[data-all]");
   if (!all) return;
   const keys = app.dungeon ? DPOI.map(([k]) => k) : POI_GROUPS.flatMap(([, cats]) => cats.map(([k]) => k));
@@ -186,12 +224,25 @@ function poiMenuClicked(e) {
   buildPoiMenu();
 }
 poiMenu.addEventListener("click", poiMenuClicked);
+function toggleOpen(g) {
+  if (poi.open.has(g)) poi.open.delete(g); else poi.open.add(g);
+  try { localStorage.setItem("cc.poiOpen", JSON.stringify([...poi.open])); } catch (err) {   }
+  buildPoiMenu();
+}
 function poiMenuChanged(e) {
   const box = e.target;
   if (box.dataset.side) {
     if (box.checked) poi.sides.add(box.dataset.side); else poi.sides.delete(box.dataset.side);
     refreshTravel();
     return redraw();
+  }
+  if (box.dataset.pick) {
+    const key = box.dataset.pick, value = box.value ? +box.value : null;
+    poi.pick[key] = key === "class" && value === app.status?.classId ? null : value;
+    poi.on.add(key);
+    savePoi();
+    redraw();
+    return buildPoiMenu();
   }
   if (box.dataset.focused) {
     poi.focused = box.checked;
@@ -238,13 +289,13 @@ const POI_GAP = 3;
 function poiSpots(size, scale) {
   const want = new Set(poiMaps()), out = [];
   if (!poi.data || !poisWanted()) return out;
-  const half = POI_SIZE / 2, classId = app.status?.classId;
+  const half = POI_SIZE / 2;
   const caveView = app.indoor && !app.indoorZone;
   for (const d of poi.data) {
     if (!want.has(d.map)) continue;
     for (const p of d.pois) {
       const shown = p.cat === "portal" ? !caveView && (kindShown("dungeon") || kindShown("raid")) : kindShown(p.cat);
-      if (!shown || (p.cat === "class" && p.detail !== classId) || !sideShown(p)) continue;
+      if (!shown || !pickShown(p) || !sideShown(p)) continue;
       const [x, y] = toScreen(p.x, p.y, size, scale, d.map);
       if (x < -half || y < -half || x > W + half || y > H + half) continue;
       out.push({ x, y, p, map: d.map });

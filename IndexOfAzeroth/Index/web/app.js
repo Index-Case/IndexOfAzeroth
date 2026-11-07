@@ -900,7 +900,7 @@ function updateXp() {
   $("xp-text").textContent = max
     ? `Level ${s.level}   ${num(s.xp)} / ${num(max)} (${pct(s.xp, max)}%)` + (s.rested ? `   Rested ${num(s.rested)} (${pct(s.rested, max)}%)` : "")
     : `Level ${s.level}${capped ? ", the game's level cap" : ""}`;
-  const stage = max ? heatStage(fill) : "", edge = $("xp-edge"), tail = $("xp-tail");
+  const stage = max && options.get("xpglow") ? heatStage(fill) : "", edge = $("xp-edge"), tail = $("xp-tail");
   if (edge.dataset.stage !== stage) {
     edge.dataset.stage = stage;
     edge.className = `heat-edge${stage ? ` heat-${stage}` : ""}`;
@@ -911,8 +911,8 @@ function updateXp() {
     edge.style.cssText = heatEdgeStyle(heatT(fill), HEAT_XP);
   }
   const age = heatLevelled(`xp:${heatWho()}`, s.level || 0), burst = $("xp-burst");
-  burst.hidden = age == null;
-  if (age != null) burst.style.animationDelay = `-${Math.round(age)}ms`;
+  burst.hidden = age == null || !options.get("levelflare");
+  if (!burst.hidden) burst.style.animationDelay = `-${Math.round(age)}ms`;
 }
 
 
@@ -1109,7 +1109,7 @@ let travellersAt = null;
 function walkTravellers() {
   const now = performance.now(), seconds = travellersAt == null ? 0 : (now - travellersAt) / 1000;
   travellersAt = now;
-  travellers.advance(seconds, oneLightAt(mapLight.hour(), app.nightOn !== false).lamp > 0);
+  travellers.advance(seconds, app.travellersOn !== false && oneLightAt(mapLight.hour(), app.nightOn !== false).lamp > 0);
 }
 function placeTravellers() {
   if (!app.maps || !app.detailView) return;
@@ -1231,6 +1231,10 @@ const options = new OptionsWindow({ box: $("options"), key: $("btn-options"), ke
     mapkinds: { changed: (kinds) => { app.mapKinds = kinds; preloadFarTiles(); requestUpdate(); } },
     night: { changed: (on) => { app.nightOn = on; mapLight.nightShown?.(on); redraw(); } },
     zoneglow: { changed: (on) => { app.zoneGlowOn = on; redraw(); } },
+    gauntlet: { changed: (on) => mapLight.pointerShown(on) },
+    travellers: { changed: (on) => { app.travellersOn = on; redraw(); } },
+    hotspots: { changed: (pct) => { app.hotspotShare = pct / 100; redraw(); } },
+    glowstrength: { changed: (pct) => heatStrength(pct / 100) },
     continentnames: { changed: (on) => { app.continentNamesOn = on; redraw(); } },
     zonenames: { changed: (on) => { app.zoneNamesOn = on; redraw(); } },
     citybanners: { changed: (on) => { app.cityBannersOn = on; redraw(); } },
@@ -1501,6 +1505,12 @@ on("snapshot", (snap) => scanScroll.report(snap.auction));
 const blood = new Blood({ layer: $("blood"), doc: document, picture: (src) => Object.assign(new Image(), { src }),
   kept: () => keptOr("cc.blood", null), keep: (v) => keepIn("cc.blood", v), drawn: () => redraw(),
   aspect: () => innerWidth / Math.max(1, innerHeight) });
+function bloodLook() {
+  blood.shown({ screen: options.get("bloodscreen"), map: options.get("bloodmap"), pool: options.get("deathpool"),
+    screenShare: options.get("bloodscreenstrength") / 100, mapShare: options.get("bloodmapstrength") / 100 });
+  redraw();
+}
+for (const id of ["bloodscreen", "bloodmap", "deathpool", "bloodscreenstrength", "bloodmapstrength"]) options.hooks[id] = { changed: bloodLook };
 function bloodSpot() {
   const p = !inDungeon() && playerWorld();
   return p ? { ...p, floor: null } : null;

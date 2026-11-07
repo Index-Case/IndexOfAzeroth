@@ -646,9 +646,9 @@ function startGuide(todoId, opts = {}) {
   guideNearest({ cats, more, todoId, again: (o) => startGuide(todoId, o) }, opts);
 }
 
-function guideToKind(cat, opts = {}) {
-  const more = cat === "class" && app.status?.classId ? { detail: app.status.classId } : {};
-  guideNearest({ cats: [cat], more, what: poiWhat(cat), again: (o) => guideToKind(cat, o) }, opts);
+function guideToKind(cat, opts = {}, detail = kindDetail(cat, false)) {
+  const more = detail ? { detail } : {};
+  guideNearest({ cats: [cat], more, what: poiWhat(cat), again: (o) => guideToKind(cat, o, detail) }, opts);
 }
 
 function guideNearest(ask, opts = {}) {

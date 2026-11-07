@@ -528,7 +528,7 @@ def from_fill(costs, fill, game, beasts=None):
     pets = {"trainers": fill.get("petTrainers"), "taught": fill.get("petTaught"),
             "beasts": beasts or (fill.get("beasts") or {}).get}
     lists = (fill["build"], {as_int(s) for s in fill.get("lineSpells") or ()}) if fill.get("build") else None
-    return build(costs, fill.get("trainers"), game, fill.get("listed"), pets,
+    return build(costs, fill.get("trainers"), gamedata.class_sightings(fill.get("seen"), game), fill.get("listed"), pets,
                  {"skills": fill.get("skills"), "prices": fill.get("riding"), "ranks": fill.get("ranks")}, fill.get("partial"),
                  lists)
 

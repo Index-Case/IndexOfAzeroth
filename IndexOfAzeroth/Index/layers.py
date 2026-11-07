@@ -16,7 +16,9 @@ import storewriter
 ROOT = os.path.dirname(os.path.abspath(__file__))
 MARGIN = 0.1
 MAX_ABOVE = 3
-ELITE_RANKS = {1, 2, 3, 4}
+STRONG_RANKS = {1, 2, 3}
+RARE_RANKS = {2, 4}
+ELITE_RANKS = STRONG_RANKS | RARE_RANKS
 AGGRO_MARGIN = 2.0
 AGGRO = 20.0
 AGGRO_RANGE = (5.0, 45.0)
@@ -90,6 +92,10 @@ def sellers_of(services, item):
     return seller_index(services).get(int(item), [])
 
 
+def offers(have, asked):
+    return asked is None or have == asked or (isinstance(have, list) and asked in have)
+
+
 def serving(services, geo, faction, cats=None, detail=None, keep=None, walking=None, walled=frozenset()):
     bit = facts.faction_bit(faction)
     found = []
@@ -99,7 +105,7 @@ def serving(services, geo, faction, cats=None, detail=None, keep=None, walking=N
         if cats is None:
             kind = next((c for c, _ in sv["cats"]), "vendor")
         else:
-            kind = next((c for c, d in sv["cats"] if c in cats and (detail is None or d == detail)), None)
+            kind = next((c for c, d in sv["cats"] if c in cats and offers(d, detail)), None)
         if kind is None or (keep is not None and not keep(sv, kind)):
             continue
         found.append((sv, kind, [(w[0], w[1], w[2], area) for area, pts in sv["s"].items() for x, y in pts
@@ -1371,6 +1377,7 @@ class WorldLayers:
         self.services = with_trainers(data.get("services", []), datafiles.load(PROFESSIONS, {}), self.geo)
         self.trainer_levels = data.get("trainerLevels", {})
         self.trainer_costs = data.get("trainerCosts", {})
+        self.weapon_skills = data.get("weaponSkills", {})
         self.entrances = data.get("entrances", [])
         self.sources = data.get("sources", {})
         self.detection_usual = data.get("detectionUsual")
@@ -2047,7 +2054,7 @@ class WorldLayers:
                         yield at[0], at[1], at[2], zone, chance, up
 
     def grind_loop(self, maps, level, faction, near=None, gold=False, near_inst=None, all_levels=False, aoe=0, skin=0,
-                   ah=False, skinning=0, leathers=(), walk=None, until=None, item=None):
+                   ah=False, skinning=0, leathers=(), walk=None, until=None, item=None, travel=None):
         from loopsearch import Camp, Walked, best_loop
         import farmspots
         maps = {int(m) for m in (maps if isinstance(maps, (list, tuple, set)) else [maps])}
@@ -2069,9 +2076,11 @@ class WorldLayers:
             for score, block, cn, cw in camp_blocks(pts, None, None if danger is None else danger[danger[:, 3] > 0],
                                                     timing=camp_timing, rate=rate):
                 walked = (lambda i=inst, b=block: Walked(walk(i, sorted({p[10] for p in b})))) if walk else None
-                if item is not None:
-                    score = farmspots.farm_score(score, farmspots.trip_seconds(here, inst, cn, cw))
-                camps.append(Camp(inst, block, cn, cw, score, stops_for, walked, RUN_SPEED))
+                camps.append((score, inst, cn, cw, block, stops_for, walked))
+        if item is not None:
+            camps = [(score,) + c[1:] for score, _, c in farmspots.ranked(camps, here, travel=travel)]
+        camps = [Camp(inst, block, cn, cw, score, stops_for, walked, RUN_SPEED)
+                 for score, inst, cn, cw, block, stops_for, walked in camps]
         if not camps:
             return None
         whole = True
@@ -2111,29 +2120,31 @@ class WorldLayers:
         return out
 
     def camp_rows(self, maps, level, faction, gold=False, all_levels=False, aoe=0, skin=0, book=None, skinning=0, leathers=(),
-                  item=None, keep=True):
+                  item=None, keep=True, one_offs=False):
         faction_bit, cap, off = facts.faction_bit(faction), self.level_cap(), self.off_events()
         key = (tuple(sorted(maps)), level, faction, bool(gold), bool(all_levels), aoe, skin, skinning,
-               tuple(sorted(leathers)), cap, tuple(sorted(off)), self.pace.current, self.respawns_version(), item)
+               tuple(sorted(leathers)), cap, tuple(sorted(off)), self.pace.current, self.respawns_version(), item, bool(one_offs))
         held = (self.mobs, self.spawns, self.rare_ids, self.spawn_counts, getattr(self, "spawn_ups", None),
                 self.respawn_npcs, self.geo, self.drops, self.item_table, self.measured_respawn, self.xp,
                 self.xp.samples, self.pace, self.pace.samples, book)
         got = self.camps_kept.get(key)
         if got is not None and all(a is b for a, b in zip(got[0], held)):
             return got[1]
-        out = self._camp_rows(maps, level, gold, all_levels, aoe, skin, book, skinning, leathers, faction_bit, cap, off, item)
+        out = self._camp_rows(maps, level, gold, all_levels, aoe, skin, book, skinning, leathers, faction_bit, cap, off, item,
+                              bool(one_offs))
         if not keep:
             return out
         return kept.keep(self.camps_kept, key, (held, out), CAMPS_KEPT)[1]
 
-    def _camp_rows(self, maps, level, gold, all_levels, aoe, skin, book, skinning, leathers, faction_bit, cap, off, item=None):
+    def _camp_rows(self, maps, level, gold, all_levels, aoe, skin, book, skinning, leathers, faction_bit, cap, off, item=None,
+                   one_offs=False):
         by_inst, by_mob = {}, self.leathers()[1] if skin and leathers else None
         gives = self.item_drops().get(item, {}) if item is not None else None
         for mob_id, mob in self.mobs.items():
             if gives is not None and mob_id not in gives:
                 continue
             name, lo, hi, rank, friend = mob[0], mob[1], mob[2], mob[3], mob[6]
-            if friend & (1 | faction_bit) or rank in ELITE_RANKS or mob_id in self.rare_ids or not self.fightable(mob_id, off):
+            if friend & (1 | faction_bit) or rank in STRONG_RANKS or self.one_off(mob_id, rank) != one_offs or not self.fightable(mob_id, off):
                 continue
             if skin and not (mob[9] and (all_levels or skinning_needed(hi) <= skin)):
                 continue
@@ -2171,6 +2182,11 @@ class WorldLayers:
                 by_inst[inst] = [(*p[:2], p[2] * k * (-1 if p[3] in poor else 1), *p[3:6], p[6] * AOE_PULL / k, *p[7:], int(k))
                                  for p, k in zip(pts, packs)]
         return by_inst
+
+    def one_off(self, mob_id, rank):
+        if rank in RARE_RANKS or mob_id in self.rare_ids:
+            return True
+        return (self.spawn_counts.get(mob_id, 0) or sum(len(p) for p in self.spawns.get(mob_id, {}).values())) == 1
 
     def up_share(self, mob_id):
         have = self.spawn_counts.get(mob_id, 0)

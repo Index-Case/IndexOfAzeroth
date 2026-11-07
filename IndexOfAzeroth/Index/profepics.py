@@ -8,7 +8,7 @@ import mapzones
 from camping import RANK_LEVELS, counted, names
 from plansteps import cheapest, spot
 from questitems import FISH
-from wordparts import P
+from wordparts import P, UNSAID
 
 PREFIX = "prof:"
 FISHING = "Fishing"
@@ -21,7 +21,6 @@ WITHIN = 8
 BANDS = ((25, "orange"), (50, "yellow"), (100, "green"))
 SHOWN = 2
 ROUTE_MOST = 300
-UNSAID = 9999
 CONSUMABLE, BAG = 0, 1
 GEAR = (2, 4)
 
@@ -61,7 +60,7 @@ class ProfData:
         return sorted(((int(k), v.get("n") or "", v.get("kind") == "primary") for k, v in self.cd.profs.items()
                        if v.get("ranks")), key=lambda p: p[1])
 
-    def ranks(self, line, game=None):
+    def ranks(self, line, game=None, seen=None):
         cd, by, spells = self.cd, {}, {}
         for r in sorted(cd.profs.get(str(line), {}).get("ranks") or (),
                         key=lambda r: (r["step"], r["spell"] not in cd.teachers, not (r.get("n") or "").strip(), r["spell"])):
@@ -75,7 +74,7 @@ class ProfData:
             rank = {"step": step, "name": name, "cap": r["cap"], "spell": r["spell"],
                     "skill": min(skills) if skills else (0 if step == 1 else None),
                     "level": max((row[1] for row in rows), default=0) or RANK_LEVELS.get(step, 1),
-                    "cost": min((row[2] for row in rows), default=None)}
+                    "cost": cd.cost(r["spell"], seen)}
             said = next((game[s] for s in spells[step] if s in (game or {})), None)
             if said:
                 rank.update({k: said[k] for k in ("skill", "level", "cost") if said.get(k) is not None})
@@ -243,7 +242,7 @@ def status(pd, line, me):
     kind = (cd.profs.get(str(line)) or {}).get("kind")
     have = (me.get("profs") or {}).get(name)
     level = me.get("level") or 1
-    rs = pd.ranks(line, (me.get("game_ranks") or {}).get(name))
+    rs = pd.ranks(line, (me.get("game_ranks") or {}).get(name), me.get("prices"))
     out = {"line": line, "name": name, "primary": kind == "primary", "gathering": name in OFFERS,
            "skill": have["rank"] if have else None, "cap": have["max"] if have else None, "min": None, "rank": None,
            "walls": [{k: r[k] for k in ("name", "cap", "skill", "level", "cost")} for r in rs], "offer": None, "route": None,
@@ -328,13 +327,13 @@ def gather_text(pd, name, skill, me, to):
     return f"Fish in {short_list(waters)}. {to}" if waters else f"Fish wherever your skill reaches. {to}"
 
 
-def state_of(record, level, side, game_ranks=None, items=None, zone_map=None, at=None, money=None):
+def state_of(record, level, side, game_ranks=None, items=None, zone_map=None, at=None, money=None, prices=None):
     record = record or {}
     profs = None if record.get("professions") is None else \
         {p["name"]: {"rank": p.get("rank") or 0, "max": p.get("max") or 0} for p in record["professions"] if p.get("name")}
     known = {n: {int(s) for s in (b.get("known") or {})} for n, b in (record.get("recipes") or {}).items()}
     return {"level": level or 1, "side": side or "", "profs": profs, "known": known, "game_ranks": game_ranks or {},
-            "items": items, "zone_map": zone_map, "at": at, "money": money}
+            "items": items, "zone_map": zone_map, "at": at, "money": money, "prices": prices or {}}
 
 
 def game_ranks(record, trainer_prices):
@@ -459,12 +458,8 @@ class Chores:
         return self.paid(steps, lo, self.trainers(name, rank["spell"]), make, rank.get("cost"), "learn",
                          f"{'Learning' if first else 'Training'} {said}", said, hi=hi)
 
-    def recipe_cost(self, spell):
-        rows = [row for rows in self.cd.teachers.get(spell, {}).values() for row in rows]
-        return min((row[2] for row in rows), default=None)
-
     def recipe(self, steps, lo, name, spell, key, label):
-        cost = self.recipe_cost(spell)
+        cost = self.cd.cost(spell, self.me.get("prices"))
         return self.paid(steps, lo, self.trainers(name, spell),
                          lambda n, p, *_: self.chore("learn", key, f"Learn {label} at {n}", n, p, {"recipes": [spell]}, cost,
                                                      takes={"skills": [name]}),
@@ -478,13 +473,14 @@ class Chores:
         cost_of = lambda items: sum((self.pd.unit_price(i) or 0) * (buys[i] - carry.get(i, 0)) for i in items)
         while buys:
             noted, whys, at = len(self.notes), [], None
-            for rows in self.errands.vendors_of(sorted(buys), self.side, sold):
+            for rows in self.errands.vendors_of(sorted(buys), self.side, sold, {i: cd.stocked(i) for i in buys}):
                 sells = {p[3]: items for p, items in rows}
 
                 def make(n, p, prices, npc, sells=sells):
                     items = sells[npc]
-                    return self.chore("supplies", key, f"Buy {said(items)} at {n}", n, p,
-                                      {"items": [[i, buys[i]] for i in sorted(items)]}, cost_of(items))
+                    left = [(cd.item_name(i), buys[i] - carry.get(i, 0)) for i in sorted(items)]
+                    return self.chore("supplies", key, camping.buy_line(left, n), n, p,
+                                      cd.buy_need(npc, [[i, buys[i]] for i in sorted(items)]), cost_of(items))
                 at, why = self.paid(steps, lo, [p for p, _ in rows], make, lambda i, p, sells=sells: cost_of(sells[p[3]]),
                                     "supplies", f"Buying {said(buys)}", brief, said=cost_of(buys))
                 if at is not None:
@@ -538,15 +534,16 @@ def fish_gear(steps, pd, me, errands, anchor, fishing=None, own=False, notes=Non
         return steps
     poles = pd.cd.poles
     sold = {p: pd.cd.sellers(p) for p in poles}
-    from errands import MERCHANT
-    places = [p for p in errands.places(MERCHANT, me.get("side") or "", ids=True) if any(p[3] in s for s in sold.values())]
+    rows = [r for group in errands.vendors_of(sorted(poles), me.get("side") or "", sold,
+                                              {i: pd.cd.stocked(i) for i in poles}) for r in group]
+    places, sells = [p for p, _ in rows], {p[3]: items for p, items in rows}
     price = lambda i: pd.cd.item(i).get("price") or 0
-    pole_of = lambda npc: min((i for i in poles if npc in sold[i]), key=lambda i: (price(i), i))
+    pole_of = lambda npc: min(sells[npc], key=lambda i: (price(i), i))
 
     def make(n, p, prices, npc):
         pole = pole_of(npc)
-        return chores.chore("supplies", f"{PREFIX}{line}:pole", f"Buy a {pd.cd.item_name(pole)} at {n}", n, p,
-                            {"items": [[pole, 1]]}, pd.cd.item(pole).get("price"))
+        return chores.chore("supplies", f"{PREFIX}{line}:pole", camping.buy_line([(pd.cd.item_name(pole), 1)], n), n, p,
+                            pd.cd.buy_need(npc, [[pole, 1]]), pd.cd.item(pole).get("price"))
     if places:
         least = min((i for i in poles if sold[i]), key=lambda i: (price(i), i))
         chores.paid(steps, lo, places, make, lambda i, p: price(pole_of(p[3])), "supplies", f"Buying a {pd.cd.item_name(least)}",
