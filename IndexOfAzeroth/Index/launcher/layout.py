@@ -7,6 +7,7 @@ START = "Start the Index.bat"
 UNINSTALL = "Uninstall the Index.bat"
 STEPS = "README.txt"
 TOP = (START, UNINSTALL, STEPS)
+SERVER_WRITTEN = ("Pending.lua", "Shared.lua")
 
 
 def at(place):

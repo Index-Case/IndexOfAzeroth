@@ -15,6 +15,7 @@ for _p in (HERE, INSTALL):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 import appwindow
+import layout
 import shortcuts
 import updatenews
 import updater
@@ -447,6 +448,10 @@ def put_addon(held, target):
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             with open(src, "rb") as f, open(dst, "wb") as out:
                 shutil.copyfileobj(f, out)
+    for name in layout.SERVER_WRITTEN:
+        dst = os.path.join(target, name)
+        if not os.path.exists(dst):
+            open(dst, "wb").close()
     return "put"
 
 

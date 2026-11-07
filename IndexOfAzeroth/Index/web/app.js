@@ -586,6 +586,9 @@ const LOOP_WORDS = { grind: "grind", farm: "farm", gather: "gathering", skin: "s
                      fishing: "fishing", treasure: "treasure" };
 function reloadReasons() {
   const u = app.updates || {}, out = [];
+  if (app.updates?.index?.addon === "waiting") {
+    out.push({ kind: "addon", restart: true, text: "The Index's addon isn't in the game yet, and the Index puts it in once World of Warcraft is closed" });
+  }
   if (u.addon === "restart") out.push({ kind: "addon", restart: true, text: "The Index's addon has a new file list, and the game reads a new file list only when it starts" });
   else if (u.addon === "reload") out.push({ kind: "addon", text: "The Index's addon changed since the game loaded it" });
   else if (lineTooNew()) out.push({ kind: "addon", text: "The addon in game is older than the page" });

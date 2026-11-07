@@ -1,6 +1,12 @@
 <!-- The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md. -->
 # Changelog
 
+## 0.1.3-alpha
+
+### Fixes
+- The Index tells you to close World of Warcraft when its addon is waiting to go into the game.
+- The game no longer shows an error loading the Index's addon on its first start.
+
 ## 0.1.2-alpha
 
 ### Options
