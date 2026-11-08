@@ -1,0 +1,11 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = Profession epics side by side
+intro.p1 = A profession epic started while another epic runs asks whether to run side by side or to replace the running epic. <b>Side by side</b> keeps the running epic as it is and gives the profession epic a panel of its own here and a window of its own in game. Up to two profession epics run side by side, one for each profession, and the quest epic then carries none of their chores.
+replace = Replace
+replace.p1 = <b>Replace</b> sets the running epic aside, and its <b>Back to</b> key opens it again where it was.
+beacon = The beacon
+beacon.p1 = The quest epic, the Navigation Guide and a loop keep the beacon in game. A profession epic side by side takes the beacon only while none of them runs, and then the closest profession epic has it.
+panel = The panel
+panel.p1 = The fold key shrinks the panel to its heading and opens it again. <b>Close</b> closes the profession epic here and in game with its plan and progress kept, and <b>Reopen</b> opens it again where it was.

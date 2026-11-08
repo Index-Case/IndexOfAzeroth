@@ -6,6 +6,7 @@ import re
 import threading
 import time
 
+from characters import same_char
 import datafiles
 import planreport
 from gamedata import quest_item_id
@@ -52,6 +53,8 @@ LOOP_MOST = 40
 WALK_MOST = 60
 MOBS_MOST = 6
 HISTORY = 8
+SIDE_MOST = 2
+SIDE_BRIEF = ("key", "name", "char", "plan", "written", "line", "prof", "anchor", "mode", "closed", "opened")
 PLANNING_KEEP = 10
 ROUTE_KEEP = 5
 ROUTES_KEPT = 8
@@ -191,8 +194,14 @@ def next_line(nxt):
     return f"  next = {lua_value(nxt)},"
 
 
+def epic_lines(name, epic, indent="  "):
+    meta = "".join(f"{k} = {lua_value(v)}, " for k, v in epic.items() if k != "steps" and v is not None)
+    return ([f"{indent}{name}{{ {meta}steps = {{"] + [f"{indent}  {lua_value(st)}," for st in epic["steps"]]
+            + [f"{indent}}} }},"])
+
+
 def render(data, quiet=None, watch=None, stars=None, legacy=None, services=None, rewards=None, nxt=None, towns=None,
-           places=None, roles=None):
+           places=None, roles=None, profs=None):
     if not has_rewards(rewards):
         rewards = None
     if not has_next(nxt):
@@ -200,7 +209,7 @@ def render(data, quiet=None, watch=None, stars=None, legacy=None, services=None,
     if not (towns and towns.get("list")):
         towns = None
     if not data and not quiet and not watch and not stars and not legacy and not services and not rewards and not nxt \
-            and not towns and not places and not roles:
+            and not towns and not places and not roles and not profs:
         return HEADER + "IndexOfAzerothShared = nil\n"
     lines = [HEADER.rstrip("\n"), "IndexOfAzerothShared = {"]
     if data:
@@ -225,12 +234,14 @@ def render(data, quiet=None, watch=None, stars=None, legacy=None, services=None,
         lines.append(towns_line(towns))
     if places:
         lines.append(places_line(places))
-    epic =(data or {}).get("epic")
+    epic = (data or {}).get("epic")
     if epic:
-        meta = "".join(f"{k} = {lua_value(v)}, " for k, v in epic.items() if k != "steps" and v is not None)
-        lines.append(f"  epic = {{ {meta}steps = {{")
-        lines += [f"    {lua_value(st)}," for st in epic["steps"]]
-        lines.append("  } },")
+        lines += epic_lines("epic = ", epic)
+    if profs:
+        lines.append("  profs = {")
+        for side in profs:
+            lines += epic_lines("", side, "    ")
+        lines.append("  },")
     lines.append("}")
     return "\n".join(lines) + "\n"
 
@@ -598,6 +609,22 @@ def page_form(data):
                                for s, lg in zip(epic["steps"], legs)]}}
 
 
+def closing(epic, by):
+    game = by == "game"
+    closed = epic.get("closed")
+    if closed:
+        return ({**epic, "closed": {**closed, "game": True}}, False) if game and not closed.get("game") else (None, False)
+    if game and (epic.get("opened") or {}).get("game"):
+        return None, False
+    kept = {k: v for k, v in epic.items() if k != "opened"}
+    return {**kept, "closed": {"by": by, "at": int(time.time()), "game": game}}, True
+
+
+def opening(epic, by):
+    kept = {k: v for k, v in epic.items() if k != "closed"}
+    return {**kept, "opened": {"at": int(time.time()), "game": by == "page" and bool(epic["closed"].get("game"))}}
+
+
 class Shared:
     def __init__(self, addons_dir, state_path=None):
         self.addons_dir = addons_dir
@@ -620,6 +647,7 @@ class Shared:
         self.top = 0
         self.switched = None
         self.aside = None
+        self.profs = []
         self.find_ground = None
         self.find_danger = None
         self.find_covered = None
@@ -654,6 +682,7 @@ class Shared:
         self.run_start = saved.get("run_start")
         self.top = int(saved.get("top") or 0)
         self.aside = saved.get("aside") or None
+        self.profs = saved.get("profs") or []
         data, path = saved.get("data"), self.path()
         if not data or not path or not os.path.exists(path):
             return
@@ -671,7 +700,7 @@ class Shared:
         path = self.path()
         if not path:
             return False
-        write_in_place(path, self.table_text(data))
+        write_in_place(path, self.table_text(data, record.get("profs")))
         for name, value in record.items():
             setattr(self, name, value)
         self.data = data
@@ -680,11 +709,24 @@ class Shared:
         for v in sorted(self.history)[:-HISTORY]:
             if v != self.loaded:
                 del self.history[v]
-        if self.state_path:
-            store.save_json(self.state_path, {"data": data, "plans": self.plans, "run_start": self.run_start,
-                                              "top": self.top, "history": {str(v): p for v, p in self.history.items()},
-                                              "aside": self.aside})
+        self.save_state()
         return True
+
+    def write_profs(self, profs, written=0):
+        path = self.path()
+        if not path:
+            return False
+        write_in_place(path, self.table_text(self.data, profs))
+        self.profs = profs
+        self.top = max(self.top, int(written or 0))
+        self.save_state()
+        return True
+
+    def save_state(self):
+        if self.state_path:
+            store.save_json(self.state_path, {"data": self.data, "plans": self.plans, "run_start": self.run_start,
+                                              "top": self.top, "history": {str(v): p for v, p in self.history.items()},
+                                              "aside": self.aside, "profs": self.profs})
 
     def set_quiet(self, quiet):
         return self.set_part("quiet", quiet or {}, quiet_line)
@@ -733,12 +775,12 @@ class Shared:
             write_in_place(path, self.table_text(self.data))
             return True
 
-    def table_text(self, data):
+    def table_text(self, data, profs=None):
         epic = (data or {}).get("epic") or {}
         if epic.get("steps"):
             dress_steps(epic["steps"], self.find_spawns, legs_start(epic))
         return render(data, self.quiet, self.watch, self.stars, self.legacy, self.services, self.rewards, self.next,
-                      self.towns, self.places, self.roles)
+                      self.towns, self.places, self.roles, self.profs if profs is None else profs)
 
     def plan_report(self, key, stage=None, finds=(), picked=None, placed=(), ordered=None, crumbs=None, at=None,
                     rounds=None, tried=None, walked=None, won=None):
@@ -924,6 +966,8 @@ class Shared:
                         "places": places,
                         "qt": quest_texts(steps),
                         "steps": steps}
+                if meta.get("side"):
+                    return self.put_side({**epic, **meta["side"]})
                 before = self.data
                 aside = meta.get("aside")
                 if not start or aside == "keep":
@@ -932,9 +976,10 @@ class Shared:
                     aside = {"data": before, "parked": aside.get("parked") or []}
                 else:
                     aside = None
+                profs = [s for s in self.profs if s.get("key") != key or not same_char(s.get("char"), epic["char"])]
                 return self.write_locked(
                     {"version": version, "epic": epic}, plans={**self.plans, key: plan},
-                    run_start=version if start else self.run_start, aside=aside,
+                    run_start=version if start else self.run_start, aside=aside, profs=profs,
                     switched={"from": before, "to": version} if meta.get("switched") and (before or {}).get("epic") else None)
         except CalledOff:
             return False
@@ -954,7 +999,7 @@ class Shared:
     def start_epic(self, key, steps, find_way, meta=None, find_route=None, still=None):
         start = bool((meta or {}).get("start"))
         with self.lock:
-            if self.working and not start:
+            if self.working and (not start or (meta or {}).get("side")):
                 return False
             self.asks += 1
             ask = self.asks
@@ -974,49 +1019,78 @@ class Shared:
             return self.write_locked(before, switched=None, history={v: p for v, p in self.history.items() if v != sw["to"]},
                                      plans={**self.plans, key: epic.get("plan") or self.plans.get(key)})
 
-    def close_epic(self, key=None, by="page"):
+    def epic_of(self, key, char=None):
+        epic = (self.data or {}).get("epic")
+        if key and epic and epic.get("key") == key:
+            return epic, None
+        for at, side in enumerate(self.profs):
+            if key and side.get("key") == key and (char is None or same_char(side.get("char"), char)):
+                return side, at
+        return None, None
+
+    def put_epic(self, at, epic, **record):
+        if at is None:
+            return self.write_locked({**(self.data or {}), "epic": epic}, **record)
+        profs = list(self.profs)
+        profs[at] = epic
+        return self.write_profs(profs)
+
+    def put_side(self, epic):
+        mine = [i for i, s in enumerate(self.profs) if same_char(s.get("char"), epic.get("char"))]
+        at = next((i for i in mine if self.profs[i].get("line") == epic.get("line")), None)
+        if at is None and len(mine) >= SIDE_MOST:
+            at = next((i for i in mine if self.profs[i].get("closed")), None)
+            if at is None:
+                return False
+        profs = list(self.profs)
+        if at is None:
+            profs.append(epic)
+        else:
+            profs[at] = epic
+        if not self.write_profs(profs, epic["written"]):
+            return False
+        self.plans = {**self.plans, epic["key"]: epic["plan"]}
+        return True
+
+    def side_room(self, char, line):
         with self.lock:
-            d = self.data or {}
-            epic = d.get("epic")
-            key = key or (epic or {}).get("key")
-            mine = epic if epic and epic.get("key") == key else None
+            mine = [s for s in self.profs if same_char(s.get("char"), char)]
+            if len(mine) < SIDE_MOST or any(s.get("line") == line or s.get("closed") for s in mine):
+                return True, []
+            return False, [s.get("name") for s in mine]
+
+    def close_epic(self, key=None, by="page", char=None):
+        with self.lock:
+            key = key or ((self.data or {}).get("epic") or {}).get("key")
+            mine, at = self.epic_of(key, char)
             if not key or (not mine and self.working != key):
                 return False
-            game = by == "game"
-            closed = (mine or {}).get("closed")
-            if closed:
-                if not game or closed.get("game"):
-                    return False
-                return self.write_locked({**d, "epic": {**mine, "closed": {**closed, "game": True}}})
-            if game and ((mine or {}).get("opened") or {}).get("game"):
-                return False
-            self.stops[key] = self.stops.get(key, 0) + 1
             if not mine:
+                self.stops[key] = self.stops.get(key, 0) + 1
                 return True
-            kept = {k: v for k, v in mine.items() if k != "opened"}
-            return self.write_locked({**d, "epic": {**kept, "closed": {"by": by, "at": int(time.time()), "game": game}}},
-                                     switched=None)
-
-    def open_epic(self, key, by="page"):
-        with self.lock:
-            d = self.data or {}
-            epic = d.get("epic") or {}
-            if not key or epic.get("key") != key or not epic.get("closed"):
+            epic, stops = closing(mine, by)
+            if epic is None:
                 return False
-            game = by == "page" and bool(epic["closed"].get("game"))
-            kept = {k: v for k, v in epic.items() if k != "closed"}
-            return self.write_locked({**d, "epic": {**kept, "opened": {"at": int(time.time()), "game": game}}})
+            if stops:
+                self.stops[key] = self.stops.get(key, 0) + 1
+            return self.put_epic(at, epic, **({"switched": None} if stops and at is None else {}))
 
-    def set_pick(self, key, item, way):
+    def open_epic(self, key, by="page", char=None):
         with self.lock:
-            d = self.data or {}
-            epic = d.get("epic") or {}
-            craft = epic.get("craft") or {}
+            epic, at = self.epic_of(key, char)
+            if not epic or not epic.get("closed"):
+                return False
+            return self.put_epic(at, opening(epic, by))
+
+    def set_pick(self, key, item, way, char=None):
+        with self.lock:
+            epic, at = self.epic_of(key, char)
+            craft = (epic or {}).get("craft") or {}
             picks = dict(craft.get("picks") or {})
-            if epic.get("key") != key or not craft or picks.get(str(item)) == way:
+            if not craft or picks.get(str(item)) == way:
                 return False
             picks[str(item)] = way
-            return self.write_locked({**d, "epic": {**epic, "craft": {**craft, "picks": picks}}})
+            return self.put_epic(at, {**epic, "craft": {**craft, "picks": picks}})
 
     def back(self):
         with self.lock:
@@ -1032,21 +1106,19 @@ class Shared:
             return self.write_locked({**aside["data"], "version": version, "epic": epic}, run_start=version, aside=None,
                                      switched=None, plans={**self.plans, epic["key"]: epic.get("plan") or 1})
 
-    def game_guide(self, key, running):
+    def game_guide(self, key, running, char=None):
         if not running:
-            return self.close_epic(key, by="game")
-        epic = (self.data or {}).get("epic") or {}
-        if epic.get("key") != key:
-            return False
-        if (epic.get("closed") or {}).get("game"):
-            return self.open_epic(key, by="game")
+            return self.close_epic(key, by="game", char=char)
         with self.lock:
-            d = self.data or {}
-            epic = d.get("epic") or {}
-            opened = epic.get("opened") or {}
-            if epic.get("key") != key or not opened.get("game"):
+            epic, at = self.epic_of(key, char)
+            if not epic:
                 return False
-            return self.write_locked({**d, "epic": {**epic, "opened": {**opened, "game": False}}})
+            if (epic.get("closed") or {}).get("game"):
+                return self.put_epic(at, opening(epic, "game"))
+            opened = epic.get("opened") or {}
+            if not opened.get("game"):
+                return False
+            return self.put_epic(at, {**epic, "opened": {**opened, "game": False}})
 
     def brief(self):
         d = self.data or {}
@@ -1058,7 +1130,8 @@ class Shared:
                 "written": epic.get("written"), "fresh": epic.get("fresh"), "start": self.run_start, "unbuilt": epic.get("unbuilt"), "progress": self.progress_now(),
                 "closed": epic.get("closed"), "opened": epic.get("opened"), "broke": self.broke,
                 "asked": epic.get("asked"),
-                "aside": self.aside_brief()}
+                "aside": self.aside_brief(),
+                "profs": [{k: s.get(k) for k in SIDE_BRIEF} for s in self.profs]}
 
     def aside_brief(self):
         epic = ((self.aside or {}).get("data") or {}).get("epic") or {}
@@ -1068,7 +1141,7 @@ class Shared:
         last = version and int(version) == (self.data or {}).get("version")
         form = self.history.get(int(version)) if version and not last else None
         return {**(form or page_form(self.data or {})), "working": self.working, "progress": self.progress_now(),
-                "towns": self.towns}
+                "towns": self.towns, "profs": [page_form({"version": s.get("written"), "epic": s})["epic"] for s in self.profs]}
 
     def ensure(self):
         with self.lock:

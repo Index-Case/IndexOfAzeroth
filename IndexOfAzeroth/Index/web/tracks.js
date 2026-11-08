@@ -875,7 +875,7 @@ function trackPanelClicked(e) {
   const material = e.target.closest(".plan-materials button[data-item-key]");
   if (material) {
     const [i, key] = material.dataset.itemKey.split(":");
-    return pickMaterial(app.tracks.epic, +i, key);
+    return pickMaterial(sideOfPanel(material) || app.tracks.epic, +i, key);
   }
   const picked = (t) => (t.kind === "epic" && followLead(t)) || renderTracks();
   for (const kind of ["epic", "loop"]) {

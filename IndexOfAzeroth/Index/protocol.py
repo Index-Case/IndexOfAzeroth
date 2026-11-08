@@ -229,6 +229,24 @@ RELOADING = 43
 RELOAD_HOW = {1: "held", 2: "hooked"}
 EXPLORED = 44
 QUEST_CLICKED = 45
+SIDES = 46
+
+
+def parse_sides(data):
+    r = Reader(data)
+    out = []
+    for _ in range(r.take("<B")):
+        version, flags = r.var(), r.take("<B")
+        side = {"version": version, "running": bool(flags & 1), "closed": bool(flags & 2)}
+        if flags & 1:
+            side["cur"], n = r.take("<H"), r.take("<H")
+            states = []
+            for _ in range((n + 1) // 2):
+                b = r.take("<B")
+                states += [b & 15, b >> 4]
+            side["states"] = [EPIC_STATES[s] if s < len(EPIC_STATES) else "todo" for s in states[:n]]
+        out.append(side)
+    return {"sides": out}
 
 
 def parse_reloading(data):
@@ -328,6 +346,8 @@ def parse_frame(data):
         return "explored", parse_completed(data[1:])
     if kind == QUEST_CLICKED:
         return "questclick", parse_quest_clicked(data[1:])
+    if kind == SIDES:
+        return "sides", parse_sides(data[1:])
     if kind in ADDED_FRAMES:
         return added_frame(kind, data)
     raise StripError(f"unknown frame type {kind}")

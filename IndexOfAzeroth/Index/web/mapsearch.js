@@ -123,8 +123,9 @@ function searchRow(p, i) {
 const searchFoundHtml = () => (mapSearch.found.length ? html`${mapSearch.found.map(searchRow)}` : html`<p class="ms-none">${word("page.search.none")}</p>`);
 const LIST_GAP_PX = 3;
 function placeList(list) {
-  const r = $("map-find").getBoundingClientRect();
-  list.style.left = `${Math.round(r.left)}px`;
+  const r = $("map-find").getBoundingClientRect(), right = columnSide() === "right";
+  list.style.left = right ? "auto" : `${Math.round(r.left)}px`;
+  list.style.right = right ? `${Math.round(document.documentElement.clientWidth - r.right)}px` : "auto";
   list.style.top = `${Math.round(r.bottom + LIST_GAP_PX)}px`;
 }
 function renderSearch() {

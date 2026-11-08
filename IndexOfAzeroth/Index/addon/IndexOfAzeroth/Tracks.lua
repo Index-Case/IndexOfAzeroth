@@ -14,6 +14,10 @@ local KINDS = {
   g = { frame = "IndexOfAzerothGrindArrow", label = "Loop", text = GUIDE.g, y = -350, art = { { 1.0, GUIDE.g } } },
   h = { frame = "IndexOfAzerothGatherArrow", label = "Gathering", text = GUIDE.h, y = -350, art = { { 1.0, GUIDE.h } } },
   k = { frame = "IndexOfAzerothSkinArrow", label = "Skinning", text = GUIDE.k, y = -350, art = { { 1.0, GUIDE.k } } },
+  p1 = { frame = "IndexOfAzerothProfArrow1", label = "Profession epic", text = CREAM, y = -250, art = { { 1.0, { 1, 1, 1 }, EPIC_ICON } },
+         prof = true },
+  p2 = { frame = "IndexOfAzerothProfArrow2", label = "Profession epic", text = CREAM, y = -250, art = { { 1.0, { 1, 1, 1 }, EPIC_ICON } },
+         prof = true },
 }
 local LOOPS = { "g", "h", "k" }
 local LOOKS = {
@@ -24,6 +28,7 @@ local LOOKS = {
 }
 local tracks = {}
 local guide = nil
+local side = { list = {}, MOST = 2 }
 
 local Dist, NearestOnSegment = ns.Geo.Dist, ns.Geo.NearestOnSegment
 local function dist(a, bx, by) return Dist(a[1], a[2], bx, by) end
@@ -526,12 +531,13 @@ local function Update(tr, dt)
 end
 
 for kind, k in pairs(KINDS) do
+  local epicLike = kind == "e" or k.prof
   local tr = ns.NewGuideArrow(kind, { frame = k.frame, size = 52, y = k.y, clicks = { "LeftButtonUp", "RightButtonUp" },
     art = k.art, label = k.label, text = k.text,
-    slot = { colour = kind == "e" and GUIDE.e or k.text,
+    slot = { colour = epicLike and GUIDE.e or k.text,
              hint = kind == "e" and "Click to open the quest epic's card. Right-click or click the x to close the guide."
-               or "Right-click or click the x to close the guide.",
-             art = LOOKS.slot .. (kind == "e" and "epic" or LOOKS.art[kind]) } })
+               or k.prof and ns.Word("game.card.side-hint") or "Right-click or click the x to close the guide.",
+             art = LOOKS.slot .. (epicLike and "epic" or LOOKS.art[kind]) } })
   tr.elapsed = 0
   function tr:SayStop()
     local t = self.target
@@ -539,6 +545,7 @@ for kind, k in pairs(KINDS) do
     if t and t.pasted then return ns.UI.SayStop(ns.UI.EpicLook(type(t.epic) == "table" and t.epic.key)) end
   end
   local function Close()
+    if k.prof then return ns.SideClose(kind) end
     if tr.target and tr.target.guided and ns.GuideStop then return ns.GuideStop() end
     if kind ~= "e" and tr.target and ns.GuideClosed then ns.GuideClosed("loop", tr.target.name) end
     if kind == "e" and tr.target and ns.PastedClosed then ns.PastedClosed() end
@@ -547,6 +554,7 @@ for kind, k in pairs(KINDS) do
   tr.close:SetScript("OnClick", Close)
   tr.frame:SetScript("OnClick", function(_, which)
     if which ~= "RightButton" then
+      if k.prof and ns.SideWindowOpen then return ns.SideWindowOpen(kind) end
       if tr.target and (tr.target.guided or tr.target.pasted) and ns.ToggleGuideCard then ns.ToggleGuideCard(true) end
       return
     end
@@ -555,8 +563,9 @@ for kind, k in pairs(KINDS) do
   ns.OnTick(tr.frame, "a guide arrow", nil, function(_, dt) Update(tr, dt) end)
   ns.guideSlots[kind].Careful = function()
     local t = tr.target
-    if kind == "e" and t and t.guided then
-      local s = guide and guide.cur and guide.steps[guide.cur]
+    if epicLike and t and t.guided then
+      local g = kind == "e" and guide or side.Of(kind)
+      local s = g and g.cur and g.steps[g.cur]
       if not (s and s.careful) then return nil end
       local notes = {}
       for note in s.careful:gmatch("[^;]+") do notes[#notes + 1] = note:match("^%s*(.-)%s*$") end
@@ -1171,6 +1180,17 @@ local function Event(kind, i)
 end
 
 local function Parked(id) local p = Saved().parked[guide.key]; return p and p[id] or false end
+local function ParkQuests(s)
+  if s.kind ~= "D" then return { s.ids[1] } end
+  local out = {}
+  for _, q in ipairs(s.ids) do if not Turned(q) then out[#out + 1] = q end end
+  return out
+end
+local function StepParked(s)
+  local quests = ParkQuests(s)
+  for _, q in ipairs(quests) do if not Parked(q) then return false end end
+  return #quests > 0
+end
 local back = {}
 
 local function ErrandDone(s)
@@ -1228,18 +1248,25 @@ local function Skipped(s)
   return KEEP_SKIP[s.what] or lv == (Plain(Call(UnitLevel, "player")) or 0)
 end
 
-function chore.Ticked(s)
-  local t = Saved().ticked
-  return guide ~= nil and t.version == guide.version and s.i ~= nil and t[s.i] == true
+function chore.Ticks(g)
+  local sv = Saved()
+  if g == guide then return sv.ticked end
+  sv.sideTicks = sv.sideTicks or {}
+  sv.sideTicks[g.key] = sv.sideTicks[g.key] or {}
+  return sv.sideTicks[g.key]
 end
-function chore.Tick(s)
-  local t = Saved().ticked
+function chore.Ticked(s, g)
+  local t = g and chore.Ticks(g)
+  return t ~= nil and t.version == g.version and s.i ~= nil and t[s.i] == true
+end
+function chore.Tick(s, g)
   local bind = s.what == "bind"
-  if not (guide and s.i) or not (bind or (ns.NeedMet and ns.NeedMet(s.need or {}) == true)) then return end
-  if bind then chore.Bound(s) end
-  if t.version ~= guide.version then
+  if not (g and s.i) or not (bind or (ns.NeedMet and ns.NeedMet(s.need or {}) == true)) then return end
+  if bind and g == guide then chore.Bound(s) end
+  local t = chore.Ticks(g)
+  if t.version ~= g.version then
     wipe(t)
-    t.version = guide.version
+    t.version = g.version
   end
   t[s.i] = true
 end
@@ -1406,15 +1433,16 @@ function chore.TakesFrom(s, t)
   return false
 end
 
-local function BaseState(s)
+local function BaseState(s, g)
+  local steps = g and g.steps or {}
   if s.kind == "S" then
-    if chore.Ticked(s) then return G.DONE end
-    if ErrandDone(s) then chore.Tick(s); return G.DONE end
+    if chore.Ticked(s, g) then return G.DONE end
+    if ErrandDone(s) then chore.Tick(s, g); return G.DONE end
     if Skipped(s) then return G.SKIPPED, ns.Word("both.step-why.skipped") end
     if s.what == "wall" then return G.WAIT, s.text end
-    for _, t in ipairs(type(s.takes) == "table" and guide and guide.steps or {}) do
+    for _, t in ipairs(type(s.takes) == "table" and steps or {}) do
       if t ~= s and chore.TakesFrom(s, t) then
-        local st = BaseState(t)
+        local st = BaseState(t, g)
         if st == G.TODO or st == G.WAIT then return G.WAIT, ns.Word("both.step-why.takes", { step = t.text }) end
       end
     end
@@ -1454,9 +1482,9 @@ local function BaseState(s)
   local short = Needs(s)
   if short then return G.WAIT, short end
   if s.kind == "O" and not s.get then
-    for _, t in ipairs(guide and guide.steps or {}) do
+    for _, t in ipairs(steps) do
       if t.get and t.kind == "O" and t.ids[1] == id then
-        local st = BaseState(t)
+        local st = BaseState(t, g)
         if st == G.TODO or st == G.WAIT then return G.WAIT, ns.Word("both.step-why.takes", { step = t.text }) end
       end
     end
@@ -1478,8 +1506,8 @@ local function Expected(s)
 end
 
 local function StepState(s)
-  local st, why = BaseState(s)
-  if st ~= G.DONE and s.kind ~= "D" and Parked(s.ids[1]) then
+  local st, why = BaseState(s, guide)
+  if st ~= G.DONE and StepParked(s) then
     return G.PARKED, st == G.WAIT and ns.Word("both.step-why.parked.waiting", { why = why }) or ns.Word("both.step-why.parked"), st
   end
   return st, why, st
@@ -1684,17 +1712,16 @@ function ns.PastedClosed()
   if said ~= "" then ns.GuideClosed("epic", said) end
 end
 
-local function PointArrow()
-  local tr = tracks.e
-  local s = guide and guide.cur and guide.steps[guide.cur]
-  if not s or not s.wx or guide.arrowOff == guide.cur then
+local function PointGuideArrow(g, tr)
+  local s = g and g.cur and g.steps[g.cur]
+  if not s or not s.wx or g.arrowOff == g.cur then
     if tr.target and tr.target.guided then Clear(tr) end
     return
   end
   local path = nil
   local continent, px, py = ns.PlayerWorldPos()
-  guide.pointedOn = continent
-  local h = guide.hearthFor == s and s.hearth
+  g.pointedOn = continent
+  local h = g.hearthFor == s and s.hearth
   if h then
     local walk = {}
     for k = 2, #(s.hw or {}) do walk[#walk + 1] = s.hw[k] end
@@ -1736,6 +1763,7 @@ local function PointArrow()
   tr.dist:SetText("")
   tr.frame:Show()
 end
+local function PointArrow() return PointGuideArrow(guide, tracks.e) end
 
 function ns.GuidePickWay(i, easy)
   local s = guide and guide.steps[i]
@@ -2017,6 +2045,103 @@ local function Evaluate()
   if changed then Changed("state") end
 end
 ns.GuideEvaluate = Evaluate
+
+
+function side.Of(slot)
+  for _, g in ipairs(side.list) do if g.slot == slot then return g end end
+end
+function side.ShutHere(e)
+  local shut = Saved().sideClosed or {}
+  local s = shut[e.key]
+  if not s then return false end
+  local opened = type(e.opened) == "table" and tonumber(e.opened.at) or 0
+  if s.version ~= tonumber(e.written) or opened > (s.at or 0) then
+    shut[e.key] = nil
+    return false
+  end
+  return true
+end
+function side.Load()
+  for _, g in ipairs(side.list) do Clear(tracks[g.slot]) end
+  wipe(side.list)
+  side.shut = {}
+  local sh = IndexOfAzerothShared
+  for _, e in ipairs(type(sh) == "table" and type(sh.profs) == "table" and sh.profs or {}) do
+    local mine = type(e) == "table" and type(e.char) == "table" and ns.IsMe(e.char)
+    local here = mine and not e.closed and side.ShutHere(e)
+    if here then side.shut[#side.shut + 1] = tonumber(e.written) or 0 end
+    if #side.list < side.MOST and mine and not here and type(e.steps) == "table" and #e.steps > 0 and not e.closed then
+      local g = { key = e.key or "", name = e.name or KINDS.p1.label, line = tonumber(e.line), prof = e.prof,
+                  version = tonumber(e.written), steps = {}, state = {}, why = {}, slot = "p" .. (#side.list + 1),
+                  look = e.ic and ("prof:" .. tostring(e.line)) or nil }
+      for i, x in ipairs(e.steps) do g.steps[i] = GuideStep(x, i) end
+      g.H = { Count = function() return #g.steps end, Takes = function() return false end }
+      if g.look then ns.UI.MARKS[g.look] = { art = tonumber(e.ic) or e.ic } end
+      side.list[#side.list + 1] = g
+    end
+  end
+  local kept = Saved().sideTicks or {}
+  for key in pairs(kept) do
+    if not side.ByKey(key) then kept[key] = nil end
+  end
+  side.Look()
+  if ns.SideWindowsRender then ns.SideWindowsRender() end
+  if ns.MarkChanged then ns.MarkChanged("sides") end
+end
+function side.ByKey(key)
+  for _, g in ipairs(side.list) do if g.key == key then return g end end
+end
+function side.Close(slot)
+  local g = side.Of(slot)
+  if not g then return end
+  local sv = Saved()
+  sv.sideClosed = sv.sideClosed or {}
+  sv.sideClosed[g.key] = { version = g.version, at = time() }
+  side.Load()
+end
+ns.SideClose = side.Close
+function ns.EncodeSides()
+  if #side.list == 0 and #(side.shut or {}) == 0 then return nil end
+  local w = ns.NewWriter()
+  w:u8(46)
+  w:u8(#side.list + #side.shut)
+  for _, g in ipairs(side.list) do
+    w:var(g.version or 0)
+    w:u8(1)
+    w:u16(g.cur or 0)
+    w:u16(#g.steps)
+    for i = 1, #g.steps, 2 do w:u8((g.state[i] or 0) + 16 * (i + 1 <= #g.steps and g.state[i + 1] or 0)) end
+  end
+  for _, v in ipairs(side.shut) do
+    w:var(v)
+    w:u8(2)
+  end
+  return w.bytes
+end
+function ns.SidesRunning() return #side.list > 0 or #(side.shut or {}) > 0 end
+function side.Look()
+  local changed = false
+  for _, g in ipairs(side.list) do
+    for i, s in ipairs(g.steps) do
+      local line = ns.ItemStepLine and ns.ItemStepLine(s)
+      if line and line ~= s.text then s.text, s.name, changed = line, line, true end
+      local st, why = BaseState(s, g)
+      if g.state[i] ~= st or g.why[i] ~= why then g.state[i], g.why[i], changed = st, why, true end
+    end
+    local N, first = ns.Arbiter.Next(g, g.H, {})
+    local cur = N or first
+    if cur ~= g.cur then
+      g.cur, changed = cur, true
+      PointGuideArrow(g, tracks[g.slot])
+    elseif cur and (ns.PlayerWorldPos()) ~= g.pointedOn then
+      PointGuideArrow(g, tracks[g.slot])
+    end
+  end
+  if changed and ns.SideWindowsRender then ns.SideWindowsRender() end
+  if changed and ns.MarkChanged then ns.MarkChanged("sides") end
+end
+ns.SideGuides = function() return side.list end
+ns.SideLook = function() side.Look() end
 if C_Timer.NewTicker then
   C_Timer.NewTicker(2, function()
     if guide then pcall(Evaluate) end
@@ -2182,6 +2307,7 @@ end
 
 function ns.GuideLoad(force)
   ns.guideDecided = true
+  side.Load()
   if guide then
     guide = nil
     if tracks.e.target and tracks.e.target.guided then Clear(tracks.e) end
@@ -2333,11 +2459,15 @@ end
 
 function ns.GuidePark(i, said)
   local s = guide and guide.steps[i]
-  if not s or s.kind == "D" or s.kind == "S" or s.extra then return end
-  Saved().parked[guide.key][s.ids[1]] = true
-  ns.Arbiter.MarkAway("q:" .. s.ids[1], guide.cur == i)
+  if not s or s.kind == "S" or s.extra then return end
+  local quests = ParkQuests(s)
+  if #quests == 0 then return end
+  for _, q in ipairs(quests) do Saved().parked[guide.key][q] = true end
+  ns.Arbiter.MarkAway("q:" .. quests[1], guide.cur == i)
   Event("parked", i)
-  ns.Print(said or string.format("You parked %s. The quest is still to do, and the guide comes back to it.", s.name or ("quest " .. s.ids[1])))
+  ns.Print(said or (s.kind == "D"
+    and string.format("You parked %s. Its quests are still to do, and the guide comes back to them.", s.name or "the dungeon")
+    or string.format("You parked %s. The quest is still to do, and the guide comes back to it.", s.name or ("quest " .. s.ids[1]))))
   Evaluate()
 end
 
@@ -2567,7 +2697,12 @@ end
 
 function ns.GuideUnpark(i)
   local s = guide and guide.steps[i]
-  if s and s.kind ~= "D" and s.kind ~= "S" and Parked(s.ids[1]) then back.Unpark(s.ids[1]) end
+  if not s or s.kind == "S" or not StepParked(s) then return end
+  if s.kind ~= "D" then return back.Unpark(s.ids[1]) end
+  Event("unparked", i)
+  for _, q in ipairs(ParkQuests(s)) do back.Place(q) end
+  ns.Print(string.format("%s is back in the guide.", s.name or "The dungeon"))
+  Evaluate()
 end
 ns.GuideBack = back
 
@@ -2633,6 +2768,9 @@ end
 function ns.GuideUnparkQuest(id)
   if not id then return ns.Print("Type /ioa guide unpark <quest ID> to put a parked quest back in the guide.") end
   if not guide then return ns.Print("No quest epic is running, so there's nothing to put a quest back in.") end
+  for k, s in ipairs(guide.steps) do
+    if s.kind == "D" and StepParked(s) and (s.ids[1] == id or ParkQuests(s)[1] == id) then return ns.GuideUnpark(k) end
+  end
   local i = back.Find(id)
   if not i then return ns.Print(string.format("Quest %d isn't in the epic's plan.", id)) end
   if not Parked(id) then return ns.Print(string.format("%s isn't parked.", guide.steps[i].name or ("quest " .. id))) end
@@ -2640,6 +2778,12 @@ function ns.GuideUnparkQuest(id)
 end
 
 function ns.GuideRelease(id)
+  for k, s in ipairs(guide and guide.steps or {}) do
+    if s.kind == "D" and StepParked(s) and ParkQuests(s)[1] == id then
+      for _, q in ipairs(ParkQuests(s)) do Saved().parked[guide.key][q] = nil end
+      return Event("unparked", k)
+    end
+  end
   local i = guide and back.Find(id)
   if not i then return end
   Saved().parked[guide.key][id] = nil
@@ -2667,6 +2811,13 @@ end
 
 function ns.GuideParked()
   local out, seen = {}, {}
+  for _, s in ipairs(guide and guide.steps or {}) do
+    if s.kind == "D" and StepParked(s) then
+      local quests = ParkQuests(s)
+      out[#out + 1] = { id = quests[1], name = s.name or s.text, holds = {} }
+      for _, q in ipairs(quests) do seen[q] = true end
+    end
+  end
   for _, s in ipairs(guide and guide.steps or {}) do
     local id = s.kind ~= "D" and s.kind ~= "S" and s.ids[1]
     local new = id and not seen[id] and Parked(id)
@@ -2814,6 +2965,7 @@ ns.On({ "QUEST_ACCEPTED", "QUEST_TURNED_IN", "QUEST_REMOVED", "QUEST_LOG_UPDATE"
   guideDirty = true
 end)
 ns.On("BAG_UPDATE_DELAYED", function()
+  if #side.list > 0 then guideDirty = true; return end
   if not guide then return end
   for i, s in ipairs(guide.steps) do
     if s.get and guide.state[i] == G.TODO then guideDirty = true; return end
@@ -2821,10 +2973,13 @@ ns.On("BAG_UPDATE_DELAYED", function()
 end)
 ns.OnTick(guideWatch, "the epic's watch", nil, function(_, dt)
   guideSince = guideSince + dt
-  if not guide or guideSince < (guideDirty and 0.3 or 2) then return end
+  if not (guide or #side.list > 0) or guideSince < (guideDirty and 0.3 or 2) then return end
   guideSince, guideDirty = 0, false
-  Evaluate()
-  if guide and guide.cur and guide.arrowOff ~= guide.cur and (ns.PlayerWorldPos()) ~= guide.pointedOn then PointArrow() end
+  if guide then
+    Evaluate()
+    if guide and guide.cur and guide.arrowOff ~= guide.cur and (ns.PlayerWorldPos()) ~= guide.pointedOn then PointArrow() end
+  end
+  side.Look()
 end)
 
 
@@ -3041,7 +3196,7 @@ local BEACON_ART = "Interface\\AddOns\\IndexOfAzeroth\\Media\\beacon_"
 local beacon = nil
 local navBeacon = nil
 local tracked = nil
-local view = { switched = 0, CLOSER_BY = 0.9 }
+local view = { switched = 0 }
 function view.Settled() return GetTime() - view.switched > 0.15 end
 local EPIC_BLUE, NAV_GOLD = GUIDE.e, GUIDE.go
 local function Track(name) return C_SuperTrack and C_SuperTrack[name] end
@@ -3112,6 +3267,14 @@ ns.GuideBeaconSpot = function()
   local s = EpicNow()
   return s and EpicSpot(s, ns.PlayerWorldPos())
 end
+function side.Spot(g, continent, px, py)
+  local s = g.cur and g.steps[g.cur]
+  if not (s and s.wx) then return nil end
+  local t = tracks[g.slot] and tracks[g.slot].target
+  local spot = t and t.guided and RideSpot(t, continent, px, py)
+  if spot == false then return nil end
+  return spot or s
+end
 
 local function LoopSpot(lt, continent, px, py)
   local spot = RideSpot(lt, continent, px, py)
@@ -3130,65 +3293,83 @@ function ns.EpicRideWho()
   return ride.npc or true, ride.ni
 end
 
+local function LoopSlot()
+  for _, k in ipairs(LOOPS) do
+    if tracks[k] and tracks[k].target and tracks[k].target.loop then return k end
+  end
+end
+
 local function Spots(continent, px, py)
   local list = {}
   local ghost = ns.Ghost()
   local s = not ghost and EpicNow()
   local epic = s and s.wx and EpicSpot(s, continent, px, py)
-  if epic then list[#list + 1] = { epic, "epic" } end
+  if epic then list[#list + 1] = { epic, "epic", "e" } end
   local t = ns.GuideTarget and ns.GuideTarget()
   if ghost then t = ns.CorpseRun() end
   if t and t.wx and t.continent and not t.wait then
-    list[#list + 1] = { { inst = t.continent, wx = t.wx, wy = t.wy, map = t.map, name = t.name }, "nav" }
+    list[#list + 1] = { { inst = t.continent, wx = t.wx, wy = t.wy, map = t.map, name = t.name }, "nav", "go" }
   end
   local lt = LoopGuide()
   local loop = lt and LoopSpot(lt, continent, px, py)
-  if loop then list[#list + 1] = { loop, "loop" } end
+  if loop then list[#list + 1] = { loop, "loop", LoopSlot() } end
+  for _, g in ipairs(ghost and {} or side.list) do
+    local spot = side.Spot(g, continent, px, py)
+    if spot then list[#list + 1] = { spot, "prof", g.slot } end
+  end
   return list
+end
+local function Runs(kind, id)
+  if ns.Ghost() then return kind == "nav" end
+  if kind == "epic" then
+    local e = tracks.e and tracks.e.target
+    return (guide ~= nil and not guide.over) or (e ~= nil and e.pasted ~= nil)
+  end
+  if kind == "nav" then return ns.GuideTarget ~= nil and ns.GuideTarget() ~= nil end
+  if kind == "loop" then return LoopGuide() ~= nil and (id == nil or LoopSlot() == id) end
+  if kind == "prof" then return id and side.Of(id) ~= nil or (id == nil and #side.list > 0) end
+  return false
+end
+local function Running()
+  local out = {}
+  for _, kind in ipairs({ "epic", "nav", "loop", "prof" }) do
+    if Runs(kind) then out[#out + 1] = kind end
+  end
+  return out
 end
 
 local function Primary()
   local continent, px, py = ns.PlayerWorldPos()
   local list = Spots(continent, px, py)
   if #list == 0 then return nil end
-  local function far(c)
-    return (px and c[1].inst == continent) and Dist(c[1].wx, c[1].wy, px, py) or math.huge
-  end
-  local best, held = nil, nil
+  local spots, byId = {}, {}
   for _, c in ipairs(list) do
-    if not (continent and c[1].inst ~= continent) then
-      if not best or far(c) < far(best) then best = c end
-      if tracked and c[2] == tracked.kind then held = c end
-    end
+    local away = continent and c[1].inst ~= continent
+    local yards = (px and c[1].inst == continent) and Dist(c[1].wx, c[1].wy, px, py) or math.huge
+    spots[#spots + 1] = { id = c[3], kind = c[2], yards = not away and yards or nil }
+    byId[c[3]] = c
   end
-  if not best then return nil end
-  if held and far(best) > far(held) * view.CLOSER_BY then best = held end
-  return best[1], best[2]
+  local c = byId[ns.Rules.Beacon(spots, Running(), tracked and tracked.id) or ""]
+  if not c then return nil end
+  return c[1], c[2], c[3]
 end
 ns.BeaconPrimary = Primary
 
-local SLOT_OF = { epic = "e", nav = "go" }
-local function LoopSlot()
-  for _, k in ipairs(LOOPS) do
-    if tracks[k] and tracks[k].target and tracks[k].target.loop then return k end
-  end
-end
 function ns.BeaconOwnerSlot()
-  if not (tracked and BeaconOn()) then return nil end
-  return SLOT_OF[tracked.kind] or (tracked.kind == "loop" and LoopSlot()) or nil
+  if not (tracked and BeaconOn() and Runs(tracked.kind, tracked.id)) then return nil end
+  return tracked.id
 end
 function ns.GuideDistances()
   local out, continent, px, py = {}, ns.PlayerWorldPos()
   for _, c in ipairs(Spots(continent, px, py)) do
-    local slot = SLOT_OF[c[2]] or (c[2] == "loop" and LoopSlot())
-    if slot then out[slot] = (px and c[1].inst == continent) and Dist(c[1].wx, c[1].wy, px, py) or math.huge end
+    if c[3] then out[c[3]] = (px and c[1].inst == continent) and Dist(c[1].wx, c[1].wy, px, py) or math.huge end
   end
   return out
 end
 function ns.BeaconBreath() return 0.25 + 0.5 * (1 + math.sin(GetTime() * 2.5)) / 2 end
 
 local function PointBeacon(take)
-  local s, kind = Primary()
+  local s, kind, id = Primary()
   local sv = Saved()
   local now, pm, px, py = PinNow()
   if not s then
@@ -3204,8 +3385,8 @@ local function PointBeacon(take)
   local ok, set = pcall(C_Map.SetUserWaypoint, Waypoint(s, map, x, y))
   if ok and set ~= false then
     sv.beaconPin = { map = map, x = x, y = y }
-    if tracked and tracked.kind ~= kind then view.switched = GetTime() end
-    tracked = { kind = kind, inst = s.inst, wx = s.wx, wy = s.wy }
+    if tracked and tracked.id ~= id then view.switched = GetTime() end
+    tracked = { kind = kind, id = id, inst = s.inst, wx = s.wx, wy = s.wy }
   end
   Call(Track("SetSuperTrackedUserWaypoint"), true)
   return map, ok and tostring(set) or ("refused (" .. tostring(set) .. ")"), x, y
@@ -3216,7 +3397,6 @@ local reclaimedAt = nil
 local function Reclaim()
   local ours = PinNow()
   if ours == false or ours and Plain(Call(Track("IsSuperTrackingUserWaypoint"))) then return end
-  if Plain(Call(Track("IsSuperTrackingCorpse"))) then return end
   local now = GetTime()
   if reclaimedAt and now - reclaimedAt < RECLAIM_EVERY then return end
   reclaimedAt = now
@@ -3539,7 +3719,7 @@ function view.StopOnBeacon(f, alpha, other)
   if s then s.onBeacon = f; s.close:Hide() end
 end
 function view.StopsOff()
-  for _, f in ipairs({ beacon, navBeacon, view.loopMark, ns.bracketsFrame and ns.bracketsFrame.span }) do
+  for _, f in ipairs({ beacon, navBeacon, view.loopMark, ns.bracketsFrame and ns.bracketsFrame.span, view.profMark }) do
     if f and f.stop then view.StopOnBeacon(f, 0) end
   end
 end
@@ -3809,8 +3989,8 @@ local function NavBeaconUpdate(self, dt)
   self.lookAge = (self.lookAge or 1) + dt
   if self.lookAge >= 0.25 then
     self.lookAge = 0
-    local s, kind = Primary()
-    if s and (not tracked or tracked.kind ~= kind or tracked.wx ~= s.wx or tracked.wy ~= s.wy) or not s and tracked then
+    local s, _, id = Primary()
+    if s and (not tracked or tracked.id ~= id or tracked.wx ~= s.wx or tracked.wy ~= s.wy) or not s and tracked then
       PointBeacon()
     elseif tracked then
       Reclaim()
@@ -3845,6 +4025,20 @@ local function LoopMarkUpdate(self, dt)
   end
   view.MarkOn(self, dt, "loop", self.spot, nil, self.spot and self.spot.master,
               self.spot and self.spot.masterKey)
+end
+
+function view.ProfMarkUpdate(self, dt)
+  self.t = self.t + dt
+  if not BeaconOn() then self:SetAlpha(0); return end
+  local g = tracked and tracked.kind == "prof" and side.Of(tracked.id)
+  if g and g.look ~= self.look then
+    self.look = g.look
+    view.Paint(self, EPIC_BLUE, "epic", nil, g.look)
+  end
+  local spot = g and side.Spot(g, ns.PlayerWorldPos())
+  local s = g and g.cur and g.steps[g.cur]
+  view.MarkOn(self, dt, "prof", spot, spot and (spot.ride and spot.name or s and (s.npc ~= "" and s.npc or s.name)) or nil,
+              spot and (spot.ride and spot.master or s and s.npc) or nil)
 end
 
 view.BRACKET_ART = "Interface\\AddOns\\IndexOfAzeroth\\Media\\bracket_"
@@ -4016,6 +4210,17 @@ local function BeaconFrame()
     ns.loopBeaconFrame = view.loopMark
   end
   view.loopMark:Show()
+  if not view.profMark then
+    view.profMark = MakeMark(EPIC_BLUE, "epic")
+    view.profMark:SetAlpha(0)
+    view.profMark.stopKind = "prof"
+    ns.OnTick(view.profMark, "a profession epic's beacon", nil, function(self, dt)
+      view.ProfMarkUpdate(self, dt)
+      view.StopOnBeacon(self)
+    end)
+    ns.profBeaconFrame = view.profMark
+  end
+  view.profMark:Show()
   if not beacon then
     beacon = MakeMark(EPIC_BLUE, "epic")
     beacon.stopKind = "epic"
@@ -4115,6 +4320,7 @@ local function BeaconsOff()
   if beacon then beacon:Hide() end
   if navBeacon then navBeacon:Hide() end
   if view.loopMark then view.loopMark:Hide() end
+  if view.profMark then view.profMark:Hide() end
   if view.brackets then view.brackets.left:SetAlpha(0); view.brackets.right:SetAlpha(0); view.brackets.span:SetAlpha(0); view.brackets:Hide() end
   tracked = nil
 end
@@ -4180,6 +4386,7 @@ function ns.GuideRewardPick(qid)
   end
   if changed and not byPrice then return nil, ", because you wear other gear than the Index's verdicts went by" end
   local judged, choices, dear, price, all, priced = {}, {}, nil, -1, rw.known, true
+  local dearUsable, priceUsable = nil, -1
   for _, id in ipairs(type(rw.ids) == "table" and rw.ids or {}) do judged[id] = true end
   for i = 1, Plain(Call(GetNumQuestChoices)) or 0 do
     local link = Plain(Call(GetQuestItemLink, "choice", i))
@@ -4192,7 +4399,9 @@ function ns.GuideRewardPick(qid)
     choices[id or 0] = c
     all = all and id and judged[id]
     if sells > price then dear, price = c, sells end
+    if c.usable and sells > priceUsable then dearUsable, priceUsable = c, sells end
   end
+  if not byPrice and dearUsable and priceUsable > 0 then dear, price = dearUsable, priceUsable end
   local vendor = nil
   for _, p in ipairs(type(rw.picks) == "table" and rw.picks or {}) do
     local c = choices[p.id]

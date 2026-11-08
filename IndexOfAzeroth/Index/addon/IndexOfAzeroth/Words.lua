@@ -2,6 +2,11 @@
 local ADDON, ns = ...
 
 local WORDS = {
+  ["both.chore.train"] = "Train at {npc}",
+  ["both.chore.far"] = "{n} yd",
+  ["both.chore.cost"] = "Costs {coins}",
+  ["both.chore.have"] = "you have {coins}",
+  ["both.chore.money"] = "{cost}, {have}",
   ["both.colours.gold"] = "gold",
   ["both.colours.forever-blue"] = "blue",
   ["both.colours.bone-white"] = "bone white",
@@ -98,6 +103,8 @@ local WORDS = {
   ["game.button.error.drag"] = "the minimap button's drag",
   ["game.card.quest"] = "Quest: {quest}",
   ["game.card.in-area"] = "In the area",
+  ["game.card.side-done"] = "Every step of this profession epic is done.",
+  ["game.card.side-hint"] = "Click to open this profession epic's window. Right-click or click the x to close the profession epic.",
   ["game.key-bindings.options"] = "Open or close the options",
   ["game.key-bindings.compass"] = "Switch the compass on or off",
   ["game.key-bindings.beacons"] = "Switch the beacons on or off",

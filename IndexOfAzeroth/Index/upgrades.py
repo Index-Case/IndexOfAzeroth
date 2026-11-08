@@ -266,13 +266,15 @@ def small_gain(v):
 
 
 def reward_picks(choices, me, worn_ids, want=None):
-    ids, ranked, slots = [iid for iid, _ in choices], [], set()
+    ids, ranked, slots, usable = [iid for iid, _ in choices], [], set(), set()
     if want is not None and want in ids:
         return {"ids": ids, "picks": [{"id": want, "v": words.say("both.upgrades.wanted"), "want": True}], "known": True, "worn": []}, None
     for iid, it in choices:
         if it is None:
             return {"ids": ids, "picks": [], "known": False, "worn": []}, None
         v = verdict(it, me)
+        if v["u"]["use"] == "yes":
+            usable.add(iid)
         if v["u"]["use"] in ("yes", "train"):
             slots.update(SLOTS_FOR.get(it.get("inv")) or ())
         small = small_gain(v)
@@ -289,6 +291,7 @@ def reward_picks(choices, me, worn_ids, want=None):
     picks = [{"id": iid, "v": v["tag"]} for _, iid, _, v in ranked]
     upgrade = {iid for _, iid, _, _ in ranked}
     priced = [(it["sell"], iid) for iid, it in choices if iid not in upgrade and (it.get("sell") or 0) > 0]
+    priced = [p for p in priced if p[1] in usable] or priced
     if priced:
         sell, iid = max(priced, key=lambda p: p[0])
         picks.append({"id": iid, "v": words.say("both.upgrades.vendor"), "sell": sell})

@@ -2,7 +2,7 @@
 "use strict";
 
 
-const PLACE_CATS = new Set(["dungeon", "raid", "battleground", "mailbox", "portal", "gameguide", "pin", "corpse", "node", "boat"]);
+const PLACE_CATS = new Set(["dungeon", "raid", "battleground", "mailbox", "portal", "gameguide", "pin", "corpse", "node", "boat", "questobject"]);
 const MOB_CATS = new Set(["rare", "boss", "respawn", "mob"]);
 const goalMark = (g) => !g || g.fromGame || g.stops?.length ? ""
   : MOB_CATS.has(g.cat) ? "!" : (g.cat && !PLACE_CATS.has(g.cat)) || g.todoId ? "@" : "";

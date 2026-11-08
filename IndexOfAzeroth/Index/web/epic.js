@@ -17,22 +17,29 @@ function epicTitle(t) {
   return `${name ? `${name} ` : ""}Quest epic`;
 }
 const isCraft = (key) => (key || "").startsWith("craft:");
+const isProfEpic = (key) => /^(craft|prof):/.test(key || "");
 function preferClose() {
   try { return localStorage.getItem("cc.preferClose") === "1"; } catch (e) { return false; }
 }
 
 function startEpic(d) {
   const run = app.tracks.epic, label = d.label || `the ${d.name} quest epic`;
+  if (sideRunning(d.key)) return startSide(d, label);
+  if (run && run.key !== d.key && isProfEpic(d.key)) {
+    const said = { epic: label, running: run.name }, full = sideFull(d.key);
+    return ask({ title: word("page.craft.side.title", said), text: word("page.craft.side.ask", said), more: word("page.craft.side.more", said),
+                 yes: word("page.craft.side.yes"), yesOff: full && word("page.craft.side.full", { ...said, first: full[0], second: full[1] }),
+                 also: { label: word("page.craft.side.replace"), on: () => beginEpic(d, label) },
+                 no: word("page.craft.side.no"), onYes: () => startSide(d, label) });
+  }
   if (run && run.key !== d.key) {
-    const aside = isCraft(d.key) && !isCraft(run.key);
-    return ask({ title: "One epic at a time",
-                 text: aside ? word("page.craft.ask", { running: run.name, item: d.name }) : `${run.name} is running. Stop ${run.name} and start ${label}?`,
-                 yes: aside ? word("page.craft.ask.yes") : "Start the new epic", no: "Keep the current epic", onYes: () => beginEpic(d, label) });
+    return ask({ title: "One epic at a time", text: `${run.name} is running. Stop ${run.name} and start ${label}?`,
+                 yes: "Start the new epic", no: "Keep the current epic", onYes: () => beginEpic(d, label) });
   }
   beginEpic(d, label);
 }
 
-const asideEpic = () => (isCraft(app.plan?.key) && app.plan?.aside && planIsMine({ ...app.plan.aside, playing: app.plan.playing })
+const asideEpic = () => (isProfEpic(app.plan?.key) && app.plan?.aside && planIsMine({ ...app.plan.aside, playing: app.plan.playing })
   ? app.plan.aside : null);
 function backKey() {
   const a = asideEpic(), name = a && epicTitle(a);
@@ -87,7 +94,7 @@ function pickMaterial(t, i, key) {
   if (PICK_KEY[r.pick] === key && (key !== "grind" || r.pick === way)) return null;
   return postJson("/api/shared/pick", { key: t.key, item: r.item, way }).then((got) => {
     if (!got?.set) return showToast(word("page.craft.pick.failed"));
-    startEpic({ key: t.key, name: t.name, replan: true });
+    startEpic({ key: t.key, name: t.name, label: t.label, replan: true });
   }, (e) => askFailed(word("page.craft.pick.failed"), e));
 }
 function beginEpic(d, label) {
@@ -1087,6 +1094,14 @@ function stepShownTag(s, state, lit) {
   const tag = stepTag(s, state) || (state === "wait" ? "Waiting" : "");
   return tag ? ` <span class="step-tag ${state}${onHold(s, state) ? " hold" : ""}">${tag}</span>` : "";
 }
+const coinsHtml = (copper) => `<span class="plan-coins">${money(copper)}</span>`;
+const wordCoins = (key, copper) => esc(word(key, { coins: "\u0001" }) || "").replace("\u0001", coinsHtml(copper));
+function choreMoneyHtml(cost, have) {
+  const costLine = wordCoins("both.chore.cost", cost);
+  if (have == null) return costLine;
+  const haveLine = `<span class="${have < cost ? "have-short" : "have-enough"}">${wordCoins("both.chore.have", have)}</span>`;
+  return esc(word("both.chore.money", { cost: "\u0001", have: "\u0002" }) || "").replace("\u0001", costLine).replace("\u0002", haveLine);
+}
 function epicPlanHtml(t, head, where, way = "", src = shownPlan(t), legRow = "") {
   const { p, g, inspect } = src, live = g?.states ? g : null;
   const { steps, states, cur, at } = runOrder(p.steps, live?.states || [], g?.cur || 0, live?.moves, live?.chores);
@@ -1110,8 +1125,7 @@ function epicPlanHtml(t, head, where, way = "", src = shownPlan(t), legRow = "")
   const named = s?.k === "O" && (s.mobs?.length ? s.mobs : [s.target]).filter(Boolean);
   if (named?.length && objs && named.every((n) => objs.includes(esc(n)))) [who, objs] = ["", objectivesHtml(s, colours, true)];
   const have = app.status?.nums?.money;
-  const cost = s?.k === "S" && s.cost ? `costs ${money(s.cost)}${have != null
-    ? `, <span class="${have < s.cost ? "have-short" : "have-enough"}">you have ${money(have)}</span>` : ""}` : "";
+  const cost = s?.k === "S" && s.cost ? choreMoneyHtml(s.cost, have) : "";
   const run = app.run, same = run?.inside && (run.key === p.key
     || (dungeon.byKey[p.key]?.instance != null && dungeon.byKey[p.key].instance === dungeon.byKey[run.key]?.instance));
   const det = same ? dungeonDetail(p.key) : null;
@@ -1150,8 +1164,9 @@ function epicPlanHtml(t, head, where, way = "", src = shownPlan(t), legRow = "")
     ${s ? `<div class="plan-verb">${cur && i === cur ? useItemHtml() : ""}${stepIcon(s)} ${esc(planVerb(s))}${extra ? "" : stepShownTag(s, state, cur && i === cur)}</div>
       <div class="guide-line plan-step-name">${questTextIcon(s)}<b>${esc(s.name || s.text)}</b></div>
       ${s.grp ? groupHtml(s, states[i - 1]) : ""}
-      <div class="guide-line">${[who, esc([bossWhere || (cur && s.at ? where : ""), bossWhere ? "" : s.zone].filter(Boolean).join(" | ")), cost]
+      <div class="guide-line">${[who, esc([bossWhere || (cur && s.at ? where : ""), bossWhere ? "" : s.zone].filter(Boolean).join(" | "))]
         .filter(Boolean).join(" | ")}</div>
+      ${cost ? `<div class="guide-line plan-money">${cost}</div>` : ""}
       ${cur && s.at && !bossWhere ? way : ""}
       ${s.mv ? `<div class="guide-line plan-moves">${esc(s.mv)}</div>` : ""}
       ${(s.careful || "").split("; ").filter(Boolean).map((m) => `<div class="guide-line plan-careful">${
@@ -1175,6 +1190,7 @@ function epicPlanHtml(t, head, where, way = "", src = shownPlan(t), legRow = "")
     ${live ? putAwayHtml(plan, at) : ""}
     ${live || inspect ? stepsHtml(steps, states, inspect ? i : cur, i, live, plan) : ""}`;
 }
+const tableMark = (t) => t ? [t.version || "", ...(t.profs || []).map((s) => `${s.key}:${s.written || ""}:${s.closed ? 1 : 0}`)].join("|") : "";
 function refreshShared() {
   const asked = getJson("/api/shared");
   if (!asked) {

@@ -1,12 +1,10 @@
 # The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
-# placeholders: item, running, epic, count, have, vendor, zone, quest, coins, name, from, to, colour
+# placeholders: item, running, epic, count, have, vendor, zone, quest, coins, name, from, to, colour, first, second
 
 title = {item} Crafting epic
 label = the {item} crafting epic
-ask = {running} is running. Start the {item} crafting epic? {running} keeps its plan and your progress, and the Back to {running} key opens it again.
-ask.yes = Start the crafting epic
 back = Back to {epic}
-back.tip = This closes the crafting epic and opens {epic} again where you were, with its plan and progress.
+back.tip = This closes the profession epic and opens {epic} again where you were, with its plan and progress.
 back.done = {epic} is back where you were. Type /reload in game to pick it up there
 back.failed = Nothing to go back to
 materials = Materials
@@ -28,3 +26,22 @@ pick.craft = The plan crafts {name} from its own materials.
 pick.buy = The plan buys {name} from {vendor}.
 pick.auction = The plan buys {name} at the auction house.
 pick.failed = The plan still gets that material the way it did
+side.title = Start {epic}
+side.ask = Run {epic} side by side with {running}, or replace {running}?
+side.more = Side by side keeps {running} as it is and gives {epic} a window of its own in game. Replace sets {running} aside, and the Back to {running} key opens it again with its plan and your progress.
+side.yes = Side by side
+side.replace = Replace
+side.no = Not now
+side.full = Two profession epics run side by side already: {first} and {second}. Close one of them to start {epic} side by side.
+side.started = {epic} started side by side. The Index is writing the plan for the game now
+side.ready = The plan for {epic} is ready for the addon. Type /reload in game to show its window
+side.writing = The Index is writing the plan for {epic}.
+side.fold.tip = This folds the {epic} panel to its heading.
+side.open.tip = This opens the {epic} panel again.
+side.close.tip = This closes {epic} on the page and in game. Its plan and your progress are kept, and Reopen opens it again where you were.
+side.closed = {epic} is closed. Its plan and your progress are kept.
+side.reopen = Reopen
+side.reopen.tip = This opens {epic} again where you were, with its plan and progress.
+side.reopened = {epic} is open again. Type /reload in game to show its window
+side.failed = The profession epic could not be changed
+side.reload = Type /reload in game to show {epic} in its window.

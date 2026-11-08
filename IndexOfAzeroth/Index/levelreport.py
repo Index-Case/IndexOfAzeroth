@@ -403,17 +403,13 @@ def dungeons_opened(dungeons, levels):
     return out
 
 
-def quests_opened(book, side, race_bit, cid, done, levels, cap, open_to):
-    from epic import closed_by
+def quests_opened(book, side, race_bit, cid, done, levels, cap):
+    import questplan
     lo, hi = levels[0], levels[-1]
     out = []
     for q in book.for_side(side, cid).quests.values():
         req = q.get("req") or 0
-        if not lo <= req <= hi or q["id"] in done:
-            continue
-        if open_to(q, side, race_bit, cid, None, in_log=False, cap=cap) or closed_by(q, done, ()) is not None:
-            continue
-        if q.get("preAll") and not set(q["preAll"]) <= done or q.get("preAny") and not set(q["preAny"]) & done:
+        if not lo <= req <= hi or not questplan.open_now(q, side, race_bit, cid, done, (), cap):
             continue
         start = (q.get("start") or [{}])[0]
         out.append({"id": q["id"], "name": q["name"], "level": q.get("level"), "req": req, "map": start.get("map") or q.get("map"),
@@ -504,8 +500,7 @@ def unlocks(hub, key, rep):
     return {"spells": class_spells(cs, cid, bit, known, levels),
             "gated": other_gated(gated, levels),
             "dungeons": dungeons_opened(dungeons, levels),
-            "quests": quests_opened(questplan.book(), side, bit, cid, set(me.get("completed") or ()), levels,
-                                    cap, questplan.open_to),
+            "quests": quests_opened(questplan.book(), side, bit, cid, set(me.get("completed") or ()), levels, cap),
             "gear": gear_opened(bags, ITEM_TIPS.stats, levels, cid, nums.get("armorKinds") or None, nums.get("weaponKinds") or None),
             "zones": zones_reached(getattr(hub, "zone_levels", None) or {}, levels, questplan.book(),
                                    {"side": side, "race": bit, "classId": cid}, set(me.get("completed") or ()),

@@ -481,10 +481,11 @@ function dayName(day) {
 }
 
 const FOOT_GAP = 16;
-function footRight(keys, cards, me, width) {
-  let right = keys?.width ? width - keys.left + FOOT_GAP : 440;
-  if (cards?.width && me && cards.bottom > me.top && cards.left < width - right) right = Math.max(right, width - cards.left + FOOT_GAP / 2);
-  return Math.round(right);
+function footFar(keys, cards, me, width, side) {
+  const far = side === "right" ? (b) => b.right : (b) => width - b.left;
+  let inset = keys?.width ? far(keys) + FOOT_GAP : 440;
+  if (cards?.width && me && cards.bottom > me.top && far(cards) > inset) inset = Math.max(inset, far(cards) + FOOT_GAP / 2);
+  return Math.round(inset);
 }
 
 const FADE_LEAST = 0.1, FADE_BANDS = 24;
@@ -521,7 +522,7 @@ function fadePieces(runs, bands = FADE_BANDS) {
 if (typeof module === "object") {
   module.exports = { REPLAY_SPEEDS, REPLAY_PAUSES, MOB_LEAD, MOB_IDLE, MOB_LINGER, MOB_DEATH, FADED, TRACK_JOIN, RP_EVENTS,
     RP_BAND, SCT_TINTS, RP_HELD, ZOOM_LEAST, ICON_GAP, GATHER_LOOT, VISIT_JOIN, REWARD_AFTER,
-    FOOT_GAP, PICK_LEAST, EFFECTS_MOST, BUBBLES_MOST, FLY_MS, SCT_MS, BUBBLE_MS, lastAt, replayTimeline, trackAt, footRight,
+    FOOT_GAP, PICK_LEAST, EFFECTS_MOST, BUBBLES_MOST, FLY_MS, SCT_MS, BUBBLE_MS, lastAt, replayTimeline, trackAt, footFar,
     unitAt, pauseAt, stepFrom, fasterThan, slowerThan, effectsOf, marksShown, clockOf, dayName, systemLine,
     rpPlainText, rpItemName, fightSpans, paceOf, flattenBand, rpBandAt, bandShown, markWords, bandWords, lengthWords,
     rpAndList, ticksFor, zoomAbout, panBy, FADE_LEAST, FADE_BANDS, fadePieces };

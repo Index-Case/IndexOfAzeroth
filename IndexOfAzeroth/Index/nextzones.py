@@ -3,7 +3,6 @@ import json
 
 import classtrip
 import director_rules
-from epic import closed_by
 import levelreport
 import mapzones
 import questplan
@@ -28,14 +27,8 @@ def quests_here(book, here, me, done, log, cap):
     zone = book.zones.get(here) or {}
     for qid in zone.get("quests") or ():
         q = book.quests.get(qid)
-        if not q or qid in done or qid in out:
-            continue
-        if questplan.open_to(q, me["side"], me["race"], me["classId"], None, in_log=False, cap=cap) or \
-                closed_by(q, done, log) is not None:
-            continue
-        if q.get("preAll") and not set(q["preAll"]) <= done or q.get("preAny") and not set(q["preAny"]) & done:
-            continue
-        out[qid] = q.get("req") or 0
+        if q and qid not in out and questplan.open_now(q, me["side"], me["race"], me["classId"], done, log, cap):
+            out[qid] = q.get("req") or 0
     return out
 
 

@@ -276,6 +276,7 @@ parts.kind = cardBody:CreateTexture(nil, "ARTWORK")
 parts.kind:SetSize(12, 12)
 parts.name = Text(cardBody, "GameFontNormalLarge", C.gold)
 parts.who = Text(cardBody, "GameFontHighlight", C.ivory)
+parts.money = ui.Line(cardBody, "GameFontHighlightSmall", C.ivory)
 parts.where = Text(cardBody, "GameFontHighlightSmall", C.cyan)
 parts.why = Text(cardBody, "GameFontHighlightSmall", C.yellow)
 parts.nextLabel = Text(cardBody, "GameFontDisableSmall", C.muted)
@@ -852,17 +853,21 @@ function ui.Along(steps, colours, place, width)
   AlongItems()
 end
 
-ui.choreRows, ui.CHORES_SHOWN = {}, 3
+ui.choreRows, ui.CHORES_SHOWN, ui.LATER_W = {}, 3, 60
 ns.guideChoreRows = ui.choreRows
 function ui.ChoreRow(k)
   if ui.choreRows[k] then return ui.choreRows[k] end
-  local r = { text = ui.Line(cardBody, "GameFontHighlightSmall", C.ivory) }
-  r.later = FlatButton(cardBody, ns.Rules.Say("later"), 60, function(self)
+  local r = { text = ui.Line(cardBody, "GameFontHighlightSmall", C.ivory), spells = {} }
+  r.side = CreateFrame("Frame", nil, r.text.box)
+  r.far = Text(r.side, "GameFontHighlightSmall", C.muted, "RIGHT")
+  r.later = FlatButton(r.side, ns.Rules.Say("later"), ui.LATER_W, function(self)
     local g = ns.GuideInfo()
     for i, s in ipairs(g and g.steps or {}) do if s == self.step then return ns.Arbiter.Later(i) end end
   end)
   r.later:SetHeight(18)
-  UI.Line.Beside(r.text, r.later, "TOPRIGHT", 2)
+  r.later:SetPoint("RIGHT", r.side, "RIGHT", 0, 0)
+  UI.Line.Beside(r.text, r.side, "TOPRIGHT", 0)
+  r.money = ui.Line(cardBody, "GameFontHighlightSmall", C.ivory)
   ui.choreRows[k] = r
   return r
 end
@@ -897,16 +902,19 @@ function ui.LeadYards(g, s)
 end
 function ui.CostText(s)
   if s.kind ~= "S" or not s.cost then return nil end
-  local words = "costs " .. Coins(s.cost)
+  local cost = ns.Word("both.chore.cost", { coins = Coins(s.cost) })
   local have = Plain(Call(GetMoney))
-  if not have then return words end
-  return words .. ", " .. (have < s.cost and "|cffff1919" or "|cff19ff19") .. "you have " .. Coins(have) .. "|r"
+  if not have then return cost end
+  return ns.Word("both.chore.money", { cost = cost, have = (have < s.cost and "|cffff1919" or "|cff19ff19")
+    .. ns.Word("both.chore.have", { coins = Coins(have) }) .. "|r" })
 end
 function ui.Chores(g, lay, now)
   if not (g and lay) then
     for _, r in ipairs(ui.choreRows) do
       r.text:Hide()
       r.later:Hide()
+      r.money:Hide()
+      ui.Spells(nil, nil, r.spells)
     end
     ui.choreUsed = 0
     return
@@ -922,19 +930,37 @@ function ui.Chores(g, lay, now)
   for _, s in ipairs(list) do
     ui.choreUsed = (ui.choreUsed or 0) + 1
     local r = ui.ChoreRow(ui.choreUsed)
-    local far = (px and s.wx and s.inst == continent) and string.format("  |  %d yd", ns.Geo.Dist(s.wx, s.wy, px, py)) or ""
-    r.text:SetFontObject(now and "GameFontNormalLarge" or "GameFontHighlightSmall")
+    local font = now and "GameFontNormalLarge" or "GameFontHighlightSmall"
+    r.text:SetFontObject(font)
     r.text:SetTextColor(unpack(now and C.gold or C.ivory))
     UI.Line.Wrap(r.text, now)
     UI.Line.Icon(r.text, StepIcon(s))
-    local cost = ui.CostText(s)
-    r.text:SetText(ns.StepLabel(s) .. far .. (cost and ("  |  " .. cost) or ""))
+    local title, spells = ui.Titled(s)
+    if not now then title, spells = ns.StepLabel(s), nil end
+    r.text:SetText(title)
+    r.far:SetText((px and s.wx and s.inst == continent)
+      and ns.Word("both.chore.far", { n = math.floor(ns.Geo.Dist(s.wx, s.wy, px, py)) }) or "")
+    local key = now and (ui.LATER_W + UI.Line.KEY_GAP) or 0
+    r.far:ClearAllPoints()
+    r.far:SetPoint("RIGHT", r.side, "RIGHT", -key, 0)
+    local line = ns.PlainNumber((select(2, Call(r.text.GetFont, r.text)))) or 12
+    r.side:SetSize(math.ceil(ns.PlainNumber(Call(r.far.GetStringWidth, r.far)) or 0) + key, line)
     r.later.step = s
+    r.later:SetShown(now and true or false)
     lay.Rule()
-    lay.Place(r.text, 0, 0, nil, ui.BodyW() - lay.Width())
-    lay.y = lay.y + (now and math.max(18, Height(r.text)) or 18) + 2
-    if now then r.later:Show() end
-    if now and s.what == "train" and type(s.spells) == "table" and #s.spells > 0 then ui.Spells(s, lay) end
+    local right = ui.BodyW() - lay.Width()
+    lay.Place(r.text, 0, 0, nil, right)
+    lay.y = lay.y + math.max(now and 18 or 12, Height(r.text)) + 2
+    local cost = ui.CostText(s)
+    local indent = r.text.iconArt and (UI.Line.ICON + UI.Line.ICON_GAP) or 0
+    if cost then
+      r.money:SetText(cost)
+      lay.Place(r.money, nil, 2, indent, right)
+    else
+      r.money:Hide()
+    end
+    ui.Spells(spells, lay, r.spells, indent)
+    lay.y = lay.y + 2
   end
 end
 
@@ -1229,11 +1255,19 @@ function ui.KeepQuestText()
   box:Hide()
 end
 
+function ui.Titled(s)
+  local own = ns.StepLabel(s)
+  local list = s.kind == "S" and s.what == "train" and type(s.spells) == "table" and s.spells or {}
+  if #list == 1 and own:find(tostring(list[1].name), 1, true) then return own, {} end
+  if #list > 1 and (s.npc or "") ~= "" then return ns.Word("both.chore.train", { npc = s.npc }), list end
+  return own, list
+end
 ui.SPELLS_MOST, ui.spellRows = 8, {}
-function ui.Spells(s, lay)
-  local list = s and s.kind == "S" and s.what == "train" and type(s.spells) == "table" and s.spells or {}
+function ui.Spells(list, lay, rows, x)
+  rows = rows or ui.spellRows
+  list = list or {}
   local shown = math.min(#list, ui.SPELLS_MOST)
-  for k = 1, math.max(shown + 1, #ui.spellRows) do
+  for k = 1, math.max(shown + 1, #rows) do
     local text
     if k <= shown then
       local e = list[k]
@@ -1241,12 +1275,12 @@ function ui.Spells(s, lay)
     elseif k == shown + 1 and #list > shown then
       text = string.format("and %d more spells", #list - shown)
     end
-    local row = ui.spellRows[k]
+    local row = rows[k]
     if text then
       row = row or Text(cardBody, "GameFontHighlightSmall", C.ivory)
-      ui.spellRows[k] = row
+      rows[k] = row
       row:SetText(text)
-      lay.Place(row, nil, 1, 10)
+      lay.Place(row, nil, 1, x or 10)
     elseif row then
       row:Hide()
     end
@@ -1257,7 +1291,8 @@ function ui.RenderStep(g, s, i, lay)
   parts.kind:SetTexture(StepIcon(s))
   parts.kind:Hide()
   parts.kindOn = nil
-  parts.name:SetText(s.name or s.text)
+  local title, spells = ui.Titled(s)
+  parts.name:SetText(s.kind == "S" and title or (s.name or s.text))
   local quest = (s.kind == "P" or s.kind == "O" or s.kind == "T") and s.ids[1] or nil
   if ui.HasQuestText(quest) then
     lay.Place(parts.name, nil, 2, ui.PAGE_SIZE + 4)
@@ -1272,8 +1307,6 @@ function ui.RenderStep(g, s, i, lay)
   end
   local who = WhoText(s)
   if s.kind == "O" and ui.Said(s) then who = nil end
-  local cost = ui.CostText(s)
-  if cost then who = (who or "") .. "  |  " .. cost end
   parts.who:SetText(who or "")
   if not who or who == "" then
     parts.who:Hide()
@@ -1282,7 +1315,15 @@ function ui.RenderStep(g, s, i, lay)
   else
     lay.Place(parts.who, nil, 2)
   end
-  ui.Spells(s, lay)
+  local cost = ui.CostText(s)
+  if cost then
+    local _, size = parts.who:GetFont()
+    parts.money:SetText(cost)
+    lay.Place(parts.money, nil, 2, parts.kindOn == parts.who and (math.floor(tonumber(size) or 12) + ui.KIND_GAP) or 0)
+  else
+    parts.money:Hide()
+  end
+  ui.Spells(spells, lay)
   parts.where:SetText(WhereText(g, s))
   lay.Place(parts.where, nil, 3)
   ui.RenderEasy(g, s, i, lay)
@@ -1576,7 +1617,7 @@ end
 function ui.RenderButtons(g, party, lay, i)
   local cur = not g.pasted and g.cur and g.steps[g.cur]
   local buttons = { stepsButton }
-  if cur and cur.kind ~= "D" and cur.kind ~= "S" and g.state[g.cur] ~= G.PARKED then buttons[#buttons + 1] = parkButton end
+  if cur and cur.kind ~= "S" and g.state[g.cur] ~= G.PARKED then buttons[#buttons + 1] = parkButton end
   if cur and cur.kind == "S" and cur.key then buttons[#buttons + 1] = ui.skipButton end
   if cur and ns.Arbiter.MayPutOff(cur) and not ns.Arbiter.PutOffWhy(cur) then
     buttons[#buttons + 1] = ui.laterButton
@@ -1680,7 +1721,7 @@ function ui.Draw()
   local party = ns.GuideParty and ns.GuideParty()
   if ns.DirectorCardLine then ns.DirectorCardLine(lay, cardBody) end
   if not s then
-    parts.kind:Hide(); parts.kindOn = nil; parts.page:Hide(); parts.who:Hide(); parts.where:Hide(); parts.why:Hide()
+    parts.kind:Hide(); parts.kindOn = nil; parts.page:Hide(); parts.who:Hide(); parts.money:Hide(); parts.where:Hide(); parts.why:Hide()
     if parts.group then parts.group:Hide() end
     for _, r in ipairs(ui.spellRows) do r:Hide() end
     parts.nextLabel:Hide(); parts.next:Hide(); parts.partyLabel:Hide(); parts.party:Hide(); parts.door:Hide()
@@ -1806,6 +1847,144 @@ function ns.ResetGuideCard()
   card:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", CARD_X, CARD_Y)
   if ns.PlaceGuideKeys then ns.PlaceGuideKeys() end
   ns.Print("The quest epic's card is back at its first spot.")
+end
+
+local side = { wins = {}, W = 240, HEAD = 30, PAD = 8, GAP = 8, LOWER = 110 }
+
+function side.Kept(g)
+  local sv = ns.GuideSaved()
+  sv.sideWins = sv.sideWins or {}
+  local k = tostring(g.line or g.key)
+  sv.sideWins[k] = sv.sideWins[k] or {}
+  return sv.sideWins[k]
+end
+
+function side.Window(slot)
+  if side.wins[slot] then return side.wins[slot] end
+  local w = Box(UIParent, C.bg, C.edge, "MEDIUM")
+  w:SetSize(side.W, side.HEAD)
+  w:SetMovable(true)
+  w:SetClampedToScreen(true)
+  w:EnableMouse(true)
+  w:Hide()
+  local head = CreateFrame("Frame", nil, w)
+  head:SetPoint("TOPLEFT", 1, -1)
+  head:SetPoint("TOPRIGHT", -1, -1)
+  head:SetHeight(side.HEAD - 2)
+  head:EnableMouse(true)
+  head:RegisterForDrag("LeftButton")
+  head:SetScript("OnDragStart", function() w:StartMoving() end)
+  head:SetScript("OnDragStop", function()
+    w:StopMovingOrSizing()
+    local left, top = w:GetLeft(), w:GetTop()
+    if not (left and top and w.g) then return end
+    side.Kept(w.g).pos = { left, top }
+    side.Place(w, 1)
+  end)
+  w.icon = head:CreateTexture(nil, "ARTWORK")
+  w.icon:SetSize(20, 20)
+  w.icon:SetPoint("LEFT", 6, 0)
+  w.fold = FlatButton(head, "-", 20, function()
+    if not w.g then return end
+    local kept = side.Kept(w.g)
+    kept.folded = not kept.folded or nil
+    side.Render()
+  end)
+  w.fold:SetSize(20, 20)
+  w.close = FlatButton(head, "x", 20, function() if w.g and ns.SideClose then ns.SideClose(w.g.slot) end end)
+  w.close:SetSize(20, 20)
+  w.close:SetPoint("RIGHT", -4, 0)
+  w.fold:SetPoint("RIGHT", w.close, "LEFT", -4, 0)
+  w.title = Text(head, "GameFontNormal", C.gold)
+  w.title:SetPoint("LEFT", w.icon, "RIGHT", 6, 0)
+  w.title:SetPoint("RIGHT", w.fold, "LEFT", -6, 0)
+  w.head = head
+  local wide = side.W - side.PAD * 2 - 22
+  w.kind = w:CreateTexture(nil, "ARTWORK")
+  w.kind:SetSize(16, 16)
+  w.kind:SetPoint("TOPLEFT", head, "BOTTOMLEFT", side.PAD - 1, -4)
+  w.step = Text(w, "GameFontHighlight", C.ivory)
+  w.step:SetPoint("TOPLEFT", w.kind, "TOPRIGHT", 6, 1)
+  w.step:SetWidth(wide)
+  w.who = Text(w, "GameFontNormalSmall", C.muted)
+  w.who:SetPoint("TOPLEFT", w.step, "BOTTOMLEFT", 0, -3)
+  w.who:SetWidth(wide)
+  w.why = Text(w, "GameFontNormalSmall", C.yellow)
+  w.why:SetPoint("TOPLEFT", w.who, "BOTTOMLEFT", 0, -3)
+  w.why:SetWidth(wide)
+  ns.OnTick(w, "a profession epic's window", 0.5, function() side.Who(w) end)
+  side.wins[slot] = w
+  return w
+end
+
+function side.Place(w, i)
+  local pos = side.Kept(w.g).pos
+  w:ClearAllPoints()
+  if type(pos) == "table" and tonumber(pos[1]) and tonumber(pos[2]) then
+    return w:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", pos[1], pos[2])
+  end
+  local x, down = card:GetCenter(), -(i - 1) * side.LOWER
+  if x and x < UIParent:GetWidth() / 2 then w:SetPoint("TOPLEFT", card, "TOPRIGHT", side.GAP, down)
+  else w:SetPoint("TOPRIGHT", card, "TOPLEFT", -side.GAP, down) end
+end
+
+function side.Who(w)
+  local g = w.g
+  local s = g and g.cur and g.steps[g.cur]
+  if not s then return end
+  local t = ns.TrackTarget(g.slot)
+  local yards = t and t.along and string.format("%d yd", t.along)
+  local who = WhoText(s)
+  if who == "" then who = nil end
+  w.who:SetText((who and yards) and (who .. "  |  " .. yards) or who or yards or "")
+end
+
+function side.Waiting(g)
+  for k = 1, #g.steps do
+    if g.state[k] == G.WAIT then return g.steps[k] end
+  end
+end
+
+function side.Render()
+  for _, w in pairs(side.wins) do w.g = nil end
+  for i, g in ipairs(ns.SideGuides and ns.SideGuides() or {}) do
+    local w = side.Window(g.slot)
+    w.g = g
+    local kept = side.Kept(g)
+    local mark = g.look and UI.MARKS[g.look]
+    w.icon:SetTexture(mark and mark.art or ICON)
+    w.title:SetText((g.key:find("^craft:") and g.name) or g.prof or g.name)
+    w.fold.label:SetText(kept.folded and "+" or "-")
+    local open, s = not kept.folded, g.cur and g.steps[g.cur]
+    local shown = s or side.Waiting(g)
+    w.kind:SetShown(open and shown ~= nil)
+    w.step:SetShown(open)
+    w.who:SetShown(open and s ~= nil)
+    w.why:SetShown(open)
+    local headH = math.max(side.HEAD, (w.title:GetStringHeight() or 14) + 14)
+    w.head:SetHeight(headH - 2)
+    local high = headH
+    if open then
+      if shown then w.kind:SetTexture(StepIcon(shown)) end
+      w.step:SetText(shown and (shown.name or shown.text) or ns.Word("game.card.side-done"))
+      w.why:SetText(shown and ns.GuideWhyLine(g.state[shown.i], g.why[shown.i]) or "")
+      side.Who(w)
+      high = headH + 8 + (w.step:GetStringHeight() or 14) + (s and (w.who:GetStringHeight() or 0) + 3 or 0)
+        + ((w.why:GetText() or "") ~= "" and (w.why:GetStringHeight() or 0) + 3 or 0) + side.PAD
+    end
+    w:SetHeight(high)
+    side.Place(w, i)
+    w:Show()
+  end
+  for _, w in pairs(side.wins) do if not w.g then w:Hide() end end
+end
+ns.SideWindowsRender = side.Render
+ns.sideWindows = side.wins
+function ns.SideWindowOpen(slot)
+  for _, g in ipairs(ns.SideGuides and ns.SideGuides() or {}) do
+    if g.slot == slot then side.Kept(g).folded = nil end
+  end
+  side.Render()
 end
 
 IndexOfAzerothGuideCard_Toggle = function() ns.ToggleGuideCard() end

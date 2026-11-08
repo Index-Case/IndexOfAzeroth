@@ -4,3 +4,7 @@
 quest = Quest: {quest}
 
 in-area = In the area
+
+side-done = Every step of this profession epic is done.
+
+side-hint = Click to open this profession epic's window. Right-click or click the x to close the profession epic.

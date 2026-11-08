@@ -335,18 +335,20 @@ const TOP_KINDS = new Set(["flight", "zeppelin", "boat"]);
 function drawPois(s, size, scale) {
   if (app.dungeon) return;
   const spots = poiSpots(size, scale);
-  const rest = spots.filter((d) => !TOP_KINDS.has(d.p.cat)), top = spots.filter((d) => TOP_KINDS.has(d.p.cat));
-  for (const g of [...groupSpots(rest), ...groupSpots(top)]) {
-    const { x, y, map } = g[0];
-    if (g.length === 1) {
-      drawPoiIcon(x, y, iconImage(poiIcon(g[0].p.cat, g[0].p)), poiGlow(g[0].p));
-      poi.drawn.push(g[0]);
-      continue;
-    }
-    const places = g.map((d) => d.p), kinds = groupKinds(places), glows = new Set(places.map(poiGlow));
-    drawPoiGroup(x, y, iconImage(poiIcon(kinds[0][0], places.find((q) => q.cat === kinds[0][0]))), places.length, glows.size === 1 ? [...glows][0] : null);
-    poi.drawn.push({ x, y, map, p: { cat: "group", name: `${places.length} places`, x: g[0].p.x, y: g[0].p.y, group: places } });
+  groupSpots(spots.filter((d) => !TOP_KINDS.has(d.p.cat))).forEach(drawPoiSpots);
+  drawQuestMarks(size, scale);
+  groupSpots(spots.filter((d) => TOP_KINDS.has(d.p.cat))).forEach(drawPoiSpots);
+}
+function drawPoiSpots(g) {
+  const { x, y, map } = g[0];
+  if (g.length === 1) {
+    drawPoiIcon(x, y, iconImage(poiIcon(g[0].p.cat, g[0].p)), poiGlow(g[0].p));
+    poi.drawn.push(g[0]);
+    return;
   }
+  const places = g.map((d) => d.p), kinds = groupKinds(places), glows = new Set(places.map(poiGlow));
+  drawPoiGroup(x, y, iconImage(poiIcon(kinds[0][0], places.find((q) => q.cat === kinds[0][0]))), places.length, glows.size === 1 ? [...glows][0] : null);
+  poi.drawn.push({ x, y, map, p: { cat: "group", name: `${places.length} places`, x: g[0].p.x, y: g[0].p.y, group: places } });
 }
 
 function zoomIntoGroup(hit) {

@@ -571,15 +571,8 @@ function A.Pass(g, best, H, px, py, continent, nKey, stretchKeys)
     { place = here, nearer = pick, won = A.Name(best.s), lost = A.Name(first[pick]) }, first[pick]
 end
 
-function A.Lead(g, H)
+function A.Next(g, H, putOff)
   local G = ns.GUIDE
-  A.H = H
-  local continent, px, py = ns.PlayerWorldPos()
-  local landed = A.landed
-  local event = A.Look(g, H)
-  A.PutOffLook(g, continent, px, py)
-  A.AwayLook(g)
-  local putOff = A.PutOff()
   local N, firstChore, chores = nil, nil, {}
   for i = 1, H.Count() do
     local s = g.steps[i]
@@ -592,6 +585,19 @@ function A.Lead(g, H)
       N = i
     end
   end
+  return N, firstChore, chores
+end
+
+function A.Lead(g, H)
+  local G = ns.GUIDE
+  A.H = H
+  local continent, px, py = ns.PlayerWorldPos()
+  local landed = A.landed
+  local event = A.Look(g, H)
+  A.PutOffLook(g, continent, px, py)
+  A.AwayLook(g)
+  local putOff = A.PutOff()
+  local N, firstChore, chores = A.Next(g, H, putOff)
   A.givers = {}
   if not N and not firstChore then
     g.choresDue = chores

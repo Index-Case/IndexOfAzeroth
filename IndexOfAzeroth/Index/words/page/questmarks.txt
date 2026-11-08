@@ -1,0 +1,11 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: name, n
+
+switch.show = Show quests on the map
+switch.done = Show completed
+kind.take = A quest you can take
+kind.ready = A quest ready to hand in
+kind.open = A quest you have picked up and not finished
+kind.done = A quest you have done
+click = Click the mark to be guided to {name}
+more = and {n} more

@@ -97,12 +97,13 @@ function renderReplay() {
 function placeReplay() {
   const box = $("replay");
   if (box.hidden) return;
-  const right = footRight(document.querySelector(".mapkeys")?.getBoundingClientRect?.(),
-    document.querySelector(".sidestack")?.getBoundingClientRect?.(), box.getBoundingClientRect?.(), innerWidth);
-  const was = box.style.getPropertyValue("--rp-right"), now = `${right}px`;
-  if (was !== now) box.style.setProperty("--rp-right", now);
+  const far = footFar(document.querySelector(".mapkeys")?.getBoundingClientRect?.(),
+    document.querySelector(".sidestack")?.getBoundingClientRect?.(), box.getBoundingClientRect?.(), innerWidth, columnSide());
+  const was = box.style.getPropertyValue("--rp-far"), now = `${far}px`;
+  if (was !== now) box.style.setProperty("--rp-far", now);
   document.body.style.setProperty("--replay-h", `${box.offsetHeight || 64}px`);
 }
+on("column", placeReplay);
 
 function syncReplay() {
   if (replayShown() && !replay.on) openReplay();

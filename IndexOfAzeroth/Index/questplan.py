@@ -9,7 +9,7 @@ import director_rules
 import planreport
 import planunits
 import store
-from epic import Epic, GROUP_TYPES, asks_offer, can_take, fight_level, if_offered, for_side, leads_up, level_guessed, taken_instead, \
+from epic import Epic, GROUP_TYPES, asks_offer, can_take, closed_by, fight_level, if_offered, for_side, leads_up, level_guessed, taken_instead, \
     unavailable, first as first_needs, objective_places, own_run as own_run_why, placed, spell_unmet
 from epicwatch import names
 import plansteps
@@ -1844,6 +1844,14 @@ def open_to(q, side, race, class_id, skills=None, *, in_log, cap=MAX_LEVEL, raid
     if q.get("rep"):
         return "the quest needs a reputation with a faction"
     return None
+
+
+def open_now(q, side, race, class_id, done, log, cap=MAX_LEVEL, spells=None):
+    if q["id"] in done or q["id"] in log:
+        return False
+    if open_to(q, side, race, class_id, None, in_log=False, cap=cap, spells=spells) or closed_by(q, done, log) is not None:
+        return False
+    return not (q.get("preAll") and not set(q["preAll"]) <= done or q.get("preAny") and not set(q["preAny"]) & done)
 
 
 def in_band(q, band):

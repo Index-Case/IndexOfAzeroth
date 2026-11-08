@@ -262,6 +262,7 @@ function buildQuestMenu() {
       ${classKey()}${helpButton("classquest")}
       <button class="ql-epickey" data-view="profs" title="This lists every profession with its epic. Start a profession's epic and it leads the way when there's something to do, from the trainer to the next rank"><img src="/icon/trade_blacksmithing.jpg" alt="">Professions</button>
       <label class="ql-close" title="A dense camp further off can be the better camp, with more of what a quest needs in one spot. When this box is ticked, the epics started from now plan each objective's camp near its quest's giver instead, for less walking"><input type="checkbox" data-prefer-close${preferClose() ? " checked" : ""}> Prefer close</label></div>
+    ${questMarkSwitches()}
     <div class="ql-scroll">${logHtml(log)}</div>`);
   const again = questMenu.querySelector(".ql-scroll, .qz-list");
   if (written && again && scroller?.className === again.className) again.scrollTop = scrolled;
@@ -348,7 +349,7 @@ function questMenuClicked(e) {
 }
 questMenu.addEventListener("click", questMenuClicked);
 function questMenuChanged(e) {
-  if (e.target.type !== "checkbox") return;
+  if (e.target.type !== "checkbox" || questMarksSwitched(e.target)) return;
   if (e.target.matches("[data-prefer-close]")) {
     try { localStorage.setItem("cc.preferClose", e.target.checked ? "1" : "0"); } catch (err) {   }
     return;

@@ -247,6 +247,13 @@ const DirectorRules = (() => {
       landed: 150,
       with_giver: 40,
       ways: ["way", "alt", "ez", "hw"],
+      closer_by: 0.9,
+    },
+    lead: {
+      epic: 1,
+      nav: 1,
+      loop: 1,
+      prof: 2,
     },
     badges: {
       mobs: ["#00b5ff", "#ff3392", "#cc8800", "#59ffe9", "#ffb2a6", "#d5a6ff", "#738ae6", "#29c1cc", "#ccaf85", "#e695b5", "#a6c3ff", "#ff9c59", "#a6e7ff", "#ff00dd", "#e66b00", "#ff80e5"],
@@ -534,11 +541,26 @@ const DirectorRules = (() => {
     });
     return out;
   }
+  function beacon(spots, running, held) {
+    let top = null;
+    for (const kind of running ?? []) {
+      const t = R.lead[kind];
+      if (typeof t === "number" && (top === null || t < top)) top = t;
+    }
+    let best = null, keep = null;
+    for (const s of spots ?? []) {
+      if (top === null || s.yards === null || s.yards === undefined || R.lead[s.kind] !== top) continue;
+      if (!best || s.yards < best.yards) best = s;
+      if (held !== null && held !== undefined && s.id === held) keep = s;
+    }
+    if (keep && best.yards > keep.yards * R.guide.closer_by) best = keep;
+    return best ? best.id : null;
+  }
   const code = (key) => R.codes.indexOf(key) + 1;
 
   return { table: R, tier, wins, run, reach, reached, among, here, arrived, along, passes, legWay, fit, apart, sooner, mayShow,
            play, sure, said, say, quiet, line, town, back, pick, moment, offWeight, drift, nudge, slots, onCard, spawnedNear,
-           ways, colours,
+           ways, colours, beacon,
            code };
 })();
 

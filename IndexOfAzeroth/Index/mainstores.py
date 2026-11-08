@@ -17,7 +17,7 @@ IN_RELEASE = {
     "navcache": PLAYER, "navpack": SHIPS,
     "buildcache": PLAYER,
     "buildcache/listfile-wmo.csv": SHIPS, "buildcache/listfile-terrain.csv": SHIPS,
-    "buildcache/listfile-ui-14232c66.csv": SHIPS, "buildcache/shield_block_filled.json": SHIPS,
+    "buildcache/listfile-ui-0e6b94bd.csv": SHIPS, "buildcache/shield_block_filled.json": SHIPS,
     "buildcache/listfile-db2.csv": HERE, "buildcache/listfile-m2.csv": HERE, "buildcache/listfile-treetextures.csv": HERE,
     "buildcache/listfile-crests.csv": HERE, "buildcache/fishing_tiles.json": HERE, "buildcache/prompt-rules.json": HERE,
     "tabledefs": SHIPS,

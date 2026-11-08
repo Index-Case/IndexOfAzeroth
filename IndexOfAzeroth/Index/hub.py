@@ -69,6 +69,7 @@ class Hub:
                       "loopStops": None,
                       "camps": None,
                       "questClick": None,
+                      "sides": None,
                       "updates": None}
         self.director_words = {}
         self.replan_heard = None

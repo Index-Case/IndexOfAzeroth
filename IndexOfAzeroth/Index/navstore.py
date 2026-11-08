@@ -255,22 +255,27 @@ def packed_names(folder=None):
     return set(index()) if _key(folder) == _key(CACHE) else set()
 
 
-def names(folder=None):
+def loose(folder=None):
     folder = CACHE if folder is None else folder
+    under = base() if _key(folder) == _key(CACHE) else None
     out = {}
-    mine = _key(folder) == _key(CACHE)
-    if mine:
-        out = {n: (e[1], seconds(e[2])) for n, e in index().items() if n.endswith(".npz")}
-    under = base() if mine else None
     for top in ([under] if under else []) + [folder]:
         try:
             with os.scandir(top) as it:
                 for e in it:
-                    if e.name.endswith(".npz"):
-                        st = e.stat()
-                        out[e.name] = (st.st_size, st.st_mtime)
+                    if e.is_file() and not e.name.endswith(".part") and ".unreadable-" not in e.name:
+                        out[e.name] = e.stat()
         except FileNotFoundError:
             pass
+    return out
+
+
+def names(folder=None):
+    folder = CACHE if folder is None else folder
+    out = {}
+    if _key(folder) == _key(CACHE):
+        out = {n: (e[1], seconds(e[2])) for n, e in index().items() if n.endswith(".npz")}
+    out.update({n: (st.st_size, st.st_mtime) for n, st in loose(folder).items() if n.endswith(".npz")})
     return out
 
 

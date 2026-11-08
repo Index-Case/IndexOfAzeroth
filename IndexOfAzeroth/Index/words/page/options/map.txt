@@ -30,3 +30,7 @@ maps-shown.both = Both
 maps-shown.detailed = Detailed maps only
 hotspots = Hotspot strength
 hotspots.text = Sets how strong the overlays' glows show where mobs, herbs and ore gather
+column = Character column
+column.text = Puts the character column on the left or the right of the map and everything else on the other side
+column.left = Left
+column.right = Right

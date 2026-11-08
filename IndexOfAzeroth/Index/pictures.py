@@ -27,6 +27,7 @@ FOGMASKS = mainstores.path("fogmasks")
 UI_PICTURES = {"gold": "interface/moneyframe/ui-goldicon.blp", "silver": "interface/moneyframe/ui-silvericon.blp",
                "copper": "interface/moneyframe/ui-coppericon.blp",
                "pickup": "interface/gossipframe/availablequesticon.blp", "turnin": "interface/gossipframe/activequesticon.blp",
+               "incomplete": "interface/gossipframe/incompletequesticon.blp",
                "objective": "interface/cursor/attack.blp", "dungeon": "interface/targetingframe/ui-targetingframe-skull.blp",
                "train": "interface/gossipframe/trainergossipicon.blp", "vendor": "interface/gossipframe/vendorgossipicon.blp",
                "bind": "interface/gossipframe/bindergossipicon.blp", "flight": "interface/gossipframe/taxigossipicon.blp",
@@ -37,7 +38,8 @@ UI_PICTURES = {"gold": "interface/moneyframe/ui-goldicon.blp", "silver": "interf
                "heal": "interface/cursor/cast.blp", "event": "interface/cursor/questinteract.blp",
                "explore": "interface/cursor/directions.blp", "escort": "interface/gossipframe/battlemastergossipicon.blp",
                "bank": "interface/gossipframe/bankergossipicon.blp", "inn": "interface/minimap/tracking/innkeeper.blp",
-               "camp": "interface/minimap/tracking/food.blp"}
+               "camp": "interface/minimap/tracking/food.blp",
+               "need": "interface/buttons/ui-grouploot-dice-up.blp", "greed": "interface/buttons/ui-grouploot-coin-up.blp"}
 CARD_CROP = [0, 1, 0.3, 0.7]
 
 _turns = threading.Semaphore(4)

@@ -150,11 +150,13 @@ function ask(q) {
   const answer = new Promise((done) => { settle = done; });
   askShown = { ...q, settle };
   const list = (q.list || []).length ? `<ul class="ask-list">${q.list.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : "";
+  const also = q.also ? `<button class="key small" data-ask="also">${esc(q.also.label)}</button>` : "";
+  const yesOff = q.yesOff ? ` disabled title="${esc(q.yesOff)}"` : "";
   box.innerHTML = `<div class="gp-title">${esc(q.title)}</div><p>${esc(q.text)}</p>${list}${q.more ? `<p class="ask-more">${esc(q.more)}</p>` : ""}
-    <div class="gp-foot"><button class="key small" data-ask="no">${esc(q.no || "No")}</button>
-      <button class="key small" data-ask="yes">${esc(q.yes || "Yes")}</button></div>`;
+    <div class="gp-foot"><button class="key small" data-ask="no">${esc(q.no || "No")}</button>${also}
+      <button class="key small" data-ask="yes"${yesOff}>${esc(q.yes || "Yes")}</button></div>`;
   box.hidden = false;
-  box.querySelector('button[data-ask="yes"]')?.focus();
+  box.querySelector(`button[data-ask="${q.yesOff && q.also ? "also" : "yes"}"]`)?.focus();
   return answer;
 }
 function dropAsk() {
@@ -164,7 +166,7 @@ function answerAsk(yes) {
   const q = takeAsk();
   if (!q) return;
   q.settle(yes);
-  (yes ? q.onYes : q.onNo)?.();
+  (yes === "also" ? q.also?.on : yes ? q.onYes : q.onNo)?.();
 }
 function takeAsk() {
   const q = askShown;
@@ -176,7 +178,7 @@ function takeAsk() {
 }
 function askClicked(e) {
   const b = e.target.closest("button[data-ask]");
-  if (b) answerAsk(b.dataset.ask === "yes");
+  if (b && !b.disabled) answerAsk(b.dataset.ask === "also" ? "also" : b.dataset.ask === "yes");
 }
 $("ask-box").addEventListener("click", askClicked);
 closable(LAYER.question, () => !!askShown, () => answerAsk(false));
@@ -429,11 +431,13 @@ function apply(snap) {
   app.epicLive = snap.epic || null;
   app.director = snap.director || null;
   app.loopStops = snap.loopStops || null;
+  app.sidesLive = snap.sides || null;
   step("quest click", () => takeQuestClick(snap.questClick));
   if (snap.plan !== undefined) {
-    const was = app.plan?.version;
+    const was = tableMark(app.plan);
     app.plan = snap.plan;
-    if (app.plan?.version && app.plan.version !== was && app.plan.version !== app.shared?.version) step("shared", () => refreshShared());
+    const now = tableMark(app.plan);
+    if (now && now !== was && now !== tableMark(app.shared)) step("shared", () => refreshShared());
   }
   app.cap = snap.cap || [];
   app.gameGuide = snap.guide?.source ? snap.guide : null;
@@ -468,6 +472,7 @@ function apply(snap) {
   step("alert", () => checkAlert());
   step("layers", () => refreshLayers());
   step("pois", () => refreshPois());
+  step("quest marks", () => refreshQuestMarks());
   step("epic sync", () => syncEpicWithGame());
   step("epic", () => refreshEpic());
   step("tracks", () => renderTracks());
@@ -1187,12 +1192,12 @@ function drawTrees(size, scale, alpha) {
   };
   const under = lay(false), standing = lay(true);
   if (standing) treesLaid = alpha;
-  if (app.treesThin && under + standing) {
+  if ((app.treesThin && under + standing) || trees.off.size) {
     const k = RELIEF.scale, m = ctx.getTransform(), w = Math.max(1, Math.round(W * k)), h = Math.max(1, Math.round(H * k));
     if (thinLayer.width !== w || thinLayer.height !== h) Object.assign(thinLayer, { width: w, height: h });
     const t = thinLayer.getContext("2d"), f = k / dpr;
     t.setTransform(m.a * f, m.b * f, m.c * f, m.d * f, m.e * f, m.f * f);
-    thinned = { canvas: thinLayer, stamp: trees.heights(t, { ...thin, you: spot && spot.map((v) => v * k), dpr: k }) };
+    thinned = { canvas: thinLayer, stamp: trees.heights(t, { ...thin, you: spot && spot.map((v) => v * k), dpr: k }, app.treesThin) };
   }
   return under + standing;
 }
@@ -1226,12 +1231,19 @@ function fitBar(bar, keys) {
                     ...bar.querySelectorAll(".end-keys > .key, #signal, #btn-reload, #btn-options")]) fit.observe(el);
 }
 
+function setColumn(side) {
+  const was = columnSide();
+  document.documentElement.dataset.column = side;
+  if (side !== was) emit("column", side);
+}
+
 const options = new OptionsWindow({ box: $("options"), key: $("btn-options"), kept: keptOr, keep: keepIn, esc, put: setHtml,
   send: (changes) => postJson("/api/settings", { set: changes }, { quiet: true })?.catch(() => {}),
   help: (key) => helpButton(key),
   hooks: { lighting: { can: () => relief.ready(), changed: (on) => { app.reliefOn = on; redraw(); } },
     keynames: { changed: (look) => keyNames($("top-keys"), look === "fixed") },
     mapkinds: { changed: (kinds) => { app.mapKinds = kinds; preloadFarTiles(); requestUpdate(); } },
+    column: { changed: setColumn },
     night: { changed: (on) => { app.nightOn = on; mapLight.nightShown?.(on); redraw(); } },
     zoneglow: { changed: (on) => { app.zoneGlowOn = on; redraw(); } },
     gauntlet: { changed: (on) => mapLight.pointerShown(on) },
@@ -4486,9 +4498,11 @@ function clearView(cards = true) {
   const tall = (el) => shown(el) && el.getBoundingClientRect().height > H / 2;
   const wide = (el) => shown(el) && el.getBoundingClientRect().width > W / 2;
   let l = 0, r = W, t = 0, b = H;
-  if (tall(status)) l = Math.max(l, status.getBoundingClientRect().right - c.left);
-  for (const side of cards ? [stack, $("drawer")] : [$("drawer")]) {
-    if (tall(side)) r = Math.min(r, side.getBoundingClientRect().left - c.left);
+  for (const side of cards ? [status, stack, $("drawer")] : [status, $("drawer")]) {
+    if (!tall(side)) continue;
+    const box = side.getBoundingClientRect(), from = box.left - c.left, to = box.right - c.left;
+    if (from + to < W) l = Math.max(l, to);
+    else r = Math.min(r, from);
   }
   for (const top of [bar, ...document.querySelectorAll(".alert, .top-banner")]) if (wide(top)) t = Math.max(t, top.getBoundingClientRect().bottom - c.top);
   if (wide(keys)) b = Math.min(b, keys.getBoundingClientRect().top - c.top);
@@ -4504,6 +4518,7 @@ function placeClearMiddle() {
   redraw();
 }
 const clearWatch = new ResizeObserver(placeClearMiddle);
+on("column", placeClearMiddle);
 for (const el of [canvas, $("status"), $("drawer"), document.querySelector(".sidestack"), document.querySelector("header.bar"),
                   document.querySelector(".mapkeys"), $("alert")]) if (el) clearWatch.observe(el);
 new ResizeObserver(() => document.body.style.setProperty("--alert-h", `${$("alert").offsetHeight}px`)).observe($("alert"));
@@ -4897,6 +4912,7 @@ function endDrag() {
 function viewMoved() {
   layoutView();
   refreshPois();
+  refreshQuestMarks();
   refreshLayers();
   updateViewZone();
   keepView();

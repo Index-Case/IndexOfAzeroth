@@ -254,6 +254,10 @@ function askFailed(what, e) {
 }
 
 
+function columnSide() { return document.documentElement.dataset.column === "right" ? "right" : "left"; }
+function columnRoom() { return parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--column-room")); }
+
+
 let tipPointer = null;
 function pointerPicture(box) { tipPointer = box; }
 
@@ -352,5 +356,5 @@ function moveCharStores(was, key) {
 if (typeof module === "object") {
   module.exports = { step, on, emit, UNFOCUSED_FPS, UNFOCUSED_EARLY_MS, askFrame, dropFrame, ASK_WAIT_FIRST, ASK_WAIT_MOST, AskError, askFor, askWait, askState, askNow, getJson, postJson, noteGap, askLines,
                      getBytes, getPicture, pictureSrc, fetchUntil, PICTURE_AGAIN_MS, pictureFailed, linkBack, sameData, pressed, released, moved, setHtml, TOAST_MS, showToast, askFailed, tipPlace, inWindow, SLIDE_GAP, slidePlace, FLY_INTO_MS, flyInto, RecentMap,
-                     keptOr, keepIn, CHAR_STORES, charStore, moveCharStores };
+                     keptOr, keepIn, CHAR_STORES, charStore, moveCharStores, columnSide, columnRoom };
 }

@@ -541,14 +541,15 @@ def listfile(kept=False):
 
 
 UI_PATHS = ("interface/moneyframe/", "interface/gossipframe/", "interface/cursor/", "interface/targetingframe/",
-            "interface/dialogframe/", "interface/minimap/tracking/", "interface/icons/inv_misc_bag_")
+            "interface/dialogframe/", "interface/minimap/tracking/", "interface/icons/inv_misc_bag_",
+            "interface/buttons/ui-grouploot-")
 
 
 def ui_line(line):
     return line.partition(";")[2].lower().startswith(UI_PATHS)
 
 
-UI = {"name": "listfile-ui-14232c66.csv", "want": ui_line}
+UI = {"name": "listfile-ui-0e6b94bd.csv", "want": ui_line}
 
 
 def listfile_ui():

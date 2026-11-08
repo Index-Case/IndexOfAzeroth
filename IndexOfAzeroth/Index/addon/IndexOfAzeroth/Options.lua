@@ -12,7 +12,7 @@ local DEFAULTS = {
   plates = { far = true, friends = true, loopMarks = true },
   targetKey = { mark = true, world = true, dungeons = false, cardHidden = true, flights = true },
   nav = { compass = true, arrows = true, beacons = true, line = true, mapLine = true, declutter = false, prefer = "beacons",
-          cone = 90, arrowPast = 1500, aim = "glow",
+          cone = 90, arrowPast = 1500, aim = "arrow",
           places = false,
           brackets = true, beaconStrength = 100, compassSize = 100 },
 }

@@ -88,27 +88,24 @@ function bestArmorFor(cls, level = 1, n = {}) {
   return top[1] && (known != null ? known & (1 << top[1]) : level >= 40) ? top[1] : top[0];
 }
 
-function upgradeTag(it, u, up, cmp) {
+function upgradeKind(u, up, cmp) {
   if (!up) return "";
-  if (u.use === "train") {
-    const teacher = it.cls === 2 ? word("both.upgrades.train.weapon") : word("both.upgrades.train.armour");
-    return `<span class="j-tag gold" title="${esc(word("both.upgrades.train.tip", { skill: u.skill, teacher }))}">${
-      esc(word("both.upgrades.train", { skill: u.skill }))}</span>`;
-  }
-  if (u.lower) {
-    return `<span class="j-tag grey" title="${esc(word("both.upgrades.lower.tip", { kind: ARMOR_NAME[it.sub], wear: ARMOR_NAME[u.lower] }))}">${
-      word("both.upgrades.lower")}</span>`;
-  }
-  if (cmp?.kind === "clear") {
-    return `<span class="j-tag up" title="${esc(compareWords(cmp))}">${word("both.upgrades.clear")}</span>`;
-  }
-  if (cmp?.kind === "weak") {
-    return `<span class="j-tag gold" title="${esc(compareWords(cmp))}">${word("both.upgrades.weak")}</span>`;
-  }
-  if (cmp?.kind === "debatable") {
-    return `<span class="j-tag debatable" title="${esc(compareWords(cmp))}">${word("both.upgrades.debatable")}</span>`;
-  }
-  return `<span class="j-tag gold" title="${esc(word("both.upgrades.item-level.tip"))}">${word("both.upgrades.item-level")}</span>`;
+  if (u.use === "train") return "train";
+  if (u.lower) return "lower";
+  return cmp?.kind || "item-level";
+}
+const UPGRADE_COLOUR = { train: "gold", lower: "grey", clear: "up", weak: "gold", debatable: "debatable", "item-level": "gold" };
+
+function upgradeTag(it, u, up, cmp) {
+  const kind = upgradeKind(u, up, cmp);
+  if (!kind) return "";
+  const [text, tip] = kind === "train"
+    ? [esc(word("both.upgrades.train", { skill: u.skill })), word("both.upgrades.train.tip", { skill: u.skill,
+      teacher: it.cls === 2 ? word("both.upgrades.train.weapon") : word("both.upgrades.train.armour") })]
+    : kind === "lower" ? [word("both.upgrades.lower"), word("both.upgrades.lower.tip", { kind: ARMOR_NAME[it.sub], wear: ARMOR_NAME[u.lower] })]
+    : kind === "item-level" ? [word("both.upgrades.item-level"), word("both.upgrades.item-level.tip")]
+    : [{ clear: word("both.upgrades.clear"), weak: word("both.upgrades.weak"), debatable: word("both.upgrades.debatable") }[kind], compareWords(cmp)];
+  return `<span class="j-tag ${UPGRADE_COLOUR[kind]}" title="${esc(tip)}">${text}</span>`;
 }
 
 function rowCompare(id, it) {

@@ -247,6 +247,13 @@ local R = {
     landed = 150,
     with_giver = 40,
     ways = { "way", "alt", "ez", "hw" },
+    closer_by = 0.9,
+  },
+  lead = {
+    epic = 1,
+    nav = 1,
+    loop = 1,
+    prof = 2,
   },
   badges = {
     mobs = { "#00b5ff", "#ff3392", "#cc8800", "#59ffe9", "#ffb2a6", "#d5a6ff", "#738ae6", "#29c1cc", "#ccaf85", "#e695b5", "#a6c3ff", "#ff9c59", "#a6e7ff", "#ff00dd", "#e66b00", "#ff80e5" },
@@ -610,6 +617,22 @@ function R.Colours(rows, kept)
     for _, k in ipairs(keys) do out.kept[k] = p end
   end
   return out
+end
+function R.Beacon(spots, running, held)
+  local top = nil
+  for _, kind in ipairs(running or {}) do
+    local t = R.lead[kind]
+    if t and (not top or t < top) then top = t end
+  end
+  local best, keep = nil, nil
+  for _, s in ipairs(spots or {}) do
+    if top and s.yards ~= nil and R.lead[s.kind] == top then
+      if not best or s.yards < best.yards then best = s end
+      if held ~= nil and s.id == held then keep = s end
+    end
+  end
+  if keep and best.yards > keep.yards * R.guide.closer_by then best = keep end
+  return best and best.id or nil
 end
 function R.Code(key)
   for i, k in ipairs(R.codes) do if k == key then return i end end

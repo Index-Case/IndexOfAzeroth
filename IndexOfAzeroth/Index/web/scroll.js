@@ -10,12 +10,11 @@ const SCROLL_SHAPE = {
   caption: { top: 0.855, bottom: 0.905 },
 };
 const SCROLL_COVER = 0.95;
-const SCROLL_SIDE = 334;
 const SCROLL_GAP = 16;
 const SCROLL_LINES = 20;
 const SCROLL_LINE = 1.45;
 
-function scrollPlace(W, H, view = { l: SCROLL_SIDE, r: W, t: 0, b: H }) {
+function scrollPlace(W, H, view = { l: 0, r: W, t: 0, b: H }) {
   const R = SCROLL_SHAPE.rollers;
   const free = Math.max(0, view.r - view.l - 2 * SCROLL_GAP), tall = Math.max(0, view.b - view.t);
   const size = Math.max(0, Math.min(SCROLL_COVER * tall / (R.bottom - R.top), free / (R.right - R.left)));
@@ -401,7 +400,7 @@ class ScanScroll {
 }
 
 if (typeof module === "object") {
-  module.exports = { SCROLL_ART, SCROLL_SHAPE, SCROLL_COVER, SCROLL_SIDE, SCROLL_GAP, SCROLL_LINES, SCROLL_LINE, scrollPlace, scrollFrame,
+  module.exports = { SCROLL_ART, SCROLL_SHAPE, SCROLL_COVER, SCROLL_GAP, SCROLL_LINES, SCROLL_LINE, scrollPlace, scrollFrame,
     SCROLL_SWITCH, SCROLL_SHAKE, scrollShake, HOSE, arrowPlace, pullIn, hoseCurve, hoseControls, hosePath, hoseLengths, hoseAt, STREAM_RATE, STREAM_FULL,
     STREAM_SPEED, STREAM_TIME, STREAM_MOST, STREAM_WAITING, STREAM_FOLLOW, STREAM_FONT, STREAM_BLUR, streamRate, streamTime, streamAlpha,
     STREAM_COLOURS, streamColour, scrollLine, scrollCaption, scrollEnded, SCROLL_LEAVE_MS, SCROLL_KEPT, TAPE_RATE, TAPE_NEXT, FEED_MOST, ScanScroll };

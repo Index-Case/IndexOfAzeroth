@@ -2,7 +2,7 @@
 "use strict";
 
 const TREES = { instances: [0, 1], most: 300, far: 0.5, side: 256, perFrame: 4 };
-const SHEETS_KEPT = 2 * TREES.most;
+const SHEETS_KEPT = 4 * TREES.most;
 const LISTS_KEPT = 2 * TREES.most;
 
 const treeOut = (tree) => tree[5] !== 0;
@@ -162,12 +162,12 @@ class Trees {
     return this.pictures.get(key);
   }
 
-  draw(ctx, base, trees, view, at, k, out = null) {
+  draw(ctx, base, trees, view, at, k, out = null, gone = false) {
     const px = this.index.px, models = this.index.models;
     let count = 0;
     for (const tree of trees) {
       const [fid, n, w, , scale] = tree, model = models[fid];
-      if (!model || (out != null && treeOut(tree) !== out) || canopyOff(tree, this.off)) continue;
+      if (!model || (out != null && treeOut(tree) !== out) || canopyOff(tree, this.off) !== gone) continue;
       const reach = treeReach(model, px, scale);
       if (view && (n - reach > view.nHi || n + reach < view.nLo || w - reach > view.wHi || w + reach < view.wLo)) continue;
       const pic = this.picture(fid, model);
@@ -187,28 +187,28 @@ class Trees {
     return trees.every((t) => !models[t[0]] || this.picture(t[0], models[t[0]]).ok);
   }
 
-  sheet(id, nw, across, trees) {
+  sheet(id, nw, across, trees, gone = false) {
     const px = this.index.px, models = this.index.models;
     if (!trees.length) return keptMap(this.sheets, id, { canvas: null, pad: 0, count: 0, mark: this.marks.sheets }, SHEETS_KEPT);
     const pad = Math.ceil(Math.max(0, ...trees.map((t) => (models[t[0]] ? treeReach(models[t[0]], px, t[4]) : 0))));
     const a = TREES.side / across, size = Math.ceil((across + 2 * pad) * a);
     const c = this.canvas(size, size), g = c.getContext("2d");
-    const count = this.draw(g, [1, 0, 0, 1, 0, 0], trees, null, (n, w) => [(nw.w + pad - w) * a, (nw.n + pad - n) * a], [a, a]);
+    const count = this.draw(g, [1, 0, 0, 1, 0, 0], trees, null, (n, w) => [(nw.w + pad - w) * a, (nw.n + pad - n) * a], [a, a], null, gone);
     return keptMap(this.sheets, id, { canvas: c, pad, count, mark: this.marks.sheets }, SHEETS_KEPT);
   }
 
-  paint(ctx, { instance, corners, tileYards, at, k }, out = true) {
-    if (!this.index) return 0;
+  paint(ctx, { instance, corners, tileYards, at, k }, out = true, gone = false) {
+    if (!this.index || (gone && !this.off.size)) return 0;
     const view = worldBox(corners), keys = treeTiles(worldBox(corners, this.margin), tileYards, (key) => this.has(instance, key));
     const m = ctx.getTransform(), base = [m.a, m.b, m.c, m.d, m.e, m.f];
     const step = blockStep(keys), far = step > 1 || Math.hypot(m.a, m.b) * k[0] < TREES.far;
     let count = 0, made = 0, asked = 0, owed = false;
     if (!far) {
-      for (const key of keys) count += this.draw(ctx, base, this.list(instance, key) || [], view, at, k, out) || 0;
+      for (const key of keys) count += this.draw(ctx, base, this.list(instance, key) || [], view, at, k, out, gone) || 0;
       return count;
     }
     for (const block of new Set(keys.map((key) => blockOf(key, step)))) {
-      const id = `${instance}/${step}/${block}/${out ? "out" : "under"}`, nw = blockCorner(block, step, tileYards), across = step * tileYards;
+      const id = `${instance}/${step}/${block}/${out ? "out" : "under"}${gone ? "/gone" : ""}`, nw = blockCorner(block, step, tileYards), across = step * tileYards;
       let sheet = this.sheets.has(id) ? keptMap(this.sheets, id, this.sheets.get(id), SHEETS_KEPT) : null;
       if (!sheet || sheet.mark !== this.marks.sheets) {
         const members = blockTiles(block, step).filter((key) => this.has(instance, key));
@@ -217,13 +217,13 @@ class Trees {
         if (room || (step === 1 && !sheet)) {
           asked += members.length;
           const lists = members.map((key) => this.listNow(instance, key));
-          const trees = lists.every(Boolean) ? lists.flat().filter((t) => treeOut(t) === out) : null;
+          const trees = lists.every(Boolean) ? lists.flat().filter((t) => treeOut(t) === out && canopyOff(t, this.off) === gone) : null;
           if (room && trees && this.picturesIn(trees)) {
             if (trees.length) made++;
-            sheet = this.sheet(id, nw, across, trees);
+            sheet = this.sheet(id, nw, across, trees, gone);
           } else if (!sheet && step === 1) {
             const now = this.list(instance, members[0]);
-            if (now) count += this.draw(ctx, base, now, view, at, k, out);
+            if (now) count += this.draw(ctx, base, now, view, at, k, out, gone);
           }
         }
         if (!sheet) continue;
@@ -269,7 +269,7 @@ class Trees {
     ctx.restore();
   }
 
-  heights(ctx, frame) {
+  heights(ctx, frame, thin = true) {
     const ground = (kind) => SEE.ground.includes(kind);
     ctx.save();
     ctx.save();
@@ -277,12 +277,33 @@ class Trees {
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     ctx.restore();
     ctx.globalCompositeOperation = "source-over";
-    let laid = this.seeThrough(ctx, frame, (kind) => (ground(kind) ? SEE.amount[kind] : null));
-    const you = this.roundYou(ctx, frame, SEE.amount.you);
+    let laid = thin ? this.seeThrough(ctx, frame, (kind) => (ground(kind) ? SEE.amount[kind] : null)) : 0;
+    const you = thin ? this.roundYou(ctx, frame, SEE.amount.you) : null;
+    const gone = this.layGone(ctx, frame);
     ctx.globalCompositeOperation = "destination-out";
     laid += this.seeThrough(ctx, frame, (kind) => (ground(kind) ? null : 1));
     ctx.restore();
-    return JSON.stringify([laid, you && you.map(Math.round)]);
+    return JSON.stringify([laid, you && you.map(Math.round), gone, [...this.off].sort((a, b) => a - b)]);
+  }
+
+  layGone(ctx, frame) {
+    if (!this.off.size) return 0;
+    const { width, height } = ctx.canvas, m = ctx.getTransform();
+    if (this.goneLayer?.width !== width || this.goneLayer?.height !== height) this.goneLayer = this.canvas(width, height);
+    const g = this.goneLayer.getContext("2d");
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.clearRect(0, 0, width, height);
+    g.setTransform(m.a, m.b, m.c, m.d, m.e, m.f);
+    const count = this.paint(g, frame, true, true) + this.paint(g, frame, false, true);
+    if (!count) return 0;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = "lighter";
+    ctx.filter = `blur(${SEE.fade * Math.hypot(m.a, m.b) * frame.k[0]}px)`;
+    for (let i = 0; i < SEE.gain; i++) ctx.drawImage(this.goneLayer, 0, 0);
+    ctx.restore();
+    return count;
   }
 
   seeThrough(ctx, { instance, corners, tileYards, at, k, roofsOf }, each) {

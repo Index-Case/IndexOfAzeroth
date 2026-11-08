@@ -211,7 +211,10 @@ GUIDE = {
                               "one giver's spots within 8 yards of each other and two givers of one name on a "
                               "continent 200 yards and more apart (1 Oct 2026)"),
     "ways": ["way", "alt", "ez", "hw"],
+    "closer_by": Start(0.9, "Tracks.lua's view.CLOSER_BY since 28 Sep 2026: a spot a tenth closer takes the beacon"),
 }
+
+LEAD = {"epic": 1, "nav": 1, "loop": 1, "prof": 2}
 
 BADGES = {
     "mobs": ["#00b5ff", "#ff3392", "#cc8800", "#59ffe9", "#ffb2a6", "#d5a6ff", "#738ae6", "#29c1cc", "#ccaf85",
@@ -426,7 +429,7 @@ ALONG = {
 RULES = {"tiers": TIERS, "run": RUN, "reach": REACH, "cost": COST, "along": ALONG, "no_flap": NO_FLAP, "claims": CLAIMS,
          "sure": SURE, "camps": CAMPS, "director": DIRECTOR, "words": WORDS, "quiet": QUIET, "drift": DRIFT,
          "asks": ASKS, "next": NEXT, "lines": LINES, "phrases": PHRASES, "heads": HEADS, "buttons": BUTTONS,
-         "pools": POOLS, "back": BACK, "restock": RESTOCK, "guide": GUIDE, "badges": BADGES}
+         "pools": POOLS, "back": BACK, "restock": RESTOCK, "guide": GUIDE, "lead": LEAD, "badges": BADGES}
 TEXT_PARTS = ("words", "lines", "phrases", "heads", "buttons")
 
 

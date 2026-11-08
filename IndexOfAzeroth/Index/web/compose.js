@@ -276,8 +276,9 @@ function launchStep(s) {
   if (!a.width) return false;
   const spot = worldOnScreen(s.i, s.at[0], s.at[1], app.curSize, scaleFor(app.curSize));
   const [dx, dy] = s.fan || [0, 0];
+  const corner = a.left + a.right < m.left + m.right ? m.left + STEP_CORNER : m.right - STEP_CORNER;
   const from = spot ? [Math.min(m.right, Math.max(m.left, m.left + spot[0] + dx)), Math.min(m.bottom, Math.max(m.top, m.top + spot[1] + dy))]
-    : [m.right - STEP_CORNER, m.top + STEP_CORNER];
+    : [corner, m.top + STEP_CORNER];
   const to = [a.left + a.width / 2, a.top + a.height / 2];
   if (!stepFlights.layer?.isConnected) {
     stepFlights.layer = document.createElement("div");

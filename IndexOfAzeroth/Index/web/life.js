@@ -33,11 +33,10 @@ const LIFE_IMPACT_MS = 220;
 const LIFE_HOLD_MS = 1000;
 const LIFE_FLY_MS = 950;
 const life = { want: undefined, flyer: null, raf: 0, smear: 0, markRaf: 0, dismissed: null };
-const MAP_LEFT = 334;
 const MAP_REF = { w: 1572, h: 873 };
 function mapScale() {
   const map = $("map").getBoundingClientRect();
-  return Math.min(map.height / MAP_REF.h, (map.width - MAP_LEFT) / MAP_REF.w);
+  return Math.min(map.height / MAP_REF.h, (map.width - columnRoom()) / MAP_REF.w);
 }
 
 const lifeArt = {};
@@ -118,20 +117,23 @@ function fitMark(kind = life.want) {
   if (mark.hidden || !art || !LIFE[kind]) return;
   const coords = document.querySelector(".coords-line"), words = document.createRange();
   words.selectNodeContents($("subzone"));
+  const side = columnSide();
   const key = [$("zone").textContent, $("subzone").textContent, $("coords").textContent.length, $("btn-locate").hidden,
-               $("expedition").hidden, kind].join("|");
+               $("expedition").hidden, kind, side].join("|");
   if (mark.dataset.fit === key) return;
   mark.dataset.fit = key;
   const zone = $("zone").getBoundingClientRect(), box = mark.getBoundingClientRect();
   const height = Math.round(coords.getBoundingClientRect().bottom - zone.top), width = Math.round(height * artAspect(kind));
-  const reach = Math.max(words.getBoundingClientRect().right,
-                         ...[...coords.children].filter((c) => !c.hidden).map((c) => c.getBoundingClientRect().right));
-  const shift = Math.max(0, Math.round(reach + MARK_GAP - box.left));
+  const lines = [words.getBoundingClientRect(), ...[...coords.children].filter((c) => !c.hidden).map((c) => c.getBoundingClientRect())];
+  const shift = side === "right" ? Math.max(0, Math.round(box.right - Math.min(...lines.map((r) => r.left)) + MARK_GAP))
+    : Math.max(0, Math.round(Math.max(...lines.map((r) => r.right)) + MARK_GAP - box.left));
   sizeArt(kind, art, width, height);
-  art.style.left = `${shift}px`;
+  art.style.left = side === "right" ? "auto" : `${shift}px`;
+  art.style.right = side === "right" ? `${shift}px` : "auto";
   art.style.top = `${Math.round(zone.top - box.top)}px`;
   mark.style.width = `${shift + width}px`;
 }
+on("column", () => fitMark());
 
 function landLife(kind) {
   const banner = $("life-banner"), k = LIFE[kind];
@@ -363,9 +365,12 @@ function cancelLifeFlight() {
 
 function lifeGround(h) {
   const stage = $("map").getBoundingClientRect(), css = getComputedStyle(document.documentElement);
-  const x = parseFloat(css.getPropertyValue("--clear-x")), y = parseFloat(css.getPropertyValue("--clear-y"));
-  return [stage.left + (Number.isFinite(x) ? x : (MAP_LEFT + stage.width) / 2),
-          stage.top + (Number.isFinite(y) ? y : stage.height / 2) + h / 2];
+  let x = parseFloat(css.getPropertyValue("--clear-x")), y = parseFloat(css.getPropertyValue("--clear-y"));
+  if (!Number.isFinite(x) || !Number.isFinite(y)) {
+    const cv = clearView(false);
+    [x, y] = [(cv.l + cv.r) / 2, (cv.t + cv.b) / 2];
+  }
+  return [stage.left + x, stage.top + y + h / 2];
 }
 
 function flyLife(kind) {

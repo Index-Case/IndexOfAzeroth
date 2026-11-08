@@ -162,7 +162,8 @@ end
 local SLOW_EVERY = 3
 local SLOTS = { "status", "group", "bars", "status", "entrances", "group", "run", "status", "guide",
                 "group", "quests", "addons", "kills", "gathers", "character", "taxi", "equipped", "bags", "bank", "warband", "rolls",
-                "epic", "loopstops", "heights", "legacy", "director", "directortext", "camps" }
+                "epic", "sides", "loopstops", "heights", "legacy", "director", "directortext", "camps" }
+local SLOT_WHEN = { sides = function() return ns.SidesRunning and ns.SidesRunning() end }
 
 local Report = ns.Report
 
@@ -191,6 +192,7 @@ local ENCODERS = {
   rolls = function() return ns.EncodeRolls() end,
   rollsNow = function() return ns.EncodeRolls(true) end,
   epic = function() return ns.EncodeEpic() end,
+  sides = function() return ns.EncodeSides() end,
   loopstops = function() return ns.EncodeLoopStops() end,
   director = function() return ns.EncodeDirector() end,
   directortext = function() return ns.EncodeDirectorText() end,
@@ -209,6 +211,13 @@ local ENCODERS = {
 }
 ns.stripEncoders = ENCODERS
 ns.stripSlots = SLOTS
+function ns.StripRound()
+  local out = {}
+  for _, what in ipairs(SLOTS) do
+    if not SLOT_WHEN[what] or SLOT_WHEN[what]() then out[#out + 1] = what end
+  end
+  return out
+end
 
 local slot = 0
 local ticker = CreateFrame("Frame")
@@ -217,7 +226,7 @@ local elapsed, frameCount = 0, 0
 local PAGES_RUNNING = 3
 local pagesRun = 0
 
-local CHANGED_ORDER = { "status", "director", "directortext", "queue", "quests", "loopstops","xp", "watched", "kills", "run",
+local CHANGED_ORDER = { "status", "director", "directortext", "queue", "quests", "loopstops", "sides", "xp", "watched", "kills", "run",
                         "gathers", "equipped", "taxi", "character", "heights", "legacy", "camps", "bags" }
 local CHANGE_EVENTS = {
   QUEST_LOG_UPDATE = { "quests" }, QUEST_ACCEPTED = { "quests" },
@@ -354,8 +363,10 @@ ns.OnTick(ticker, "the strip", nil, function(_, dt)
       what, changed.status = "status", nil
     end
     if not what then
-      slot = slot % #SLOTS + 1
-      what = SLOTS[slot]
+      repeat
+        slot = slot % #SLOTS + 1
+        what = SLOTS[slot]
+      until not SLOT_WHEN[what] or SLOT_WHEN[what]()
     end
     pagesRun = paged and pagesRun + 1 or 0
     ns.lastSlow = what

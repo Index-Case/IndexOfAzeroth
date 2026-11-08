@@ -377,13 +377,14 @@ function syncPlanLegend() {
 function placePlanLegend() {
   const box = $("plan-legend");
   if (box.hidden) return;
-  const right = `${footRight(document.querySelector(".mapkeys")?.getBoundingClientRect(),
-    document.querySelector(".sidestack")?.getBoundingClientRect(), box.getBoundingClientRect(), innerWidth)}px`;
-  if (box.style.getPropertyValue("--pl-right") !== right) box.style.setProperty("--pl-right", right);
+  const far = `${footFar(document.querySelector(".mapkeys")?.getBoundingClientRect(),
+    document.querySelector(".sidestack")?.getBoundingClientRect(), box.getBoundingClientRect(), innerWidth, columnSide())}px`;
+  if (box.style.getPropertyValue("--pl-far") !== far) box.style.setProperty("--pl-far", far);
   document.body.style.setProperty("--plan-legend-h", `${box.offsetHeight}px`);
 }
 const planLegendWatch = new ResizeObserver(placePlanLegend);
 for (const el of [$("plan-legend"), document.querySelector(".mapkeys"), document.querySelector(".sidestack")]) if (el) planLegendWatch.observe(el);
+on("column", placePlanLegend);
 
 function drawPlanMarks(now, at, left) {
   for (const [m, spot] of at) {

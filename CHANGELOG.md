@@ -1,6 +1,28 @@
 <!-- The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md. -->
 # Changelog
 
+## 0.1.7-alpha
+
+### Professions
+- Profession epics can run side by side with your quest epic, up to two, one for each profession. Each has its own window in game and its own panel on the page, and your quest epic keeps the beacon.
+
+### Map
+- Quest givers and hand-ins can show on the map with the game's quest marks, and a click on a mark guides you there. Turn them on in the Quests drawer.
+- The character column can sit on either side of the page.
+
+### Dungeons
+- The roll card says whether to roll Need, Greed or make your own call.
+
+### Guides
+- Arrow to objective is the default aim.
+- Many clarity and readability improvements.
+
+### Fixes
+- The dungeon part of an epic can be parked.
+- A zone with its canopy turned off no longer shades the ground with trees.
+- Mark the best reward no longer picks armour your class can't wear.
+- The corpse beacon shows when you die, with no /reload.
+
 ## 0.1.6-alpha
 
 ### Fixes

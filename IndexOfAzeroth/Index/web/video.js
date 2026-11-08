@@ -136,7 +136,7 @@ function placeVideo() {
   const fit = (v, lo, hi, first) => Math.max(lo, Math.min(hi, v ?? first));
   video.w = fit(video.w, VIDEO_MIN.w, W, VIDEO_START.w);
   video.h = fit(video.h, VIDEO_MIN.h, H, VIDEO_START.h);
-  video.x = fit(video.x, 0, W - video.w, W - video.w - 16);
+  video.x = fit(video.x, 0, W - video.w, columnSide() === "right" ? 16 : W - video.w - 16);
   video.y = fit(video.y, 0, H - video.h, 60);
   Object.assign($("video").style, { left: `${video.x}px`, top: `${video.y}px`, width: `${video.w}px`, height: `${video.h}px` });
 }

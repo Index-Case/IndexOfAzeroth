@@ -718,6 +718,7 @@ function fitLegend() {
   box.style.maxHeight = `${Math.max(LEGEND_LEAST, innerHeight - box.getBoundingClientRect().top - LEGEND_FOOT)}px`;
 }
 addEventListener("resize", fitLegend);
+on("column", fitLegend);
 
 layers.lit = null;
 function litAt(what) {

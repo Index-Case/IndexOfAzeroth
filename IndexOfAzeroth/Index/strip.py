@@ -10,7 +10,8 @@ import errands
 from layers import XpAuras, lay_gathered
 import questplan
 from mapzones import settle_zone, world_pos
-from planning import OBJECTIVES, camp_purchase, epic_stop_or_start, grade_state, note_profession_trainer, note_trainer, replan_asked
+from planning import (OBJECTIVES, camp_purchase, epic_stop_or_start, grade_state, note_profession_trainer, note_trainer, replan_asked,
+                      side_stop_or_start)
 from routes import FLY
 from serverlog import log_error, log_note, start_thread
 import game
@@ -110,7 +111,7 @@ def party_gone_after(stats, now):
 
 
 CHARACTER_EXTRAS = ("run", "guide", "group", "quests", "epic", "questlog", "loaded", "equipped", "rolls", "auras",
-                    "watched", "queue", "legacyPoints", "director", "loopStops", "camps")
+                    "watched", "queue", "legacyPoints", "director", "loopStops", "camps", "sides")
 
 
 def game_epic_report(hub, report):
@@ -541,6 +542,16 @@ def take_epic(hub, r, data):
 @handles("loopstops")
 def take_loop_stops(hub, r, data):
     keep_extra(hub, r, "loopStops", data)
+
+
+@handles("sides")
+def take_sides(hub, r, data):
+    was = {s["version"]: (s["running"], s["closed"]) for s in ((hub.extra.get("sides") or {}).get("sides") or ())}
+    told = [s for s in data["sides"] if was.get(s["version"]) != (s["running"], s["closed"])]
+    keep_extra(hub, r, "sides", data)
+    watch = getattr(hub, "watch", None)
+    if told and watch:
+        watch.queue(lambda: side_stop_or_start(hub, told))
 
 
 PAGE_ONLY = ("reason", "play", "then")

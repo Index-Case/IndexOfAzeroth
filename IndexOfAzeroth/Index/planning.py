@@ -15,7 +15,8 @@ from concurrent.futures import TimeoutError as FutureTimeout
 
 import numpy as np
 
-from layers import CAMP_CELL, CAMP_CLEAR, KILL_REACH, RESPAWN_FALLBACK, XpAuras, cover_route, item_table, kill_xp, stop_heights
+from layers import CAMP_CELL, CAMP_CLEAR, KILL_REACH, MARGIN as MAP_MARGIN, RESPAWN_FALLBACK, XpAuras, cover_route, item_table, kill_xp, \
+    stop_heights
 from facts import RUN_SPEED
 from geo import height_of, line_reach
 from objectives import ObjectiveIndex
@@ -32,6 +33,7 @@ import planrepair
 from kept import UNKEPT, keep
 from versioned import Versioned
 import questplan
+import questmarks
 import planreport
 import questitems
 import camping
@@ -1664,7 +1666,10 @@ def prof_epics_in(hub, key):
     if line is not None:
         return line, []
     epics = profepics.on(me_record(hub))
-    return None, (sorted(epics) if epics and (key.startswith(("zone:", "log:", classtrip.KEY)) or key == camping.KEY) else [])
+    if not (epics and (key.startswith(("zone:", "log:", classtrip.KEY)) or key == camping.KEY)):
+        return None, []
+    beside, names = side_lines(hub), prof_data().cd.names
+    return None, sorted(n for n in epics if not any(names.get(line) == n for line in beside))
 
 
 def prof_chores(hub, key, epic, at, errand):
@@ -1695,7 +1700,8 @@ def prof_inputs(hub):
     if not profepics.on(me):
         return None
     return [sorted(profepics.on(me)), [(p.get("name"), p.get("max")) for p in me.get("professions") or ()],
-            sorted((n, len(b.get("known") or {})) for n, b in (me.get("recipes") or {}).items())]
+            sorted((n, len(b.get("known") or {})) for n, b in (me.get("recipes") or {}).items()),
+            sorted(side_lines(hub))]
 
 
 def prof_panel(hub):
@@ -1845,8 +1851,8 @@ def craft_item(key):
 
 
 def craft_kept(hub, key):
-    epic = ((hub.shared.data or {}).get("epic") or {}) if getattr(hub, "shared", None) else {}
-    return epic if epic.get("key") == key else {}
+    epic = hub.shared.epic_of(key, playing_char(hub))[0] if getattr(hub, "shared", None) else None
+    return epic or {}
 
 
 def craft_tree(hub, key, anchor, picks=None, running=False):
@@ -2140,6 +2146,24 @@ def quest_zones(hub):
     return out
 
 
+def quest_marks(hub, map_id):
+    if game_unknown(hub):
+        return []
+    st, me = hub.status or {}, me_record(hub)
+    side = (st.get("strs") or {}).get("faction", "")
+    done, log = quest_state(hub)
+    b = questplan.book().for_side(side, st.get("classId"))
+    kinds = questmarks.quest_kinds(b,
+                                   {"side": side, "race": races.bit_of(me.get("race"), side), "classId": st.get("classId")},
+                                   done, log, (hub.state or {}).get("level") or 1, hub.characters.max_level(), spells_of(me))
+    geo = hub.world.geo
+
+    def project(src, x, y):
+        at = geo.project_from(src, [(x, y)], map_id, MAP_MARGIN)
+        return at[0] if at else None
+    return questmarks.marks(b, kinds, project)
+
+
 QMOBS_MOST = 12
 
 
@@ -2196,11 +2220,46 @@ def here_now(hub):
     return world_pos(s["map"], pos["x"], pos["y"]) if pos and s.get("map") else None
 
 
-def start_fresh(hub, key, anchor, mode, close=False, parked=(), asked=None):
+def prof_epic(key):
+    return prof_line(key) is not None or craft_item(key) is not None
+
+
+def side_of(key, epic):
+    line = prof_line(key)
+    made = epic.get("craft") or {}
+    if line is None and made.get("rows") and made.get("goals"):
+        line = (made["rows"][made["goals"][-1]].get("recipe") or {}).get("line")
+    if line is None:
+        return None
+    cd = prof_data().cd
+    rec = cd.profs.get(str(line)) or next((p for p in cd.profs.values() if int(line) in (p.get("lines") or ())), {})
+    return {"line": int(line), "prof": rec.get("n") or cd.names.get(int(line)), "ic": rec.get("icon")}
+
+
+class NoRoom(Exception):
+    pass
+
+
+def side_lines(hub):
+    sh, me = getattr(hub, "shared", None), playing_char(hub)
+    return {s.get("line") for s in (sh.profs if sh else ()) if not s.get("closed") and same_char(s.get("char"), me)}
+
+
+def start_fresh(hub, key, anchor, mode, close=False, parked=(), asked=None, side=False):
+    if side and not prof_epic(key):
+        return None
     epic = build_epic(hub, key, anchor, parked=parked, close=close)
     if epic is None or epic.get("waiting"):
         return epic and False
+    place = side_of(key, epic) if side else None
+    if side and place is None:
+        return None
+    if place:
+        room, running = hub.shared.side_room(playing_char(hub), place["line"])
+        if not room:
+            raise NoRoom(*running)
     meta = {"name": epic_label(hub, key), "char": playing_char(hub),
+            "side": place,
             "close": bool(close) or None,
             "anchor": list(anchor) if anchor else None, "mode": mode,
             "fresh": True, "start": True,
@@ -2216,10 +2275,10 @@ def start_fresh(hub, key, anchor, mode, close=False, parked=(), asked=None):
 
 
 def aside_of(hub, key):
-    if craft_item(key) is None:
+    if not prof_epic(key):
         return None
     held = (((getattr(hub, "shared", None) and hub.shared.data) or {}).get("epic") or {}).get("key")
-    if not held or craft_item(held) is not None:
+    if not held or prof_epic(held):
         return "keep"
     return {"parked": sorted(int(q) for q in ((hub.extra or {}).get("epic") or {}).get("parked") or ())}
 
@@ -2250,6 +2309,18 @@ def epic_stop_or_start(hub, report):
     epic = ((data if v == data.get("version") else sh.history.get(v)) or {}).get("epic")
     if data.get("epic") and epic and (report.get("stopped") or report.get("running")):
         sh.game_guide(epic["key"], bool(report.get("running")))
+
+
+def side_stop_or_start(hub, sides):
+    sh = hub.shared
+    if not sh:
+        return
+    me = playing_char(hub)
+    written = {s.get("written"): s for s in sh.profs if same_char(s.get("char"), me)}
+    for side in sides:
+        epic = written.get(side["version"])
+        if epic and (side["running"] or side["closed"]):
+            sh.game_guide(epic["key"], side["running"], char=me)
 
 
 def wearer(hub, tips=None):

@@ -8,6 +8,8 @@ const SHARE_CARDS = {
                   keys: SHARE_KEYS, usual: 3 },
   "track-loop": { rows: ":scope > .track-body > :not(.guide-head, .guide-name)", pins: ":scope > .track-body > :is(.guide-head, .guide-name)",
                   keys: SHARE_KEYS },
+  "track-side-0": { rows: ":scope > .track-body > :not(.guide-head)", pins: ":scope > .track-body > .guide-head", usual: 2 },
+  "track-side-1": { rows: ":scope > .track-body > :not(.guide-head)", pins: ":scope > .track-body > .guide-head", usual: 2 },
   "track-profs": { rows: ":scope > .track-body > .prof-row", pins: ":scope > .track-body > .guide-head" },
   guide: { rows: ":scope > .guide-body > :not(.guide-head, .guide-name)", pins: ":scope > .guide-body > :is(.guide-head, .guide-name)",
            keys: SHARE_KEYS },

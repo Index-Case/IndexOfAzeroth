@@ -54,8 +54,8 @@ import talentplan
 import youtube
 from serverlog import log_error, log_note
 from gamedata import ITEM_TIPS, SPELL_TIPS, item_ids, item_infos, load_todo, save_todo, spell_icons, stat_weights, stored_icon, todo_lock
-from planning import (build_epic, carried_now, covered_split, danger_stretches, game_prices, playing_char, playing_now, prof_panel,
-                      profession_summary, quest_zones, round_or_through, start_fresh, wanted, weigh_route, camp_opens,
+from planning import (NoRoom, build_epic, carried_now, covered_split, danger_stretches, game_prices, playing_char, playing_now, prof_panel,
+                      profession_summary, quest_marks, quest_zones, round_or_through, start_fresh, wanted, weigh_route, camp_opens,
                       camp_state, class_chains, planned_blind, route_travel)
 from gathering import (GATHER_SEARCH_KEEP, GRIND_MAPS_MOST, GRIND_SEARCH_SECONDS, SEARCHES_MOST, GatherSearch,
                        _searches_lock, camp_walk, safest_way)
@@ -552,6 +552,14 @@ def get_quests(h, hub):
     if waiting:
         return h.send_json({"waiting": waiting}, status=409)
     return h.send_json({"zones": quest_zones(hub), "campOpens": camp_opens(), "classChains": class_chains(hub)})
+
+
+@serves("GET", "/api/questmarks")
+def get_questmarks(h, hub):
+    map_id = whole(h.query().get("map"), None)
+    if map_id is None:
+        return h.send_error(400)
+    return h.send_json({"map": map_id, "marks": quest_marks(hub, map_id)})
 
 
 @serves("GET", "/api/questtext")
@@ -1513,9 +1521,13 @@ def post_shared_epic(h, hub, body):
         return h.send_error(400)
     if not hub.shared:
         return h.send_json({"started": False})
-    version, last = (hub.shared.data or {}).get("version"), hub.shared.run_start
-    started = start_fresh(hub, key, anchor, plan_mode(body.get("mode")), body.get("close") is True, parked)
-    log_note(f"page start {key}: click {body.get('click')}, {'sent again' if body.get('again') is True else 'first send'}, "
+    version, last, side = (hub.shared.data or {}).get("version"), hub.shared.run_start, body.get("side") is True
+    try:
+        started = start_fresh(hub, key, anchor, plan_mode(body.get("mode")), body.get("close") is True, parked, side=side)
+    except NoRoom as full:
+        return h.send_json({"started": False, "full": list(full.args)})
+    log_note(f"page start {key}{' side by side' if side else ''}: click {body.get('click')}, "
+             f"{'sent again' if body.get('again') is True else 'first send'}, "
              f"table at version {version}, last start written {last}, started {started}")
     if started is None:
         return h.send_error(404)
@@ -1533,7 +1545,7 @@ def post_shared_mode(h, hub, body):
 @serves("POST", "/api/shared/stop", only_here="marks the epic closed in Shared.lua in the game's addon folder")
 def post_shared_stop(h, hub, body):
     key = body.get("key")
-    done = bool(hub.shared) and hub.shared.close_epic(str(key) if key else None, by="page")
+    done = bool(hub.shared) and hub.shared.close_epic(str(key) if key else None, by="page", char=playing_char(hub))
     return h.send_json({"stopped": done})
 
 
@@ -1542,7 +1554,7 @@ def post_shared_open(h, hub, body):
     key = body.get("key")
     if not isinstance(key, str) or not key:
         return h.send_error(400)
-    return h.send_json({"opened": bool(hub.shared) and hub.shared.open_epic(key, by="page")})
+    return h.send_json({"opened": bool(hub.shared) and hub.shared.open_epic(key, by="page", char=playing_char(hub))})
 
 
 @serves("POST", "/api/shared/pick", only_here="keeps a crafting epic's pick in Shared.lua in the game's addon folder")
@@ -1550,7 +1562,7 @@ def post_shared_pick(h, hub, body):
     key, item, way = body.get("key"), body.get("item"), body.get("way")
     if not isinstance(key, str) or not key or not isinstance(item, int) or way not in crafting.WAYS:
         return h.send_error(400)
-    return h.send_json({"set": bool(hub.shared) and hub.shared.set_pick(key, item, way)})
+    return h.send_json({"set": bool(hub.shared) and hub.shared.set_pick(key, item, way, char=playing_char(hub))})
 
 
 @serves("POST", "/api/shared/back", only_here="writes the epic set aside back into Shared.lua in the game's addon folder")

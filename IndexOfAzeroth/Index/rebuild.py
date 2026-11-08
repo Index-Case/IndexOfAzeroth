@@ -53,7 +53,7 @@ COMMANDS = {"maps": ["build_maps.py"], "tiles": ["build_tiles.py"], "levels": ["
             "roadways": ["build_roadways.py"],
             "words": ["gen_words.py"]}
 LISTED = {kind: f"buildcache/listfile-{kind}.csv" for kind in ("db2", "wmo", "m2", "terrain", "treetextures", "crests")}
-LISTED["ui"] = "buildcache/listfile-ui-14232c66.csv"
+LISTED["ui"] = "buildcache/listfile-ui-0e6b94bd.csv"
 OUTPUTS = {"maps": ["maps.json"], "tiles": ["tiles.json"], "icons": ["icons_fallback/", "icons_fallback.json"], "items": ["items.json", "spells.json"],
            "listfile": sorted(LISTED.values()),
            "levels": ["levels.json"], "objectives": ["objectives.json"], "quests": ["quests.json"],

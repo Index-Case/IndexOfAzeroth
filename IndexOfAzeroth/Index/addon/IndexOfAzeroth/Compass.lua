@@ -645,11 +645,17 @@ function more.Pulse()
 end
 ns.GuideBandPulse = function() more.Pulse() end
 
+more.AT_EPIC = { e = 0, go = -1, g = 1, h = 1, k = 1 }
+function more.AtEpic(k, shown)
+  if k == "p1" then return shown.go and -2 or -1 end
+  if k == "p2" then return (shown.g or shown.h or shown.k) and 2 or 1 end
+  return more.AT_EPIC[k]
+end
 function more.LayoutBand()
   local band, slots = more.band, ns.guideSlots or {}
   if not band then return end
   local on = {}
-  for _, k in ipairs({ "go", "e", "g", "h", "k" }) do
+  for _, k in ipairs({ "p1", "go", "e", "g", "h", "k", "p2" }) do
     if slots[k] and slots[k].frame:IsShown() then on[#on + 1] = k end
   end
   local order = more.ByDistance(on)
@@ -660,10 +666,11 @@ function more.LayoutBand()
   local scale = {}
   more.rankOf = {}
   for i, k in ipairs(order) do scale[k], more.rankOf[k] = more.SIZES[i] or more.SIZES[#more.SIZES], i end
-  local at, epic = {}, slots.e and slots.e.frame:IsShown()
+  local at, epic, shown = {}, slots.e and slots.e.frame:IsShown(), {}
+  for _, k in ipairs(on) do shown[k] = true end
   for i, k in ipairs(on) do
-    if epic then at[k] = k == "e" and 0 or k == "go" and -more.SLOT_W or more.SLOT_W
-    else at[k] = (i - (#on + 1) / 2) * (COMPASS_W / #on) end
+    if epic then at[k] = more.AtEpic(k, shown) * more.SLOT_W
+    else at[k] = (i - (#on + 1) / 2) * math.max(COMPASS_W / #on, more.SLOT_W) end
   end
   for k, x in pairs(at) do
     local f = slots[k].frame

@@ -40,12 +40,21 @@ function rollVerdict(r) {
   return { u, it, up, cmp, against, againstId, mine, known };
 }
 
+const ROLL_CALL = { clear: "need", "": "greed" };
+const rollCall = (kind) => ROLL_CALL[kind] ?? "maybe";
+const ROLL_ICON = { need: "/ui/need.png", greed: "/ui/greed.png", maybe: "/icon/inv_misc_questionmark.jpg" };
+const ROLL_WORDS = wordsOf("page.rolls.call");
+function rollCallHtml(v) {
+  const kind = upgradeKind(v.u, v.up, v.cmp), call = rollCall(kind);
+  return `<div class="rc-call j-tag ${UPGRADE_COLOUR[kind] || "grey"}"><img src="${ROLL_ICON[call]}" alt="">${esc(ROLL_WORDS[call])}</div>`;
+}
+
 const CLEARLY_FOR = 1.5;
 function rollRanking(r, v) {
   const st = v.mine?.st;
   if (!statWeights.data || !st) return [];
   const it = { cls: r.cls, sub: r.sub, inv: r.inv }, cls = app.status?.classId;
-  const people = [{ you: true, cls, u: v.u, specs: specsFor(cls, spec() || LEVELING_TREE[cls], myRole()) }];
+  const people = v.up ? [{ you: true, cls, u: v.u, specs: specsFor(cls, spec() || LEVELING_TREE[cls], myRole()) }] : [];
   for (const m of app.group?.members || []) {
     const name = m.name.split("-")[0];
     if (m.me) continue;
@@ -107,7 +116,7 @@ function renderRolls(force) {
       : v.against ? `Over ${itemNamed(v.against.n, v.againstId, v.against.n)}${v.against.il ? ` (item level ${v.against.il})` : ""}${gain ? `: ${esc(gain)}` : ""}`
       : "You wear nothing in that slot";
     const icon = r.icon ? `/fileicon/${esc(r.icon)}.jpg` : `/icon/${esc(info.icon || "inv_misc_questionmark")}.jpg`;
-    return itemRowHtml({ id: rollKey(r), icon, q, name, cls: `rc-item${v.u.use === "never" ? " unusable" : ""}`, line: `${esc(line)}${note ? `, ${note}` : ""}`,
+    return rollCallHtml(v) + itemRowHtml({ id: rollKey(r), icon, q, name, cls: `rc-item${v.u.use === "never" ? " unusable" : ""}`, line: `${esc(line)}${note ? `, ${note}` : ""}`,
       more: `${vs ? `<small class="rc-vs">${vs}</small>` : ""}${rankingHtml(rollRanking(r, v))}`, after: upgradeTag(v.it, v.u, v.up, v.cmp) });
   }).join("");
   box.innerHTML = `<div class="rc-head"><span>${open.length > 1 ? `Rolling on ${open.length} items` : "Rolling on"}</span>
