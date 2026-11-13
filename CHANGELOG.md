@@ -1,6 +1,11 @@
 <!-- The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md. -->
 # Changelog
 
+## 0.1.9-alpha
+
+### Fixes
+- An update no longer downloads the navigation again when it hasn't changed, so updates are much smaller.
+
 ## 0.1.8-alpha
 
 ### The guide

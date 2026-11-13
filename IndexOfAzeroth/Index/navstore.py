@@ -43,8 +43,9 @@ def group_file(run, gid):
 
 class Index:
 
-    def __init__(self, files, run=None):
+    def __init__(self, files, run=None, runs=None):
         self.run = run
+        self.runs = runs
         self.names = sorted(files)
         rows = np.array([files[n] for n in self.names], np.int64).reshape(-1, 3)
         self.group, self.size, self.ns = rows[:, 0], rows[:, 1], rows[:, 2]
@@ -55,7 +56,7 @@ class Index:
         self.marks_lock = threading.Lock()
 
     def file(self, gid):
-        return group_file(self.run, gid)
+        return group_file(self.runs[gid] if self.runs else self.run, gid)
 
     def get(self, name):
         i = bisect.bisect_left(self.names, name)
@@ -90,7 +91,7 @@ def index(pack=None):
     files = raw.get("files", {})
     if files and not isinstance(next(iter(files.values())), list):
         raise ValueError(f"{path}: an index without each file's size and time, pack it again")
-    made = Index(files, raw.get("run"))
+    made = Index(files, raw.get("run"), raw.get("runs"))
     read_marks(pack, made)
     with _lock:
         _index[:] = [key, made]
