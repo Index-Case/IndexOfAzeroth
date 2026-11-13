@@ -132,10 +132,9 @@ function fit(d) {
   return [word("page.journal.dungeon.fit.gray"), "grey"];
 }
 
-const levelsText = (d) => (!d.levels ? "" : d.levels[1] !== d.levels[2] ? word("page.journal.dungeon.levels.range", { lo: d.levels[1], hi: d.levels[2] })
-  : word("page.journal.dungeon.levels.from", { level: d.levels[0] || "?" }));
+const levelsText = (d) => d.levelsLine || "";
 function levelsNote(d) {
-  const notes = d.gameLevel ? [word("page.journal.dungeon.levels.game", { level: d.gameLevel })] : [];
+  const notes = [];
   if (d.openLevels) notes.push(word("page.journal.dungeon.levels.notes", { lo: d.openLevels[0], hi: d.openLevels[1] }));
   else if (d.openFrom) notes.push(word("page.journal.dungeon.levels.notes-from", { level: d.openFrom }));
   for (const [lo, hi] of d.levelsElsewhere || []) notes.push(word("page.journal.dungeon.levels.maybe", { lo, hi }));
@@ -191,6 +190,7 @@ function openJournal(key, tab) {
   showJournal(key, tab);
 }
 function showJournal(key, tab) {
+  if (!jr.open) emit("window", "journal");
   jr.open = true;
   if (key !== undefined && key !== jr.key) { jr.key = key; jr.boss = 0; jr.quest = 0; jr.floor = 0; jr.place = null; }
   if (tab) jr.tab = tab;
@@ -648,6 +648,7 @@ for (const type of ["wheel", "pointerdown", "keydown"]) $("journal").addEventLis
 $("btn-journal").addEventListener("click", () => toggleJournal());
 hotkey(["j"], () => toggleJournal());
 closable(LAYER.journal, () => jr.open, () => closeJournal());
+on("window", (w) => { if (w !== "journal" && jr.open) closeJournal(); });
 
 on("start", () => setInterval(() => { if (jr.open) renderJournal(); }, 1000));
 on("start", () => { if (jr.reopen) showJournal(); });

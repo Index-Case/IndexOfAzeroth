@@ -9,7 +9,7 @@ import time
 from characters import same_char
 import datafiles
 import planreport
-from gamedata import quest_item_id
+from gamedata import WARNING_TODO, quest_item_id
 import store
 import storedonly
 from pending import addon_folder, lua_string, write_in_place
@@ -47,17 +47,25 @@ CARD = (("name", "questName"), ("npc", "npc"), ("zone", "zone"), ("min", "min"),
         ("ni", "npcId"), ("oi", "objectId"),
         ("trip", "trip"), ("why", "why"),
         ("cq", "cq"),
+        ("lt", "leadsTo"),
         ("get", "get"), ("gi", "getItems"), ("ga", "getAny"),
-        ("takes", "takes"))
+        ("takes", "takes"),
+        ("seen", "seen"),
+        ("made", "made"),
+        ("or", "others"),
+        ("fq", "forQuest"), ("rn", "reason"))
 LOOP_MOST = 40
 WALK_MOST = 60
 MOBS_MOST = 6
 HISTORY = 8
 SIDE_MOST = 2
-SIDE_BRIEF = ("key", "name", "char", "plan", "written", "line", "prof", "anchor", "mode", "closed", "opened")
+PAGE_ONLY = ("materials", "route")
+SIDE_BRIEF = ("key", "name", "char", "plan", "written", "line", "prof", "anchor", "mode", "closed", "opened",
+              "rating", "reasons", "against", "fresh", "start")
 PLANNING_KEEP = 10
 ROUTE_KEEP = 5
 ROUTES_KEPT = 8
+PAGE_DRAWN = (("spn", "spawns"), ("who", "who"), ("pat", "patrols"), ("wk", "walker"), ("aln", "alone"))
 PAGE_STEP = ("k", "ids", "text", "inst", "at", "name", "npc", "zone", "min", "target", "count", "mobs", "lv", "bosses",
              "things", "limit", "what", "cost", "careful", "xp", "sec", "along", "grp", "grind", "req",
              "pre", "any",
@@ -70,15 +78,20 @@ PAGE_STEP = ("k", "ids", "text", "inst", "at", "name", "npc", "zone", "min", "ta
              "fr",
              "trip", "why",
              "cq",
+             "lt",
              "get",
              "takes",
+             "seen",
+             "made",
              "hearth",
              "it",
              "fm",
              "pl",
              "loop", "walk", "way", "alt",
              "ground",
-             "al", "sp")
+             "al", "sp",
+             "fq", "rn",
+             ) + tuple(k for k, _ in PAGE_DRAWN)
 BOSSES_MOST = 16
 TALK_CODES = ("P", "T", "S")
 WAYS_AHEAD = 400
@@ -124,6 +137,7 @@ def lua_value(v):
 def quiet_table(todo):
     silenced = todo.get("silenced") or {}
     ranks = {tid[len("bars:"):]: 0 for tid in silenced if tid.startswith("bars:")}
+    never = {key: True for key, tid in WARNING_TODO.items() if tid in silenced}
     low = {}
     for key, d in (todo.get("dismissed") or {}).items():
         d = d if isinstance(d, dict) else {"sig": d}
@@ -137,7 +151,8 @@ def quiet_table(todo):
             low[key] = True
     from errands import TODO_LINES
     chores = {key: True for key, line in sorted(TODO_LINES.items()) if line in silenced}
-    return {k: dict(sorted(v.items())) for k, v in (("ranks", ranks), ("low", low), ("chores", chores)) if v}
+    return {k: dict(sorted(v.items())) for k, v in (("ranks", ranks), ("silenced", never), ("low", low), ("chores", chores))
+            if v}
 
 
 def quiet_line(quiet):
@@ -154,6 +169,10 @@ def stars_line(stars):
 
 def legacy_line(ids):
     return f"  legacy = {lua_value(list(ids))}," if ids else ""
+
+
+def nodes_line(nodes):
+    return f"  nodes = {lua_value(dict(sorted(nodes.items())))}," if nodes else ""
 
 
 def roles_line(roles):
@@ -195,13 +214,16 @@ def next_line(nxt):
 
 
 def epic_lines(name, epic, indent="  "):
-    meta = "".join(f"{k} = {lua_value(v)}, " for k, v in epic.items() if k != "steps" and v is not None)
-    return ([f"{indent}{name}{{ {meta}steps = {{"] + [f"{indent}  {lua_value(st)}," for st in epic["steps"]]
+    meta = "".join(f"{k} = {lua_value(v)}, " for k, v in epic.items()
+                   if k != "steps" and k not in PAGE_ONLY and v is not None)
+    drawn = {k for k, _ in PAGE_DRAWN}
+    return ([f"{indent}{name}{{ {meta}steps = {{"]
+            + [f"{indent}  {lua_value({k: v for k, v in st.items() if k not in drawn})}," for st in epic["steps"]]
             + [f"{indent}}} }},"])
 
 
 def render(data, quiet=None, watch=None, stars=None, legacy=None, services=None, rewards=None, nxt=None, towns=None,
-           places=None, roles=None, profs=None):
+           places=None, roles=None, profs=None, nodes=None):
     if not has_rewards(rewards):
         rewards = None
     if not has_next(nxt):
@@ -209,7 +231,7 @@ def render(data, quiet=None, watch=None, stars=None, legacy=None, services=None,
     if not (towns and towns.get("list")):
         towns = None
     if not data and not quiet and not watch and not stars and not legacy and not services and not rewards and not nxt \
-            and not towns and not places and not roles and not profs:
+            and not towns and not places and not roles and not profs and not nodes:
         return HEADER + "IndexOfAzerothShared = nil\n"
     lines = [HEADER.rstrip("\n"), "IndexOfAzerothShared = {"]
     if data:
@@ -222,6 +244,8 @@ def render(data, quiet=None, watch=None, stars=None, legacy=None, services=None,
         lines.append(stars_line(stars))
     if legacy:
         lines.append(legacy_line(legacy))
+    if nodes:
+        lines.append(nodes_line(nodes))
     if roles:
         lines.append(roles_line(roles))
     if services:
@@ -410,6 +434,9 @@ def epic_steps(steps, find_way, find_route=None, start=None, find_ground=None, a
             walk = st["patrols"][0]
             keep = walk if len(walk) <= WALK_MOST else [walk[round(k * (len(walk) - 1) / (WALK_MOST - 1))] for k in range(WALK_MOST)]
             entry["walk"] = [[round(float(n), 1), round(float(w), 1)] for n, w in keep]
+        for key, src in PAGE_DRAWN:
+            if st.get(src):
+                entry[key] = st[src]
         if len(out) >= ahead:
             out.append(entry)
             kept.append(st)
@@ -578,6 +605,30 @@ def plan_notes(epic):
             "missing": missing or None, "later": later or None, "skillShort": short or None}
 
 
+def epic_notes(record):
+    brief = record.get("brief") or ()
+    return {"errandNotes": [{"text": t, **({"brief": brief[k]} if k < len(brief) and brief[k] else {})}
+                            for k, t in enumerate(record.get("notes") or ())]
+            + [{"text": t, "hidden": True} for t in record.get("hidden") or ()],
+            "campLater": [{"text": e["text"], "wall": {"kind": e["wall"], **({"offer": e["offer"]} if e.get("offer") else {}),
+                                                       **({"prof": e["prof"]} if e.get("prof") else {})}}
+                          for e in record.get("later") or ()]}
+
+
+CODE_KIND = {code: kind for kind, code in EPIC_CODE.items()}
+PAGE_FROM = CARD + PAGE_DRAWN + (("loop", "loop"), ("bosses", "bosses"), ("qmobs", "qmobs"), ("mi", "mobs"))
+
+
+def page_step(e):
+    kind, ids = CODE_KIND.get(e["k"]), list(e.get("ids") or ())
+    out = {"kind": kind, "quest": ids[0] if ids else None, "text": e.get("text", ""), "inst": e.get("inst"),
+           "at": e.get("at"), **({"quests": ids} if kind == "dungeon" else {})}
+    out.update((src, e[key]) for key, src in PAGE_FROM if e.get(key) is not None)
+    if kind == "objective" and e.get("lv"):
+        out["levels"] = e["lv"]
+    return out
+
+
 QUEST_TEXT = datafiles.data_path("questtext.json")
 TEXT_CODES = ("P", "O", "T")
 
@@ -609,6 +660,15 @@ def page_form(data):
                                for s, lg in zip(epic["steps"], legs)]}}
 
 
+def with_pages(form):
+    epic = form.get("epic")
+    if not epic:
+        return form
+    drawn = {k for k, _ in PAGE_DRAWN}
+    return {**form, "epic": {**epic, "steps": [{k: v for k, v in s.items() if k not in drawn} for s in epic["steps"]],
+                             "pages": [page_step(s) for s in epic["steps"]]}}
+
+
 def closing(epic, by):
     game = by == "game"
     closed = epic.get("closed")
@@ -618,6 +678,13 @@ def closing(epic, by):
         return None, False
     kept = {k: v for k, v in epic.items() if k != "opened"}
     return {**kept, "closed": {"by": by, "at": int(time.time()), "game": game}}, True
+
+
+def finished(epic):
+    if epic.get("steps"):
+        return epic
+    kept = {k: v for k, v in epic.items() if k != "opened"}
+    return {**kept, "closed": {"by": "done", "at": int(time.time()), "game": True}}
 
 
 def opening(epic, by):
@@ -642,6 +709,7 @@ class Shared:
         self.plans = {}
         self.history = {}
         self.loaded = None
+        self.side_loaded = set()
         self.run_start = None
         self.stops = {}
         self.top = 0
@@ -658,6 +726,7 @@ class Shared:
         self.watch = {}
         self.stars = {}
         self.legacy = []
+        self.nodes = {}
         self.services = []
         self.rewards = None
         self.next = None
@@ -683,6 +752,7 @@ class Shared:
         self.top = int(saved.get("top") or 0)
         self.aside = saved.get("aside") or None
         self.profs = saved.get("profs") or []
+        self.nodes = saved.get("nodes") or {}
         data, path = saved.get("data"), self.path()
         if not data or not path or not os.path.exists(path):
             return
@@ -705,12 +775,15 @@ class Shared:
             setattr(self, name, value)
         self.data = data
         self.top = max(self.top, int(data["version"]))
-        self.history[int(data["version"])] = page_form(data)
-        for v in sorted(self.history)[:-HISTORY]:
-            if v != self.loaded:
-                del self.history[v]
+        self.keep_history(data)
         self.save_state()
         return True
+
+    def keep_history(self, data):
+        self.history[int(data["version"])] = page_form(data)
+        for v in sorted(self.history)[:-HISTORY]:
+            if v != self.loaded and v not in self.side_loaded:
+                del self.history[v]
 
     def write_profs(self, profs, written=0):
         path = self.path()
@@ -726,7 +799,7 @@ class Shared:
         if self.state_path:
             store.save_json(self.state_path, {"data": self.data, "plans": self.plans, "run_start": self.run_start,
                                               "top": self.top, "history": {str(v): p for v, p in self.history.items()},
-                                              "aside": self.aside, "profs": self.profs})
+                                              "aside": self.aside, "profs": self.profs, "nodes": self.nodes})
 
     def set_quiet(self, quiet):
         return self.set_part("quiet", quiet or {}, quiet_line)
@@ -739,6 +812,13 @@ class Shared:
 
     def set_legacy(self, ids):
         return self.set_part("legacy", list(ids or ()), legacy_line)
+
+    def set_nodes(self, nodes):
+        wrote = self.set_part("nodes", dict(nodes or {}), nodes_line)
+        if wrote:
+            with self.lock:
+                self.save_state()
+        return wrote
 
     def set_services(self, names):
         return self.set_part("services", list(names or ()), services_line)
@@ -780,7 +860,7 @@ class Shared:
         if epic.get("steps"):
             dress_steps(epic["steps"], self.find_spawns, legs_start(epic))
         return render(data, self.quiet, self.watch, self.stars, self.legacy, self.services, self.rewards, self.next,
-                      self.towns, self.places, self.roles, self.profs if profs is None else profs)
+                      self.towns, self.places, self.roles, self.profs if profs is None else profs, self.nodes)
 
     def plan_report(self, key, stage=None, finds=(), picked=None, placed=(), ordered=None, crumbs=None, at=None,
                     rounds=None, tried=None, walked=None, won=None):
@@ -937,24 +1017,27 @@ class Shared:
             with self.lock:
                 if self.stops.get(key, 0) != since or self.asks != ask or (still and not still()):
                     return False
-                was = (self.data or {}).get("epic") or {}
-                if was.get("key") == key and was.get("closed") and not (meta or {}).get("start"):
-                    return False
-                fewer = (meta or {}).get("fewer")
-                if fewer is not None and counted["unbuilt"] >= fewer:
-                    return False
                 meta = meta or {}
                 start = bool(meta.get("start"))
+                was = (self.data or {}).get("epic") or {}
+                mine, _ = self.epic_of(key, meta.get("char"))
+                if mine and mine.get("closed") and not start:
+                    return False
+                fewer = meta.get("fewer")
+                if fewer is not None and counted["unbuilt"] >= fewer:
+                    return False
                 plan = 1 if start else int(self.plans.get(key) or 0) + 1
                 version = self.next_version()
                 epic = {"key": key, "name": meta.get("name"), "plan": plan, "char": meta.get("char"), "anchor": meta.get("anchor"),
                         "mode": meta.get("mode"), "rating": meta.get("rating"), "reasons": meta.get("reasons"), "written": version,
                         "fresh": meta.get("fresh"), "close": meta.get("close"),
+                        "questLevels": meta.get("questLevels") or None,
                         "craft": meta.get("craft") or None,
                         "maybe": meta.get("maybe") or None,
                         "next": meta.get("next") or None,
                         "notes": meta.get("notes") or None, "brief": meta.get("brief") or None,
                         "hidden": meta.get("hidden") or None,
+                        "materials": meta.get("materials") or None, "route": meta.get("route") or None,
                         "against": meta.get("against"),
                         "missing": meta.get("missing") or None,
                         "skillShort": meta.get("skillShort") or None,
@@ -967,7 +1050,8 @@ class Shared:
                         "qt": quest_texts(steps),
                         "steps": steps}
                 if meta.get("side"):
-                    return self.put_side({**epic, **meta["side"]})
+                    return self.put_side(finished({**epic, **meta["side"],
+                                                   "start": version if start else (mine or {}).get("start")}))
                 before = self.data
                 aside = meta.get("aside")
                 if not start or aside == "keep":
@@ -1028,6 +1112,15 @@ class Shared:
                 return side, at
         return None, None
 
+    def written(self, version):
+        if not version:
+            return None
+        v, data = int(version), self.data or {}
+        if v == data.get("version"):
+            return data.get("epic")
+        side = next((s for s in self.profs if s.get("written") == v), None)
+        return side or (self.history.get(v) or {}).get("epic")
+
     def put_epic(self, at, epic, **record):
         if at is None:
             return self.write_locked({**(self.data or {}), "epic": epic}, **record)
@@ -1036,12 +1129,10 @@ class Shared:
         return self.write_profs(profs)
 
     def put_side(self, epic):
-        mine = [i for i, s in enumerate(self.profs) if same_char(s.get("char"), epic.get("char"))]
-        at = next((i for i in mine if self.profs[i].get("line") == epic.get("line")), None)
-        if at is None and len(mine) >= SIDE_MOST:
-            at = next((i for i in mine if self.profs[i].get("closed")), None)
-            if at is None:
-                return False
+        if self.side_in_way(epic.get("char"), epic["key"]):
+            return False
+        at = next((i for i, s in enumerate(self.profs)
+                   if s.get("key") == epic["key"] and same_char(s.get("char"), epic.get("char"))), None)
         profs = list(self.profs)
         if at is None:
             profs.append(epic)
@@ -1050,14 +1141,20 @@ class Shared:
         if not self.write_profs(profs, epic["written"]):
             return False
         self.plans = {**self.plans, epic["key"]: epic["plan"]}
+        self.keep_history({"version": epic["written"], "epic": epic})
+        self.save_state()
         return True
 
-    def side_room(self, char, line):
+    def side_in_way(self, char, key):
+        running = [s for s in self.profs if same_char(s.get("char"), char) and not s.get("closed")]
+        if len(running) < SIDE_MOST or any(s.get("key") == key for s in running):
+            return []
+        return [s.get("name") for s in running]
+
+    def side_room(self, char, key):
         with self.lock:
-            mine = [s for s in self.profs if same_char(s.get("char"), char)]
-            if len(mine) < SIDE_MOST or any(s.get("line") == line or s.get("closed") for s in mine):
-                return True, []
-            return False, [s.get("name") for s in mine]
+            way = self.side_in_way(char, key)
+            return not way, way
 
     def close_epic(self, key=None, by="page", char=None):
         with self.lock:
@@ -1079,6 +1176,8 @@ class Shared:
         with self.lock:
             epic, at = self.epic_of(key, char)
             if not epic or not epic.get("closed"):
+                return False
+            if at is not None and self.side_in_way(epic.get("char"), key):
                 return False
             return self.put_epic(at, opening(epic, by))
 
@@ -1125,7 +1224,7 @@ class Shared:
         epic = d.get("epic") or {}
         return {"version": d.get("version"), "working": self.working, "key": epic.get("key"), "name": epic.get("name"),
                 "plan": epic.get("plan"), "char": epic.get("char"), "anchor": epic.get("anchor"), "mode": epic.get("mode"),
-                "close": epic.get("close"),
+                "close": epic.get("close"), "questLevels": epic.get("questLevels"),
                 "rating": epic.get("rating"), "reasons": epic.get("reasons"), "against": epic.get("against"),
                 "written": epic.get("written"), "fresh": epic.get("fresh"), "start": self.run_start, "unbuilt": epic.get("unbuilt"), "progress": self.progress_now(),
                 "closed": epic.get("closed"), "opened": epic.get("opened"), "broke": self.broke,
@@ -1135,12 +1234,12 @@ class Shared:
 
     def aside_brief(self):
         epic = ((self.aside or {}).get("data") or {}).get("epic") or {}
-        return {k: epic.get(k) for k in ("key", "name", "char", "anchor", "mode", "close")} if epic.get("key") else None
+        return {k: epic.get(k) for k in ("key", "name", "char", "anchor", "mode", "close", "questLevels")} if epic.get("key") else None
 
     def snapshot(self, version=None):
         last = version and int(version) == (self.data or {}).get("version")
         form = self.history.get(int(version)) if version and not last else None
-        return {**(form or page_form(self.data or {})), "working": self.working, "progress": self.progress_now(),
+        return {**with_pages(form or page_form(self.data or {})), "working": self.working, "progress": self.progress_now(),
                 "towns": self.towns, "profs": [page_form({"version": s.get("written"), "epic": s})["epic"] for s in self.profs]}
 
     def ensure(self):

@@ -1,6 +1,190 @@
 # The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
-# placeholders: none
+# placeholders: name, epic, running, step, why, verb, n, of, id, npc, chips, names, level, when, note, layer, key, list, m, h, way, pct, text, quest, boss, dungeon
 
 closed.dismiss = Dismiss
 closed.dismiss.tip = This takes the closed epic's box off the page. It can be brought back from the Dismissed menu.
 closed.why = This quest epic is closed. Show again opens it where you left off.
+closed.line = {name} is closed. Its plan and your progress are kept.
+reopen = Reopen
+reopen.tip = This opens the epic again where you were, with its plan and progress
+reopened = {name} is open again where you were
+reopened.game = {name} is open again where you were. To pick it up in game, type /ioa guide start or /reload
+reopen.failed = The epic is still closed
+
+title.zone = {name} Zone epic
+title.zone.none = Zone epic
+title.prof = {name} Profession epic
+title.prof.none = Profession epic
+title.quest = {name} Quest epic
+title.quest.none = Quest epic
+title.class.none = Class Quest epic
+title.camp = Camping epic
+label = the {name} quest epic
+the-quest-epic = the quest epic
+the-quest-epic.start = The quest epic
+
+one.title = One epic at a time
+one.text = {running} is running. Stop {running} and start {epic}?
+one.yes = Start the new epic
+one.no = Keep the current epic
+started = {epic} started. The Index is writing the plan for the game now
+started.replan = The Index planned {name} afresh from where you are. The Index is writing the plan for the game now
+started.replan.parked = The Index planned {name} afresh from where you are and kept its parked quests parked. The Index is writing the plan for the game now
+moved = Quest epic: {step}
+all-done = {name} is all done
+game.runs = The guide for {name} runs in game, so the page shows the epic too
+game.closed = You closed {name} in game, so the page closed the epic too. Its plan and your progress are kept, and Reopen picks it up again
+ready = The plan for {name} is ready for the addon. Type /reload in game to load the epic's guide
+newer = A new plan is ready. Any /reload loads the new plan
+newer.why = A new plan is ready. {why}. Any /reload loads the new plan
+
+step.noun = step
+step.first = the first step
+
+for = for {quest}
+now.boss = Kill {boss}
+before = Before you go in: {n} steps left
+before.one = Before you go in: one step left
+next = Then
+doorcheck.ready = All {n} quests for {dungeon} are in your log.
+doorcheck.ready.one = The quest for {dungeon} is in your log.
+doorcheck.short = {n} of {of} quests for {dungeon} are in your log.
+doorcheck.parked = {quest} is parked.
+doorcheck.offered = {npc} didn't offer {quest}.
+doorcheck.missing = {quest} is not in your log yet.
+quest.id = quest {id}
+turnin = Turn in {name}
+turnin.npc = Turn in {name} to {npc}
+
+stage.prep = Get ready
+stage.travel = Go there
+stage.inside = Inside
+stage.turnin = Hand in
+count = {n} of {of} steps done
+obj.left = {n} left
+obj.wanted = wanted
+inside.quests = {n} quests inside
+inside.quests.one = {n} quest inside
+inside.bosses = Inside, {n} of {of} bosses down
+card.hidden = The epic's card is hidden in game. Click the add-on button or the blue arrow, or type /ioa guide, to show the card again
+careful = Careful
+all-done.line = All done
+nothing = The epic has nothing for you to do right now
+use = Use this
+details = Details
+party = Party: {chips}
+door = You're at the door, waiting for {names}
+level.under = Level {level} in under a minute
+level.min = Level {level} in about {m} min
+level.hours = Level {level} in about {h} h {m} min
+
+grind = Grind to level {level} {when}
+grind.now = now, the next quests open there
+grind.after = after the next {n} steps
+grind.after.one = after the next {n} step
+then = (then {step})
+
+chains = The next quests in these chains: {names}
+chains.start = Start these quests as an epic
+
+fold.list.tip = Expands or collapses this list
+fold.note.tip = Expands or collapses the rest of this note
+notes = Left out of the plan
+notes.not = Not planned yet: {note}
+notes.hidden = Hidden by you: {note}
+later = Later
+later.grind.tip = Finds the best camp for the character's level in the area in view and a loop round the camp
+later.zones = Zone epic
+later.zones.tip = Shows every zone with quests for the character. Click a zone to plan all of its quests as one epic
+later.layer = Show on the map
+later.layer.tip = Shows the {layer} layer on the map. The {key} key under the zone name starts a loop for the character's skill
+parked = Parked
+parked.held = The parked quest {name} holds back {list}
+unpark = Unpark {name}
+unpark.tip = Copies the line that puts this quest back in the guide in game. The quest goes back in at once, fitted in from the character's spot
+older.unpark.tip = The addon in game reads this line after its next /reload. Until then, click the quest's row in the card's Steps list to put the quest back
+older.key.tip = The addon in game reads this key's line after its next /reload
+putaway = Put away
+along = Along the way
+along.label = {text}, along the way
+skill = skill
+
+missing.tag = No data yet
+missing.count = Forever added {n} quests
+missing.count.one = Forever added {n} quest
+missing.what = We have no information yet on what opens these quests.
+missing.what.one = We have no information yet on what opens the quest.
+missing.picks = The epic picks up {n} of them on the way if a giver offers them.
+missing.picks.one = The epic picks up {n} of them on the way if a giver offers it.
+missing.leaves = The epic leaves those quests out, and takes a quest for you when a giver you talk to offers it.
+missing.leaves.one = The epic leaves that quest out, and takes a quest for you when a giver you talk to offers it.
+missing.leaves.rest = The epic leaves the rest out, and takes a quest for you when a giver you talk to offers it.
+missing.way = (on your way)
+
+group.tag = (group quest)
+group = Group quest
+group.solo.card = This is a group quest. Park it on the card if you're on your own
+group.solo = This is a group quest. Park it if you're on your own
+group.park = Park it
+group.park.tip = Copies the line that parks this quest in game, as Park on the card does. The guide comes back to the quest once the rest is done
+
+steps.all = All steps
+steps.all.tip = Shows every step of the epic in order
+steps.held = Steps on hold
+steps.held.tip = Shows only the steps on hold: the ones blocked, parked or waiting for a level
+steps.fold.tip = Collapses this list of steps
+steps.none = No step is on hold now
+tag.blocked = Blocked
+tag.parked = Parked
+tag.skipped = Skipped
+tag.level = Level {level}
+tag.waiting = Waiting
+tag.here = You are here
+step.done = Done
+step.more.tip = Expands or collapses more about this step
+step.pick.tip = Shows this step of the plan on the map and in this panel
+step.unpark.tip = This quest is parked and still to do. A click copies the line that puts the quest back in game, as a click on its row on the card does. The quest goes back in at once, fitted in from the character's spot
+step.parked.tip = This quest is parked and still to do. Click its row in the card's Steps list to put the quest back
+
+qt = Quest text
+qt.tip = Quest text. Click to read the quest's full text
+qt.tip.open = Quest text. Click to close the quest's text
+qt.not = (not picked up yet)
+qt.close = Closes the quest's text
+qt.objectives = Quest objectives
+qt.description = Description
+qt.game = The game's text from your quest log.
+qt.ours = This quest isn't in your log. The text comes from the Index's quest data.
+
+plan.what = the epic's plan written for the game
+plan.broke = the Index ran into an error while writing it
+way.safe = the safest route, to roads and well clear of mobs
+way.fight = the grinding route, through the mobs worth fighting
+way.any = the quickest route round the mobs
+mode.writing = Quest epic: {way}. The Index is writing the epic's plan for the game that way
+mode.none = Quest epic: {way}. The epic has no plan in game yet. A Re-plan writes one that way
+mode.same = Quest epic: {way}, as the epic's plan in game has it
+mode.reload = Quest epic: {way}. The blue arrow in game takes the new route after a /reload, once the reload prompt asks for one
+mode.failed = The epic's plan in game keeps its old route
+ways.writing = The Index is writing the epic's plan for the game again with this route
+ways.still = The epic's plan for the game still goes {way}
+
+making = The Index is working out the epic's legs, at step {n} of {of}
+making.unbuilt = {n} steps have no walking path yet, because the map data there is still being built
+making.unbuilt.one = {n} step has no walking path yet, because the map data there is still being built
+making.bar = Steps worked out
+unbuilt = The walking path to {n} steps isn't worked out yet, because the map data for those spots is still being built. Until then the arrow points straight at those steps.
+unbuilt.one = The walking path to {n} step isn't worked out yet, because the map data for that spot is still being built. Until then the arrow points straight at that step.
+unbuilt.mapped = The walking path to {n} steps isn't worked out yet, because the map data for those spots is still being built ({pct}% of the world is mapped so far). Until then the arrow points straight at those steps.
+unbuilt.mapped.one = The walking path to {n} step isn't worked out yet, because the map data for that spot is still being built ({pct}% of the world is mapped so far). Until then the arrow points straight at that step.
+
+walks = {npc} walks the marked route
+walks.npc = The NPC
+
+replan.tip = Plans the epic afresh from the character's spot and what the game says now, the same as stopping the epic and starting it again. Then type /reload in game
+replan.title = Unpark parked quests?
+replan.text = Re-planning {name}. These quests are parked:
+replan.text.one = Re-planning {name}. This quest is parked:
+replan.more = Yes plans the parked quests back in from where you are. No keeps them parked, planned last and still to do
+replan.yes = Unpark them
+replan.no = Keep them parked

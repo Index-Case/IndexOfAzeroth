@@ -67,19 +67,20 @@ function rollRanking(r, v) {
     return best && { ...p, spec: best.s.name, worth: best.worth, kind: best.kind };
   }).filter((p) => p && p.kind).sort((a, b) => order(a) - order(b) || b.worth - a.worth);
 }
-const KIND_WORDS = { clear: "a clear upgrade", weak: "a weak upgrade", debatable: "a debatable upgrade" };
+const KIND_WORDS = wordsOf("page.rolls.kind");
 function rankingHtml(rank) {
   if (!app.group?.members?.length || !rank.length) return "";
   const who = (p) => {
     const cls = CLASS_NAMES[p.cls] || "";
-    const why = p.you ? "by your talents" : p.role ? `as the group's ${p.role}` : "the spec of theirs the item suits best";
-    const tip = `${p.spec} ${cls} (${why}). For this spec the item is ${KIND_WORDS[p.kind]} on its own, worth ${p.worth.toFixed(1)} by the spec's stat weights${
-      p.u.use === "later" ? `. ${p.you ? "You" : p.name} can wear the item from level ${p.u.level}` : ""}`;
-    return `<b style="color:${CLASS_COLORS[cls] || tint("class-other")}" title="${esc(tip)}">${esc(p.you ? "you" : p.name)}</b> (${esc(`${p.spec} ${cls}`)})`;
+    const why = p.you ? word("page.rolls.why.you") : p.role ? word("page.rolls.why.role", { role: p.role }) : word("page.rolls.why.spec");
+    const tip = word("page.rolls.tip", { spec: p.spec, class: cls, why, kind: KIND_WORDS[p.kind], worth: p.worth.toFixed(1) }) + (
+      p.u.use !== "later" ? "" : `. ${p.you ? word("page.rolls.tip.later.you", { level: p.u.level }) : word("page.rolls.tip.later", { name: p.name, level: p.u.level })}`);
+    return `<b style="color:${CLASS_COLORS[cls] || tint("class-other")}" title="${esc(tip)}">${esc(p.you ? word("page.rolls.you") : p.name)}</b> (${esc(`${p.spec} ${cls}`)})`;
   };
-  if (rank.length === 1) return `<small class="rc-for">Only ${who(rank[0])} can use this item here</small>`;
+  if (rank.length === 1) return `<small class="rc-for">${word("page.rolls.only", { who: who(rank[0]) })}</small>`;
   const clearly = KIND_RANK[rank[0].kind] < KIND_RANK[rank[1].kind] || rank[0].worth >= rank[1].worth * CLEARLY_FOR;
-  return `<small class="rc-for">${clearly ? "Clearly for" : "Best for"} ${who(rank[0])}, then ${rank.slice(1).map(who).join(", ")}</small>`;
+  const fill = { who: who(rank[0]), others: rank.slice(1).map(who).join(", ") };
+  return `<small class="rc-for">${clearly ? word("page.rolls.clearly", fill) : word("page.rolls.best", fill)}</small>`;
 }
 
 function renderRolls(force) {
@@ -104,23 +105,26 @@ function renderRolls(force) {
   rollCard.key = key;
   const rows = open.map((r) => {
     const v = rollVerdict(r), info = rollCard.names[r.item] || {}, st = statCache[rollKey(r)];
-    const name = st?.n || info.n || `Item ${r.item}`, q = st?.q ?? info.q ?? 1;
+    const name = st?.n || info.n || word("page.rolls.item", { id: r.item }), q = st?.q ?? info.q ?? 1;
     const kind = r.cls === 4 ? ARMOR_NAME[r.sub] : r.cls === 2 ? WEAPON_SKILL[r.sub] : "";
     const line = [st?.slot || ROLL_INV_NAME[r.inv], kind && kind[0].toUpperCase() + kind.slice(1),
-      r.il ? `item level ${r.il}` : "", r.rl > 1 ? `requires level ${r.rl}` : ""].filter(Boolean).join(", ");
-    const note = v.u.use === "never" ? "your class can't use it"
-      : v.u.use === "later" ? `${esc(v.u.skill)} from level ${v.u.level}`
-      : !v.up && (v.u.use === "yes" || v.u.use === "train") ? "not better than what you wear" : "";
-    const gain = v.against && v.mine?.st ? gainText(v.mine, v.against) : "";
+      r.il ? word("page.rolls.item-level", { il: r.il }) : "", r.rl > 1 ? word("page.journal.items.requires", { level: r.rl }) : ""]
+      .filter(Boolean).join(", ");
+    const note = v.u.use === "never" ? word("page.rolls.never")
+      : v.u.use === "later" ? word("page.journal.items.later", { skill: esc(v.u.skill), level: v.u.level })
+      : !v.up && (v.u.use === "yes" || v.u.use === "train") ? word("page.rolls.no-better") : "";
+    const gain = v.against && v.mine?.st ? esc(gainText(v.mine, v.against)) : "";
+    const over = v.against && { item: itemNamed(v.against.n, v.againstId, v.against.n), il: v.against.il, gain };
     const vs = v.u.use === "never" || !v.known ? ""
-      : v.against ? `Over ${itemNamed(v.against.n, v.againstId, v.against.n)}${v.against.il ? ` (item level ${v.against.il})` : ""}${gain ? `: ${esc(gain)}` : ""}`
-      : "You wear nothing in that slot";
+      : !over ? word("page.rolls.nothing")
+      : over.il ? (gain ? word("page.rolls.over.level.gain", over) : word("page.rolls.over.level", over))
+      : gain ? word("page.rolls.over.gain", over) : word("page.rolls.over", over);
     const icon = r.icon ? `/fileicon/${esc(r.icon)}.jpg` : `/icon/${esc(info.icon || "inv_misc_questionmark")}.jpg`;
     return rollCallHtml(v) + itemRowHtml({ id: rollKey(r), icon, q, name, cls: `rc-item${v.u.use === "never" ? " unusable" : ""}`, line: `${esc(line)}${note ? `, ${note}` : ""}`,
       more: `${vs ? `<small class="rc-vs">${vs}</small>` : ""}${rankingHtml(rollRanking(r, v))}`, after: upgradeTag(v.it, v.u, v.up, v.cmp) });
   }).join("");
-  box.innerHTML = `<div class="rc-head"><span>${open.length > 1 ? `Rolling on ${open.length} items` : "Rolling on"}</span>
-      <span class="rc-end"><span class="rc-left"></span>${helpButton("rolls")}</span></div>${rows}<div class="rc-foot">Hover over an item for its tooltip, and hold Ctrl to compare it with what's worn</div>`;
+  box.innerHTML = `<div class="rc-head"><span>${wordCount("page.rolls.head", open.length)}</span>
+      <span class="rc-end"><span class="rc-left"></span>${helpButton("rolls")}</span></div>${rows}<div class="rc-foot">${esc(word("page.rolls.foot"))}</div>`;
   box.hidden = false;
   tickRolls();
   if (!rollCard.timer) rollCard.timer = setInterval(tickRolls, 250);

@@ -30,6 +30,9 @@
   };
   const update = key("update"), later = key("later");
   keys.append(size, update, later);
+  const download = Object.assign(document.createElement("a"), { className: "key small", target: "_blank", rel: "noopener" });
+  const fetchKeys = Object.assign(document.createElement("div"), { className: "loadbox-keys" });
+  fetchKeys.append(download);
   function show(s) {
     loadBox.show({ line: [s.news, s.line].filter(Boolean).join(" "),
       share: s.phase === "installing" ? (s.total ? s.done / s.total : 0) : null });
@@ -41,8 +44,10 @@
     size.textContent = offer ? s.size : "";
     update.textContent = s.update || "";
     later.textContent = s.later || "";
-    const shown = offer ? [changes, keys] : changes.children.length ? [changes] : [];
-    if (shown.length !== more.children.length) more.replaceChildren(...shown);
+    download.href = s.link || "";
+    download.textContent = s.download || "";
+    const shown = offer ? [changes, keys] : s.link ? [fetchKeys] : changes.children.length ? [changes] : [];
+    if (shown.length !== more.children.length || shown.some((el, i) => more.children[i] !== el)) more.replaceChildren(...shown);
   }
   async function indexUp() {
     try {

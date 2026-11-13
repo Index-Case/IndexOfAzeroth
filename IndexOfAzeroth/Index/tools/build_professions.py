@@ -155,29 +155,27 @@ def recipe_items(links, item_effects, effects, known):
     return out
 
 
-def learnt_by(effects, known):
-    return {sid: num(e.get("EffectTriggerSpell")) for sid, es in effects.items() for e in es
-            if num(e.get("Effect")) == LEARN_SPELL and num(e.get("EffectTriggerSpell")) in known}
+def learnt_by(effects, known, sources=None):
+    out = {sid: taught for sid, taught in (sources or {}).items() if taught in known}
+    out.update({sid: num(e.get("EffectTriggerSpell")) for sid, es in effects.items() for e in es
+                if num(e.get("Effect")) == LEARN_SPELL and num(e.get("EffectTriggerSpell")) in known})
+    return out
 
 
 def item_facts(sparse, wanted, base=()):
-    classes = {num(r["ID"]): num(r.get("ClassID")) for r in base if num(r["ID"]) in wanted}
+    classes = {num(r["ID"]): (num(r.get("ClassID")), num(r.get("SubclassID"))) for r in base if num(r["ID"]) in wanted}
     out = {}
     for r in sparse:
         i = num(r["ID"])
         if i not in wanted:
             continue
         e = out[i] = {"n": r.get("Display_lang") or ""}
-        if num(r.get("BuyPrice")):
-            e["price"] = num(r["BuyPrice"])
-        if num(r.get("VendorStackCount")) > 1:
-            e["per"] = num(r["VendorStackCount"])
         if num(r.get("RequiredSkill")):
             e["needs"] = [num(r["RequiredSkill"]), num(r.get("RequiredSkillRank"))]
         if num(r.get("RequiredLevel")) > 1:
             e["rl"] = num(r["RequiredLevel"])
         if i in classes:
-            e["cls"] = classes[i]
+            e["cls"], e["sub"] = classes[i]
     return out
 
 

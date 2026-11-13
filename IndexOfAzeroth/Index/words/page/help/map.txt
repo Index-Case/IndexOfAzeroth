@@ -21,6 +21,7 @@ detailed-map.p1 = A zone that covers more than half of the land on screen lights
 detailed-map.p2 = White water forms where a river drops. The white water drifts downstream with the current.
 detailed-map.li1 = <b>Trees</b> draws the game's trees and their shadows.
 detailed-map.li2 = <b>Tree transparency</b> clears the trees over roads and buildings and thins the trees around the character's arrow.
+detailed-map.li3 = <b>Contours</b> draws height lines the way a hiking map does, every fifth line stronger.
 overlays = Overlays
 overlays.li1 = <b>Ctrl+click</b> a name along the bottom of the map to show only that overlay. <b>Ctrl+click</b> the name again to show every overlay.
 overlays.li2 = <b>Tab</b> moves to each name, and <b>Enter</b> on a name works as a click. <b>Ctrl+Enter</b> on a name shows only that overlay.

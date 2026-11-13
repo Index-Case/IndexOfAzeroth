@@ -1,0 +1,51 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: name, loot, n, all, min, xp, rate, i
+
+poi.bosses = Bosses
+poi.bosses.note = numbered in the order they're met
+poi.rares = Rare spawns
+poi.rares.note = the NPCs menu's rares in this dungeon
+poi.mine = Your quests
+poi.mine.note = targets of quests in the quest log
+poi.all = All quests
+poi.all.note = every quest target in this dungeon
+poi.what = the dungeon's bosses and quests
+poi.outside = Outside the dungeon, this menu shows the town list again.
+all = All
+none = None
+dungeon = Dungeon
+
+stars.full = A character's star list holds {n} items. Unstar an item first
+stars.failed = The star wasn't saved
+stars.next = Starred loot {name} can drop: {loot}
+stars.down = {name} is down. Starred loot it can drop: {loot}
+stars.changed = Your starred loot changed since the game loaded it
+arrived = Arrived at {name}
+
+boss.rare = Rare spawn
+boss = Boss {i}
+boss.down = down
+boss.next = next up
+boss.starred = starred: {loot}
+boss.tip = Click to open this boss in the journal
+
+run.bosses = {n} of {all} bosses
+run.next = next
+run.all-down = all down
+run.xp = XP {xp}
+run.rate = ({rate} an hour)
+run.deaths = {n} deaths
+run.deaths.one = {n} death
+
+party = Party
+party.dead = Dead
+party.ghost = Ghost
+party.offline = Offline
+party.far = Far
+party.no-role = no role
+party.lead = lead
+
+cap = Instance cap reached
+cap.count = {n} of 5 instances this hour
+cap.wait = The next one frees up in {min} min
+cap.one-more = One more new instance, then wait. The oldest frees up in {min} min

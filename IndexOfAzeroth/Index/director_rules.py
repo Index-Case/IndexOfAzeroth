@@ -396,6 +396,7 @@ WORDS = {
     "put_off_said_place": "You put off {chore} until you're next in {place}.",
     "core_now": "{spells} are core: train now.",
     "core_now_one": "{spells} is core: train now.",
+    "only_wait": "{lost} waits, because {why}. Until then, the guide takes you to {wonNpc}.",
 }
 
 BACK = {

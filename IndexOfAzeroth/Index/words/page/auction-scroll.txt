@@ -1,0 +1,15 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: id, price, n, total
+
+item = Item {id}
+each = {price} each
+bid = {price} bid
+none = Nothing is scanned yet
+caption.waiting = Waiting for the strip
+caption.asking = Asking the auction house
+caption.count = Scanning the auction house, {n} of {total}
+caption.scanning = Scanning the auction house
+ended.done = The auction house scan is done, with {n} auctions
+ended.failed = The auction house sent nothing back
+ended.cut = The auction house scan was cut off. The Index kept {n} auctions
+ended.stopped = The auction house scan stopped. The Index kept {n} auctions

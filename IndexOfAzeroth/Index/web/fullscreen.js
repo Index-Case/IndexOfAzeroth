@@ -19,7 +19,7 @@ function watchFullScreen(win, doc, note) {
     note.classList.toggle("leaves", how === "page");
     note.setAttribute("aria-hidden", how ? "false" : "true");
     note.tabIndex = how === "page" ? 0 : -1;
-    note.title = how === "page" ? "Click here or press F11 to leave full screen" : "";
+    note.title = how === "page" ? word("page.fullscreen.leave") : "";
     doc.body.classList.toggle("full-screen", !!how);
   };
   win.addEventListener("resize", check);

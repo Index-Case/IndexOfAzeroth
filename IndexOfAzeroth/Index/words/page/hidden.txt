@@ -1,0 +1,13 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+line.1 = You've gone where the maps don't. A gnome is pretending this was the plan all along.
+line.2 = Somewhere under the city, the tram is rattling along. The Index is betting on which end you come out of.
+line.3 = The map has lost you. The dwarves say that's normal down here, and they'd know.
+line.4 = You're in the deep tunnels now. A goblin is selling guesses at five copper each.
+line.5 = The cartographers of Stormwind never drew this bit. They said it was too damp.
+line.6 = Off the edge of the map and still moving. The Index is following the rattle of the rails.
+line.7 = A secret way under the ground, by the look of it. The Index won't tell anyone.
+line.8 = Your dot has gone underground. A gnome engineer insists it's perfectly safe and is holding his breath.
+line.9 = Wherever you are, it's dark and it smells of oil. The Index is guessing, and guessing with confidence.
+line.10 = You've slipped into one of Azeroth's hidden places. The Index is drawing a line and hoping.

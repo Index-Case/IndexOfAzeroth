@@ -38,26 +38,45 @@ function quipsAboutYou(me) {
 
 const quipKey = (facts) => JSON.stringify(Object.keys(facts).sort().map((k) => [k, String(facts[k])]));
 
-function quipFinds(me) {
+const QUIP_KINDS = { ...QUIP_LOG, ...QUIP_FOUND };
+
+function quipFinds(me, kinds = QUIP_KINDS) {
   const out = {};
   for (const f of me.found || []) {
-    if (!f?.k || !(QUIP_LOG[f.k] || QUIP_FOUND[f.k])) continue;
+    if (!f?.k || !kinds[f.k]) continue;
     const { k, ...facts } = f, list = (out[k] ||= []);
     if (list.length < QUIP_EACH && !list.some((x) => quipKey(x) === quipKey(facts))) list.push(facts);
   }
   return out;
 }
 
-function quipsFound(stage, me) {
-  const finds = quipFinds(me), out = [];
-  for (const kind of QUIP_USES[stage]) {
-    const templates = QUIP_LOG[kind] || QUIP_FOUND[kind];
-    (finds[kind] || []).slice(0, templates.length).forEach((facts, k) => {
-      const s = quipFill(templates[k], facts);
+function quipsOfKinds(order, kinds, finds) {
+  const out = [];
+  for (const kind of order) {
+    (finds[kind] || []).slice(0, kinds[kind].length).forEach((facts, k) => {
+      const s = quipFill(kinds[kind][k], facts);
       if (s) out.push(s);
     });
   }
   return out;
+}
+
+const quipsFound = (stage, me) => quipsOfKinds(QUIP_USES[stage], QUIP_KINDS, quipFinds(me));
+
+function quipReagentPools() {
+  const out = {};
+  for (const [key, text] of Object.entries(wordsOf("page.reagents"))) (out[key.split(".")[0]] ||= []).push(text);
+  return out;
+}
+
+function quipsMaterials(me) {
+  const pools = quipReagentPools(), finds = quipFinds(me, pools);
+  return quipsOfKinds(Object.keys(finds), pools, finds);
+}
+
+function quipRecipeLines(me) {
+  const doing = quipReagentPools().doing;
+  return [...doing.slice(0, 1), ...quipsMaterials(me), ...doing.slice(1)];
 }
 
 function quipNow(now) {
@@ -67,7 +86,7 @@ function quipNow(now) {
 
 function quipLines(stage, me) {
   const doing = quipDoing(stage, me);
-  return [...doing.slice(0, 1), ...quipsFound(stage, me), ...doing.slice(1), ...quipsAboutYou(me)];
+  return [...doing.slice(0, 1), ...quipsFound(stage, me), ...quipsMaterials(me), ...doing.slice(1), ...quipsAboutYou(me)];
 }
 
 function quipNext(lines, shown, last, now = null, nowLast = false) {
@@ -92,5 +111,5 @@ const QUIP_TEMPLATES = () => [...Object.values(QUIP_DOING), ...Object.values(QUI
 if (typeof module === "object") {
   module.exports = { QUIP_STAGES, QUIP_DOING, QUIP_NOW, QUIP_RACE, QUIP_CLASS, QUIP_START, QUIP_ZONE, QUIP_LOG, QUIP_FOUND,
     QUIP_USES, QUIP_EACH, QUIP_TEMPLATES, quipFill, quipStage, quipDoing, quipsAboutYou, quipKey, quipFinds, quipsFound,
-    quipNow, quipLines, quipNext };
+    quipReagentPools, quipsMaterials, quipRecipeLines, quipNow, quipLines, quipNext };
 }

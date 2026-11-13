@@ -1,18 +1,7 @@
 // The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
 "use strict";
 
-const HIDDEN_LINES = [
-  "You've gone where the maps don't. A gnome is pretending this was the plan all along.",
-  "Somewhere under the city, the tram is rattling along. The Index is betting on which end you come out of.",
-  "The map has lost you. The dwarves say that's normal down here, and they'd know.",
-  "You're in the deep tunnels now. A goblin is selling guesses at five copper each.",
-  "The cartographers of Stormwind never drew this bit. They said it was too damp.",
-  "Off the edge of the map and still moving. The Index is following the rattle of the rails.",
-  "A secret way under the ground, by the look of it. The Index won't tell anyone.",
-  "Your dot has gone underground. A gnome engineer insists it's perfectly safe and is holding his breath.",
-  "Wherever you are, it's dark and it smells of oil. The Index is guessing, and guessing with confidence.",
-  "You've slipped into one of Azeroth's hidden places. The Index is drawing a line and hoping.",
-];
+const HIDDEN_LINES = Object.values(wordsOf("page.hidden.line"));
 const HIDDEN_DOOR_NEAR = 40;
 const HIDDEN_LAST_FRESH = 15000;
 const HIDDEN_DOT_GAP = 26;

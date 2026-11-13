@@ -34,7 +34,7 @@ targetButton:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", CARD_X - CARD_W - 4, CAR
 targetButton.anchor, targetButton.below = card, 0
 targetButton.baseStrata, targetButton.baseLevel = targetButton:GetFrameStrata(), targetButton:GetFrameLevel()
 targetButton.awayOn = false
-ui.targetWants, ui.TARGET_OWNERS = {}, { "find", "travel", "epic", "loop" }
+ui.targetWants, ui.TARGET_OWNERS = {}, { "find", "travel", "epic", "loop", "prof" }
 local function KeyOptions() return ns.Options().targetKey end
 function ui.KeyHere()
   local _, kind = Call(IsInInstance)
@@ -496,12 +496,14 @@ function ui.StepWanted(g, s, unit)
   return ns.Geo.UnitIs(unit, keys, set, loose)
 end
 
-function ui.EpicWant(g, s, shown)
+function ui.EpicWant(g, s, shown, kind)
+  kind = kind or "e"
   if not s or not (shown or KeyOptions().cardHidden) then return nil end
-  local arrow = ns.guideSlots and ns.guideSlots.e and ns.guideSlots.e.frame
-  local anchor = (shown or not (arrow and arrow:IsShown())) and card or arrow
+  local arrow = ns.guideSlots and ns.guideSlots[kind] and ns.guideSlots[kind].frame
+  local box = kind ~= "e" and ns.sideWindows and ns.sideWindows[kind] or card
+  local anchor = (shown or not (arrow and arrow:IsShown())) and box or arrow
   local ride, rideKey = nil, nil
-  if ns.EpicRideWho then ride, rideKey = ns.EpicRideWho() end
+  if ns.EpicRideWho then ride, rideKey = ns.EpicRideWho(kind) end
   if ride == true then return nil end
   if ride then
     return { who = ride, talk = true, flight = true, service = true, anchor = anchor, tip = ns.FLIGHT_MASTER_TIP,
@@ -697,6 +699,9 @@ function ui.Secure()
   local shown = card:IsShown()
   local ghost = ns.Ghost()
   ui.targetWants.epic = ui.EpicWant(g, s, shown)
+  local lead = ns.SideLeading and ns.SideLeading()
+  local win = lead and ns.sideWindows and ns.sideWindows[lead.slot]
+  ui.targetWants.prof = lead and ui.EpicWant(lead, lead.steps[lead.cur], win ~= nil and win:IsShown(), lead.slot) or nil
   local want, owner = nil, nil
   if not ghost then want, owner = ui.TargetNow() end
   if want and want.cycle then MobsRound(want, owner) end

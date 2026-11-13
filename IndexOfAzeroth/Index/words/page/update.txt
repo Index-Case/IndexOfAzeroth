@@ -3,3 +3,4 @@
 
 updated = The Index has been updated in the background. Please reload.
 offer = Version {version} of the Index is out. The update is {size} MB, so the Index asks before it downloads the update. Do you want to update?
+installer = Version {version} of the Index is out, and it needs the new installer. The Index can't update itself to this version. Download the new installer to get version {version}.

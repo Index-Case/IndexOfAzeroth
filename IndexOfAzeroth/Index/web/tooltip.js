@@ -36,7 +36,7 @@ const keptTip = (cache, id) => (cache[id]?.missing && Date.now() - cache[id].at 
 const tipAnswer = (t, html) => (t.missing || t.none
   ? { missing: !!t.missing, none: !!t.none, name: t.name, quality: t.quality, at: Date.now() }
   : { html: html(t.tooltip || ""), domain: t.domain });
-const tipWord = (t) => (t.none ? "No tooltip is known for this" : "The tooltip isn't stored yet");
+const tipWord = (t) => (t.none ? word("page.tooltip.none") : word("page.tooltip.missing"));
 
 function loadTip(id) {
   const kept = keptTip(tipCache, id);
@@ -53,7 +53,68 @@ function loadSpellTip(id) {
   if (kept !== undefined) return Promise.resolve(kept);
   const asked = getJson(`/api/spelltip/${id}`, { share: true, accept: [404] });
   if (!asked) return Promise.resolve(null);
-  return asked.then((t) => (spellTips[id] = tipAnswer(t, (html) => cleanTip(html.replace(DRAWN_LEVEL, "")))), () => null);
+  return asked.then((t) => (spellTips[id] = { ...tipAnswer(t, (html) => cleanTip(html.replace(DRAWN_LEVEL, ""))),
+    sums: t.sums || [], ranks: (t.ranks || []).map((r) => ({ html: cleanTip(r.html), sums: r.sums || [] })) }), () => null);
+}
+
+const TIP_DESC = /<div class="q tip-desc">([\s\S]*?)<\/div>/;
+function spellTipHtml(tip, rank, most) {
+  if (!tip?.html) return "";
+  const desc = tip.html.match(TIP_DESC);
+  if (!desc) return tip.html;
+  const own = { html: desc[1], sums: tip.sums }, text = (r) => tip.ranks?.[r - 1] || own;
+  const shown = (piece) => `<div class="q tip-desc">${withSums(piece.html, piece.sums)}</div>`;
+  if (rank == null || !most) return tip.html.replace(TIP_DESC, () => shown(own));
+  const next = rank > 0 && rank < most ? `<div class="tip-rank tip-next">${word("page.tooltip.rank.next")}</div><div class="q">${withSums(text(rank + 1).html, text(rank + 1).sums)}</div>` : "";
+  return tip.html.replace(TIP_DESC, () => `<div class="tip-rank">${word("page.tooltip.rank", { rank, most })}</div>${shown(text(Math.max(1, Math.min(rank, most))))}${next}`);
+}
+const STAT_NUMS = { AP: "attackPower", apm: "attackPower", RAP: "rangedAttackPower", rap: "rangedAttackPower",
+  SPI: "spirit", SPH: "healing", bh: "healing" };
+const SCHOOL_NUMS = { SPFI: "fireDamage", spfi: "fireDamage", SPFR: "frostDamage", SPS: "shadowDamage",
+  sps: "shadowDamage", SPA: "arcaneDamage" };
+function tipStats() {
+  const n = app.status?.nums || {}, out = {};
+  if (app.state?.level) out.PL = out.pl = app.state.level;
+  for (const [code, key] of Object.entries(STAT_NUMS)) if (n[key] != null) out[code] = n[key];
+  if (n.meleeCrit != null) out.mcrit = n.meleeCrit / 100;
+  if (n.spellDamage != null) for (const [code, key] of Object.entries(SCHOOL_NUMS)) out[code] = n.spellDamage + (n[key] || 0);
+  return out;
+}
+const TIP_SUM = /<span class="tip-sum">([^<]*)<\/span>/g;
+function withSums(html, sums) {
+  if (!sums?.length) return html;
+  const stats = tipStats();
+  let i = 0, short = false;
+  const out = html.replace(TIP_SUM, () => {
+    const sum = sums[i++], v = sum ? sumValue(sum.expr, stats) : null;
+    if (v == null) { short = true; return `<span class="tip-sum tip-unknown">${word("page.tooltip.sum.unknown")}</span>`; }
+    return `<span class="tip-sum">${sum.decimals != null ? Math.abs(v).toFixed(sum.decimals) : Math.abs(roundHalf(v))}</span>`;
+  });
+  return short ? `${out}<div class="tip-unknown">${word("page.tooltip.sum.unknown.why")}</div>` : out;
+}
+const roundHalf = (v) => Math.sign(v) * Math.floor(Math.abs(v) + 0.5);
+function sumValue(expr, stats) {
+  const tokens = expr.match(/\d+(?:\.\d+)?|[A-Za-z]+|[-+*/()]/g) || [];
+  let i = 0;
+  const atom = () => {
+    const t = tokens[i++];
+    if (t === "(") { const v = sum(); return tokens[i++] === ")" ? v : NaN; }
+    if (t === "-") return -atom();
+    if (/^[A-Za-z]/.test(t || "")) return t in stats ? stats[t] : NaN;
+    return Number(t);
+  };
+  const product = () => {
+    let v = atom();
+    while (tokens[i] === "*" || tokens[i] === "/") v = tokens[i++] === "*" ? v * atom() : v / atom();
+    return v;
+  };
+  const sum = () => {
+    let v = product();
+    while (tokens[i] === "+" || tokens[i] === "-") v = tokens[i++] === "+" ? v + product() : v - product();
+    return v;
+  };
+  const v = sum();
+  return i === tokens.length && Number.isFinite(v) ? v : null;
 }
 
 
@@ -122,7 +183,7 @@ function compareHtml(id, t) {
   const mine = statsOf(id);
   const panes = against.map((w) => {
     const wt = tipCache[w];
-    return wt?.html ? `<div class="tip-pane"><div class="tip-equipped">Equipped</div>${annotate(wt.html, statsOf(w), mine)}</div>` : "";
+    return wt?.html ? `<div class="tip-pane"><div class="tip-equipped">${word("page.tooltip.equipped")}</div>${annotate(wt.html, statsOf(w), mine)}</div>` : "";
   }).join("");
   const theirs = against.length ? statsOf(against[0]) : {};
   return `<div class="tip-compare">${panes}<div class="tip-pane">${annotate(t.html, mine, theirs)}</div></div>`;
@@ -138,9 +199,9 @@ function showTip(id, e) {
   const ready = against.length && against.every((w) => tipCache[w]?.html);
   tipCtrl = !!e?.ctrlKey;
   comparing = !!(e?.ctrlKey && ready);
-  const note = t.domain === "classic" ? `<div class="tip-note">This is Classic data, because the game's tables don't hold this item</div>` : "";
-  const hint = ready && !comparing
-    ? `<div class="tip-hint">Hold Ctrl to compare with ${against.map((w) => esc(statCache[w]?.n || "what's worn")).join(" and ")}</div>` : "";
+  const note = t.domain === "classic" ? `<div class="tip-note">${word("page.tooltip.classic")}</div>` : "";
+  const names = against.map((w) => esc(statCache[w]?.n || word("page.tooltip.compare.worn"))).join(` ${word("page.tooltip.compare.and")} `);
+  const hint = ready && !comparing ? `<div class="tip-hint">${word("page.tooltip.compare", { names })}</div>` : "";
   const bare = () => `${t.name ? `<b class="q${t.quality ?? 1}">${esc(t.name)}</b>` : ""}<div class="tip-note">${tipWord(t)}</div>`;
   itemTip.innerHTML = (!t.html ? bare() : comparing ? compareHtml(id, t) : t.html + note + hint) + tipAh(id);
   itemTip.classList.toggle("comparing", comparing);

@@ -24,7 +24,7 @@ LOCAL = "F1B32785-6FBA-4FCF-9D55-7B8E7F157091"
 SET_ASIDE = ("IndexOfAzeroth", "Set aside")
 AN_INSTALL = tuple(layout.at(p) for p in (layout.START, shortcuts.PYTHON, shortcuts.START))
 NOT_AN_INSTALL = (".git", "dev")
-KEPT = ("python", *updater.OURS)
+KEPT = (layout.PYTHON, *updater.OURS)
 STOP_WAIT = 120
 DELETE = r"""
 $p = $env:INDEX_UNINSTALL
@@ -44,11 +44,6 @@ def is_install(folder):
     return (all(os.path.isfile(shortcuts.place(folder, rel)) for rel in AN_INSTALL)
             and not any(os.path.exists(shortcuts.place(folder, at)) for rel in NOT_AN_INSTALL
                         for at in (rel, layout.at(rel))))
-
-
-def shipped(program):
-    manifest = updater.installed_manifest(program)
-    return set(manifest.files) if manifest else set()
 
 
 def records(folder, named):
@@ -97,7 +92,7 @@ def delete_later(install):
                      creationflags=subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP)
 
 
-def uninstall(install, name, addons=game_addons, places=shortcuts.places, named=shipped,
+def uninstall(install, name, addons=game_addons, places=shortcuts.places, named=updater.shipped,
               aside=lambda: os.path.join(shortcuts.known_folder(LOCAL), *SET_ASIDE), stop=stop_index,
               delete=delete_later, now=datetime.datetime.now):
     if not is_install(install):

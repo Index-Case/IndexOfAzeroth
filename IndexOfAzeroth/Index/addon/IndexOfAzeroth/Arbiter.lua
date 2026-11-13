@@ -184,7 +184,7 @@ function A.TripBack(g, list, continent, px, py)
         list[A.PutKey(s)] = nil
         s.cameBack = true
         if t.name ~= s.npc then
-          if s.text == "Go train at " .. tostring(s.npc) then s.text = "Go train at " .. t.name end
+          s.text = ns.Word("both.chore.train", { npc = t.name })
           s.name, s.npc, s.inst, s.wx, s.wy, s.z, s.map = s.text, t.name, t.at[1], t.at[2], t.at[3], t.at[4], t.at[5] or s.map
           s.bends, s.alt, s.route, s.hearth, s.hw, s.ground, s.guess = nil, nil, nil, nil, nil, nil, nil
           s.easy, s.easyPicked = nil, nil
@@ -617,10 +617,14 @@ function A.Lead(g, H)
     local s = g.steps[firstChore]
     local c = { i = firstChore, s = s, key = A.Key(s), kind = "chore",
                 walk = (px and s.wx and s.inst == continent) and Dist(s.wx, s.wy, px, py) or nil }
-    local quests = false
-    for _, t in ipairs(g.steps) do quests = quests or t.kind ~= "S" end
-    local say = quests and s.npc and s.npc ~= "" and "only" or nil
-    return A.Decided(c, nil, { c }, say, { wonNpc = s.npc }, event, nil, now, firstChore)
+    local quests, wait = false, nil
+    for k, t in ipairs(g.steps) do
+      quests = quests or t.kind ~= "S"
+      if not wait and A.Plan(t, putOff) and g.state[k] == G.WAIT and g.why[k] then wait = k end
+    end
+    local say = quests and s.npc and s.npc ~= "" and (wait and "only_wait" or "only") or nil
+    local fill = { wonNpc = s.npc, lost = wait and A.Name(g.steps[wait]), why = wait and g.why[wait] }
+    return A.Decided(c, nil, { c }, say, fill, event, nil, now, firstChore, wait and g.steps[wait])
   end
   local sN, P = g.steps[N], A.PlanStep(g, H, N, putOff)
   if not (continent and px) then

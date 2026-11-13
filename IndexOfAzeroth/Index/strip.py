@@ -3,6 +3,7 @@ import math
 import time
 
 from dungeons import share_stars
+from hub import share_nodes
 from protocol import WATCHED_WHOLE, StripError, assemble_bars, is_test_pattern, parse_frame
 from linkstats import LinkStats
 from epicwatch import report_key
@@ -11,7 +12,7 @@ from layers import XpAuras, lay_gathered
 import questplan
 from mapzones import settle_zone, world_pos
 from planning import (OBJECTIVES, camp_purchase, epic_stop_or_start, grade_state, note_profession_trainer, note_trainer, replan_asked,
-                      side_stop_or_start)
+                      note_trainer_refused, side_stop_or_start)
 from routes import FLY
 from serverlog import log_error, log_note, start_thread
 import game
@@ -491,7 +492,8 @@ def take_container(hub, r, data):
 
 @handles("legacy")
 def take_legacy(hub, r, data):
-    hub.characters.legacy(data)
+    if hub.characters.legacy(data):
+        share_nodes(hub)
     keep_extra(hub, r, "legacyPoints", {"spent": data.get("spent"), "unspent": data.get("unspent")})
 
 
@@ -514,6 +516,11 @@ def take_tracking(hub, r, data):
 @handles("heights")
 def take_heights(hub, r, data):
     hub.heights_seen.note(data)
+
+
+@handles("enemies")
+def take_enemies(hub, r, data):
+    hub.enemies.note(data, time.time())
 
 
 @handles("epic")
@@ -546,6 +553,10 @@ def take_loop_stops(hub, r, data):
 
 @handles("sides")
 def take_sides(hub, r, data):
+    sh = getattr(hub, "shared", None)
+    for s in data["sides"]:
+        epic = sh.written(s["version"]) if sh else None
+        s["key"] = epic.get("key") if epic else None
     was = {s["version"]: (s["running"], s["closed"]) for s in ((hub.extra.get("sides") or {}).get("sides") or ())}
     told = [s for s in data["sides"] if was.get(s["version"]) != (s["running"], s["closed"])]
     keep_extra(hub, r, "sides", data)
@@ -663,6 +674,11 @@ def take_proftrainer(hub, r, data):
     pages = r.proftrainer.add((hub.characters.current, data["gen"], data["npc"]), data["page"], data["pages"], data["services"])
     if pages:
         note_profession_trainer(hub, data["npc"], data["profession"], [s for page in pages for s in page])
+
+
+@handles("refused")
+def take_refused(hub, r, data):
+    note_trainer_refused(hub, data["refused"])
 
 
 @handles("recipes")

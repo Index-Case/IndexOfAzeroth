@@ -83,6 +83,27 @@ local function FlatButton(parent, label, width, onClick)
   return b
 end
 
+local function TickBox(parent, round)
+  local box = Skin(CreateFrame("Button", nil, parent, "BackdropTemplate"), C.row, C.edge)
+  box:SetSize(14, 14)
+  local tick = box:CreateTexture(nil, "OVERLAY")
+  if round then
+    tick:SetColorTexture(C.gold[1], C.gold[2], C.gold[3], 1)
+    tick:SetSize(6, 6)
+    tick:SetPoint("CENTER")
+  else
+    tick:SetTexture("Interface\\Buttons\\UI-CheckBox-Check")
+    tick:SetSize(20, 20)
+    tick:SetPoint("CENTER", 1, 0)
+  end
+  box.tick = tick
+  function box:SetTicked(on) tick:SetShown(on and true or false) end
+  function box:Lit(on)
+    if on then self:SetBackdropBorderColor(C.gold[1], C.gold[2], C.gold[3], 1) else self:SetBackdropBorderColor(unpack(C.edge)) end
+  end
+  return box
+end
+
 local function Scroller(parent)
   local s = CreateFrame("ScrollFrame", nil, parent)
   s.child = CreateFrame("Frame", nil, s)
@@ -424,5 +445,5 @@ end
 ns.UI = { C = C, GUIDE = GUIDE, ColourName = ColourName, MARKS = MARKS, MarkText = MarkText, WHITE = WHITE, Skin = Skin, Panel = Panel, Box = Box,
           STOP_WORDS = STOP_WORDS, EpicLook = EpicLook, SayStop = SayStop,
           Text = Text, Colored = Colored, Cursor = Cursor,
-          FlatButton = FlatButton, Scroller = Scroller, SlideAlong = SlideAlong, Line = Line, Circle = Circle, Icon = Icon, Mark = Mark, WARN_ART = WARN_ART,
+          FlatButton = FlatButton, TickBox = TickBox, Scroller = Scroller, SlideAlong = SlideAlong, Line = Line, Circle = Circle, Icon = Icon, Mark = Mark, WARN_ART = WARN_ART,
           Pulse = Pulse }

@@ -1,6 +1,7 @@
 # The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
 import math
 
+from errands import vendor_price
 import farmspots
 import gamedata
 import layers
@@ -145,7 +146,7 @@ class Lookup:
         if not npc:
             return None
         npc = {**npc, "limited": True} if limited else npc
-        price = gamedata.item_buy_price(item) or (self.pd.cd.items.get(str(item)) or {}).get("price")
+        price = vendor_price(gamedata.item_unit_price(item), self.me.get("state"))
         return {**npc, **({"price": price} if price else {})}
 
     def items(self, listed=()):

@@ -1,0 +1,29 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: name, version, running, reason, folder
+
+act.installed = {name} is installed. Restart the game to load it
+act.off = {name} is turned off. Turn it on in the AddOns list at character select
+act.not-loaded = {name} didn't load. Check the AddOns list at character select
+act.not-loaded.why = {name} didn't load ({reason}). Check the AddOns list at character select
+act.reload = {name} {version} is on disk, but the game is running {running}. Type /reload to load the new version
+act.restart.installed = {name} was installed. Restart the game to load it
+act.restart.updated = {name} was updated. Restart the game to load it
+hide = Hide
+
+state.waiting = Waiting
+state.installed = Installed
+state.updated = Updated
+state.linked = Linked
+state.error = Failed
+state.nogame = No game folder
+state.unknown = Waiting
+game.loaded = loaded
+game.not-yet = not yet
+game.off = turned off
+game.not-loaded = not loaded
+disk.none = none
+folder = Game folder: {folder}
+head.addon = Addon
+head.disk = On disk
+head.game = In game
+head.status = Status

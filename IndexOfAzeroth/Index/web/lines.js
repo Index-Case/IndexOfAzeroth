@@ -133,7 +133,7 @@ function riseHere(pts, leg, px, py) {
 }
 function riseWords(rise, yards) {
   if (rise == null || yards > RISE_SHOW || Math.abs(rise) < RISE_LEAST) return null;
-  return rise > 0 ? "Above you" : "Below you";
+  return rise > 0 ? word("both.rise.above") : word("both.rise.below");
 }
 function heightWords(pts, top, [px, py], yards, state) {
   if (yards > RISE_SHOW) return null;

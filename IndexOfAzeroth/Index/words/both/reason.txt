@@ -1,0 +1,22 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: npc, quest, town, place, min, dungeon, n, node, item
+
+offer = {npc} may offer {quest}.
+bind = You come back to {town} by Hearthstone after {place}.
+hearth = Your Hearthstone takes you there. It saves about {min} minutes.
+hearth.one = Your Hearthstone takes you there. It saves about a minute.
+opens = This opens {quest} at {npc} in {place}.
+message = A message for {npc} in {place}.
+within = {npc} is inside {dungeon}.
+within-thing = It is inside {dungeon}.
+inside = You do this inside {dungeon}.
+early = You pass {npc} now. Its work comes later.
+trip = {place} first: {n} steps of this plan are here.
+trip.one = {place} first: one step of this plan is here.
+flight = The plan flies from {node} later.
+flightpass = You pass it here. It opens flights from {node}.
+bags = Your bags are nearly full.
+worn = Your gear is worn.
+low = You are low on {item}.
+group = It needs a group, so it comes last.
+ownrun = It needs a second run: you hand in {quest} first.

@@ -7,7 +7,7 @@ import store
 WORK = ".update"
 NEWS, CHOICE, STOP, ADDON = "news.json", "choice.json", "stop", "addon.json"
 CHOICES = ("update", "later")
-STEPS = ("offer", "downloading", "waiting")
+STEPS = ("offer", "downloading", "waiting", "installer")
 ADDON_WORDS = ("waiting", "new")
 
 

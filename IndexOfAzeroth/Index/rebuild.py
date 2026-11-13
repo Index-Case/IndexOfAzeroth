@@ -23,6 +23,7 @@ COMMANDS = {"maps": ["build_maps.py"], "tiles": ["build_tiles.py"], "levels": ["
             "world": ["build_world.py"], "drops": ["build_drops.py"], "respawns": ["build_respawns.py"], "rares": ["build_rares.py"], "dungeons": ["build_dungeons.py"], "routes": ["build_routes.py"], "trails": ["build_trails.py"], "gear": ["build_gear.py"],
             "statweights": ["build_statweights.py"], "portraits": ["build_portraits.py"],
             "classfill": ["build_class_fill.py"], "classspells": ["build_class_spells.py"],
+            "addonchores": ["build_addon_chores.py"],
             "classquests": ["build_class_quests.py"],
             "talentbuilds": ["build_talent_builds.py"],
             "dungeonmaps": ["build_dungeon_minimaps.py"],
@@ -72,15 +73,16 @@ OUTPUTS = {"maps": ["maps.json"], "tiles": ["tiles.json"], "icons": ["icons_fall
            "tooltips": ["tooltips.json", "tooltips/", "tooltips_fallback.json"],
            "prompts": ["buildcache/prompt-rules.json"], "taxistarts": ["taxistarts.json"],
            "fishingspots": ["fishing_spots.json", "buildcache/fishing_tiles.json"], "roadways": ["roadways.json"],
-           "words": []}
+           "words": [],
+           "addonchores": []}
 ELSEWHERE = {"words": ["web/words.js"], "underground": ["web/art/underground/"], "seagiants": ["web/art/seagiants/"]}
 ADDON_FILES = {"words": ["Words.lua"], "dungeons": ["DungeonData.lua"],
-               "classspells": ["ClassTrainers.lua", "Vendors.lua"]}
+               "addonchores": ["ClassTrainers.lua", "Vendors.lua"]}
 MAIN_ONLY = {"prompts"}
 INPUTS = {"tiles": ["maps.json"], "cities": ["maps.json"],
           "tables": [LISTED["db2"]],
           "icons": ["classspells.json"], "objectives": ["maps.json", "items.json"], "quests": ["maps.json", "items.json"],
-          "clouds": ["tiles.json"],
+          "clouds": ["tiles.json", "maps.json"],
           "giverwalks": ["maps.json"],
           "questtext": ["quests.json"],
           "blurbs": ["quests.json", "questtext.json", "objectives.json", "items.json", "escorts.json", "maps.json",
@@ -88,6 +90,7 @@ INPUTS = {"tiles": ["maps.json"], "cities": ["maps.json"],
           "questplaces": ["quests.json", "questtext.json", "objectives.json", "maps.json", "tables.json"],
           "world": ["maps.json", "patrols.npz", "quests.json", "items.json"],
           "classfill": ["world.json", "professions.json"], "classspells": ["world.json", "classfill.json"],
+          "addonchores": ["classspells.json", "world.json", "professions.json", "maps.json", "patrols.npz", "items.json"],
           "classquests": ["quests.json", "classspells.json"],
           "talentbuilds": ["classspells.json", "stat_weights.json"],
           "rares": ["maps.json", "items.json", "world.json"],
@@ -116,13 +119,13 @@ INPUTS = {"tiles": ["maps.json"], "cities": ["maps.json"],
           "tooltips": ["classspells.json", "shield_block.json", "buildcache/shield_block_filled.json"],
           "fishingspots": ["professions.json", "tiles.json", "maps.json", "tables.json", LISTED["wmo"], LISTED["terrain"]],
           "roadways": ["tiles.json", "maps.json", "tables.json", "heights/", LISTED["wmo"], LISTED["terrain"]]}
-USUAL = ["words", "listfile", "tables", "maps", "cities", "areasources", "tiles", "icons", "items", "levels", "objectives", "quests", "giverwalks", "questtext", "blurbs", "questplaces", "trails", "world", "drops", "classfill", "classspells", "classquests",
+USUAL = ["words", "listfile", "tables", "maps", "cities", "areasources", "tiles", "icons", "items", "levels", "objectives", "quests", "giverwalks", "questtext", "blurbs", "questplaces", "trails", "world", "drops", "classfill", "classspells", "addonchores", "classquests",
          "respawns", "rares", "dungeons", "portraits", "gear", "statweights", "routes", "dungeonmaps", "heights", "trees", "render", "clouds", "seamask", "sea", "inland", "underground", "seagiants", "lighttint", "torches", "pictures", "uipictures", "dungeonbake", "paperup",
          "detailview", "professionfill", "professions", "fishingspots", "roadways",
          "books", "shieldblock", "tooltips", "taxistarts", "talentbuilds", "prompts"]
 STORE_STEPS = {"tables", "tooltips", "prompts", "shieldblock", "questtext", "blurbs", "listfile", "words"}
 ART_STEPS = {"clouds", "seamask", "underground", "seagiants", "trees"}
-CLIENT_STEPS = {"maps", "items", "tooltips", "gear", "classspells", "professions", "uipictures"}
+CLIENT_STEPS = {"maps", "items", "tooltips", "gear", "classspells", "addonchores", "professions", "uipictures"}
 
 
 def reads(step, outputs):

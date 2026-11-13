@@ -1,0 +1,14 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: reasons, level, lo, hi, span
+
+reasons = It {reasons}
+level = Level {level}
+level.range = Level {lo}-{hi}
+level.none = Level not known
+ago = {span} ago
+ago.now = just now
+ago.never = never
+due = in {span}
+due.now = due now
+nothing = Nothing matches.
+nothing.all = Show everything

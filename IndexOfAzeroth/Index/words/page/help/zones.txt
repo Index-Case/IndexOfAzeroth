@@ -1,0 +1,11 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = Zone epic
+zone-epic = Zone epic
+zone-epic.p1 = A click on a zone plans every quest of that zone as one epic. The epic also fits in the errands the character needs on the way, such as training, selling and learning flight paths, and the class quests as soon as the level allows.
+colours = Colours
+colours.p1 = The boxes above the zones pick the quests a zone epic plans by their colour: <b>Trivial</b>, <b>Standard</b>, <b>Difficult</b>, <b>Very difficult</b> and <b>Impossible</b>. The colour is the quest's difficulty for the character when the epic starts, as the game colours it in the quest log. Every box starts ticked.
+colours.p2 = An unticked colour leaves the quests of that colour out. A quest that needs another quest done first still brings that quest along, whatever its colour.
+colours.p3 = A red or orange quest is above the character's level. The epic holds that quest until the character is high enough to do it.
+colours.p4 = A Re-plan keeps the colours the epic was started with.

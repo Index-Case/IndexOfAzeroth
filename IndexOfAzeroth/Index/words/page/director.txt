@@ -1,0 +1,9 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: name
+
+next-zone = Your quests
+next-zone.label = the quests that lead on to the next zone
+class-quest = Your class quest
+class-quest.label = the class quest epic
+asked = You asked in game for {name}, so the page shows that epic too
+asked.plan = a new plan

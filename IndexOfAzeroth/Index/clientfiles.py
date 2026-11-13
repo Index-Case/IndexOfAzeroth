@@ -245,9 +245,7 @@ def casc_url(name):
 
 
 def touch(path):
-    now = time.time()
-    navstore.make_loose(path)
-    os.utime(path, (now, now))
+    navstore.touch(path, time.time())
 
 
 def mark_checked(path):
@@ -607,10 +605,14 @@ def building(fid, version):
 
 
 INDOOR_ROOM = 0x2000
+OUTDOOR_LIT = 0x40
 
 
 def building_rooms(fid, version):
-    root = chunks(fetch_dropped(file_address(fid, version), f"wmo-{fid}.wmo"))
+    return rooms_of(chunks(fetch_dropped(file_address(fid, version), f"wmo-{fid}.wmo")))
+
+
+def rooms_of(root):
     mogi = root.get("MOGI", b"")
     return [(v[0], v[1:7]) for v in (struct.unpack_from("<I6fi", mogi, i) for i in range(0, len(mogi) - 31, 32))]
 

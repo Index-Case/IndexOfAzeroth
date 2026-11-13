@@ -124,6 +124,7 @@ local R = {
     put_off_said_place = "You put off {chore} until you're next in {place}.",
     core_now = "{spells} are core: train now.",
     core_now_one = "{spells} is core: train now.",
+    only_wait = "{lost} waits, because {why}. Until then, the guide takes you to {wonNpc}.",
   },
   quiet = {
     words = { "handin", "handins", "pickup", "handin_here", "pickup_here", "area", "wait_giver", "wait_area", "progress_giver", "progress_giver_one", "progress_giver_more", "progress_step", "progress_step_one", "progress_step_more", "progress_giver_thing", "progress_giver_thing_one", "progress_step_thing", "progress_step_thing_one", "errand" },
@@ -258,7 +259,7 @@ local R = {
   badges = {
     mobs = { "#00b5ff", "#ff3392", "#cc8800", "#59ffe9", "#ffb2a6", "#d5a6ff", "#738ae6", "#29c1cc", "#ccaf85", "#e695b5", "#a6c3ff", "#ff9c59", "#a6e7ff", "#ff00dd", "#e66b00", "#ff80e5" },
   },
-  codes = { "progress_giver", "progress_giver_one", "progress_giver_more", "progress_step", "progress_step_one", "progress_step_more", "handin", "handins", "pickup", "handin_here", "pickup_here", "area", "errand", "chose", "wait_giver", "wait_area", "walked", "only", "back", "later", "put_off", "put_off_said", "trace_start", "trace_plan", "trace_left", "trace_progress", "trace_stop", "hearth", "hearth_one", "train_way", "train_way_one", "put_off_npc", "put_off_said_npc", "progress_giver_thing", "progress_giver_thing_one", "progress_step_thing", "progress_step_thing_one", "pass", "pass_s", "busy", "busy_thing", "put_off_town", "put_off_said_town", "put_off_place", "put_off_said_place", "core_now", "core_now_one" },
+  codes = { "progress_giver", "progress_giver_one", "progress_giver_more", "progress_step", "progress_step_one", "progress_step_more", "handin", "handins", "pickup", "handin_here", "pickup_here", "area", "errand", "chose", "wait_giver", "wait_area", "walked", "only", "back", "later", "put_off", "put_off_said", "trace_start", "trace_plan", "trace_left", "trace_progress", "trace_stop", "hearth", "hearth_one", "train_way", "train_way_one", "put_off_npc", "put_off_said_npc", "progress_giver_thing", "progress_giver_thing_one", "progress_step_thing", "progress_step_thing_one", "pass", "pass_s", "busy", "busy_thing", "put_off_town", "put_off_said_town", "put_off_place", "put_off_said_place", "core_now", "core_now_one", "only_wait" },
 }
 
 function R.Tier(kind) return R.tiers[kind] end

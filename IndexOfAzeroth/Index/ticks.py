@@ -9,7 +9,7 @@ import store
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 PROFESSIONS = os.path.join(ROOT, "data", "professions.json")
-CONDITIONS = ("items", "recipes", "auras", "skills", "caps")
+CONDITIONS = ("items", "most", "recipes", "auras", "skills", "caps")
 
 
 def declares(need):
@@ -26,6 +26,8 @@ def need_met(need, facts, now=None):
     for entry in need.get("items") or ():
         item, count = int(entry[0]), int(entry[1]) if len(entry) > 1 else 1
         said.append(None if items is None else items.get(item, 0) >= count)
+    for entry in need.get("most") or ():
+        said.append(None if items is None else items.get(int(entry[0]), 0) <= int(entry[1]))
     known = facts.get("recipes") or {}
     said += [known.get(int(spell)) for spell in need.get("recipes") or ()]
     auras = facts.get("auras") or {}

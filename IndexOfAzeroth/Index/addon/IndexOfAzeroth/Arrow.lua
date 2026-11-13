@@ -323,8 +323,8 @@ end
 
 function ns.RiseWords(rise, yards)
   if not rise or yards > RISE_SHOW or math.abs(rise) < RISE_LEAST then return nil end
-  if rise > 0 then return "Above you", 0 end
-  return "Below you", math.pi
+  if rise > 0 then return ns.Word("both.rise.above"), 0 end
+  return ns.Word("both.rise.below"), math.pi
 end
 
 function ns.HeightHint(path, leg, px, py, yards, state)
@@ -541,6 +541,11 @@ function Route:UnderWay(continent, px, py)
     ride.carried = true
   end
   return ride.carried and ride or nil
+end
+function Route:RideNow(continent, px, py)
+  local ride = self.legs[self.i]
+  if ride.kind == "W" or ride.kind == "F" and not self:UnderWay(continent, px, py) then return nil end
+  return ride
 end
 function ns.RideTurn(route, continent, px, py)
   local lx, ly, lc = route:Landing()

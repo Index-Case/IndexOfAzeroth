@@ -12,6 +12,7 @@ import dropguard
 import gamedata
 from game import version_key as game_version
 import races
+import talentplan
 
 
 OUT = os.path.join(ROOT, "data", "classspells.json")
@@ -137,17 +138,10 @@ def talent_steps(classes):
         if as_int(r.get("SpentAmountRequired")) > 0:
             spent.setdefault(as_int(r.get("TraitCurrencyID")), set()).add(as_int(r["SpentAmountRequired"]))
     for currency, got in points.items():
-        first, last, total, had = min(got), max(got), sum(got.values()), 0
-        opens = {}
-        for level in sorted(got):
-            had += got[level]
-            for need in spent.get(currency, ()):
-                if need <= had and need > got[first]:
-                    opens.setdefault(need, level)
+        steps = talentplan.point_steps(sorted(level for level, n in got.items() for _ in range(n)), spent.get(currency, ()))
         for cid in classes:
-            put(cid, first, {"kind": "talent", "name": "Talent points", "text": f"{got[first]} at level {first}, {total} by level {last}"})
-            for need, level in sorted(opens.items()):
-                put(cid, level, {"kind": "talent", "name": f"Talents for {need} points spent", "spent": need})
+            for level, entry in steps:
+                put(cid, level, dict(entry))
     seen = set()
     for r in sources:
         said = FIRST_TIME.match(r.get("Requirement_lang") or "")
@@ -557,8 +551,6 @@ def main():
     say_values(values(data, fill.get("values"), forever_talents(trees)), data)
     put_trees(data, trees)
     write(data)
-    import build_addon_chores
-    build_addon_chores.write_from_data()
     print(f"{len(data['trainers'])} trainers teach only part of their class's spells")
     for cid, c in data["classes"].items():
         spells = [s for v in c["levels"].values() for s in v["spells"]]

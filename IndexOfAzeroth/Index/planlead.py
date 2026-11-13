@@ -247,6 +247,17 @@ class Look:
     def below(self, e):
         return bool(e.get("min")) and self.level < e["min"]
 
+    def untaught(self, e):
+        need = e.get("need") if isinstance(e.get("need"), dict) else {}
+        want = need.get("taught")
+        if not want:
+            return False
+        for t in self.st.entries:
+            rows = (t.get("need") or {}).get("skills") if isinstance(t.get("need"), dict) else None
+            if t is not e and not takes_from(t, e) and any(r[0] == want[0] and r[1] >= want[1] for r in rows or ()):
+                return self.base(t) != DONE
+        return False
+
     def base(self, e):
         if e["k"] == "S":
             if self.done(e):
@@ -256,7 +267,7 @@ class Look:
             if isinstance(e.get("takes"), dict) and any(
                     t is not e and takes_from(e, t) and self.base(t) in (TODO, WAIT) for t in self.st.entries):
                 return WAIT
-            if self.below(e):
+            if self.below(e) or self.untaught(e):
                 return WAIT
             pay = (e.get("need") or {}).get("pay") if isinstance(e.get("need"), dict) else None
             if pay and self.money is not None and self.money < pay:

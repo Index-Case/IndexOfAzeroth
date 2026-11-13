@@ -2,6 +2,10 @@
 # placeholders: n, coins, cost, have, npc
 
 train = Train at {npc}
+sell = Sell your grey items at {npc}
+repair = Repair your gear at {npc}
+sell-repair = Sell your grey items and repair your gear at {npc}
+sell-train = Sell your grey items at {npc}, then train
 far = {n} yd
 cost = Costs {coins}
 have = you have {coins}

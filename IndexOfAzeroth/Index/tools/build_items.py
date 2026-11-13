@@ -43,7 +43,8 @@ def main():
 
     def item(r):
         return [r["Display_lang"], number(r["OverallQualityID"]), icon_of.get(number(r["ID"])), quest(r),
-                number(r["ItemLevel"]), number(r["RequiredLevel"]), number(r.get("BuyPrice"))]
+                number(r["ItemLevel"]), number(r["RequiredLevel"]), number(r.get("BuyPrice")),
+                number(r.get("VendorStackCount")) or 1, number(r.get("SellPrice"))]
     items = {r["ID"]: item(r) for r in client.rows("ItemSparse", build)}
     names = {number(r["ID"]): r["Name_lang"] for r in client.rows("SpellName", build)}
     votes = collections.defaultdict(collections.Counter)

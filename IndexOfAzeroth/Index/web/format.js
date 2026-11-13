@@ -19,13 +19,14 @@ const num = (n) => Math.round(n).toLocaleString("en-US");
 const andList = (names, and = "and") => (names.length > 1 ? `${names.slice(0, -1).join(", ")} ${and} ${names[names.length - 1]}` : names[0] || "");
 const planReasons = (reasons) => {
   const verbs = reasons.filter((r) => /^[a-z]/.test(r)), whole = reasons.filter((r) => !/^[a-z]/.test(r));
-  return [...whole, ...(verbs.length ? [`It ${andList(verbs)}`] : [])].join(". ");
+  return [...whole, ...(verbs.length ? [word("page.format.reasons", { reasons: andList(verbs) })] : [])].join(". ");
 };
 const pct = (a, b) => (b > 0 ? Math.round((a / b) * 100) : 0);
 function mobLevelText(levels, mob) {
-  if (levels) return `Level ${levels[1] == null || levels[1] === levels[0] ? levels[0] : `${levels[0]}-${levels[1]}`}`;
+  if (levels) return levels[1] == null || levels[1] === levels[0] ? word("page.format.level", { level: levels[0] })
+    : word("page.format.level.range", { lo: levels[0], hi: levels[1] });
   if (mob) noteGap("mob-level", mob.id, mob.where, mob.name);
-  return "Level not known";
+  return word("page.format.level.none");
 }
 
 
@@ -116,9 +117,9 @@ function roughSpanTurns(s) {
 }
 const JUST_NOW = 90;
 function ago(t, now = Date.now() / 1000) {
-  if (!t) return "never";
+  if (!t) return word("page.format.ago.never");
   const s = now - t;
-  return s < JUST_NOW ? "just now" : `${roughSpan(s)} ago`;
+  return s < JUST_NOW ? word("page.format.ago.now") : word("page.format.ago", { span: roughSpan(s) });
 }
 function agoTurns(t, now = Date.now() / 1000) {
   if (!t) return Infinity;
@@ -127,7 +128,7 @@ function agoTurns(t, now = Date.now() / 1000) {
 }
 function dueText(due, now) {
   const s = due - now;
-  return s <= 60 ? "due now" : `in ${roughSpan(s)}`;
+  return s <= 60 ? word("page.format.due.now") : word("page.format.due", { span: roughSpan(s) });
 }
 const timeOfDay = (t) => new Date(t * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
@@ -141,7 +142,8 @@ function matchesSearch(text, query) {
   const searched = String(text ?? "").toLowerCase();
   return String(query ?? "").toLowerCase().split(/\s+/).every((word) => searched.includes(word));
 }
-const nothingMatches = () => `<p class="find-none">Nothing matches. <button class="src-link" data-find-all>Show everything</button></p>`;
+const nothingMatches = () => `<p class="find-none">${esc(word("page.format.nothing"))} <button class="src-link" data-find-all>${
+  esc(word("page.format.nothing.all"))}</button></p>`;
 
 if (typeof module === "object") {
   module.exports = { esc, Html, raw, html, num, andList, planReasons, pct, mobLevelText, charName, charSame, charLabel,

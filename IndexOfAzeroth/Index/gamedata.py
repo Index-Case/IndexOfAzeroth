@@ -4,6 +4,7 @@ import os
 import threading
 import time
 
+import client
 import game
 import icons
 import mainstores
@@ -212,17 +213,113 @@ def spell_icons(names):
     return {n: lower[n.lower()] for n in names if n.lower() in lower}
 
 
+BATTLEGROUND = 3
+_battleground_icons = {}
+
+
+def battleground_icons():
+    try:
+        build = client.installed_version()
+        if build not in _battleground_icons:
+            stored = client.stored_build("BattlemasterList", build)
+            rows = [r for r in (client.rows("BattlemasterList", stored, stored=True) if stored else ())
+                    if str(r.get("InstanceType")) == str(BATTLEGROUND) and r.get("Name_lang")]
+            own = {r["Name_lang"]: int(r.get("IconFileDataID") or 0) for r in rows}
+            given = [fid for fid in own.values() if fid]
+            most = max(set(given), key=given.count) if given else None
+            _battleground_icons[build] = {name: fid or most for name, fid in own.items() if fid or most}
+        return _battleground_icons[build]
+    except (OSError, ValueError, KeyError, game.GameNotFound):
+        return {}
+
+
+AURA_STUN, AURA_CONFUSE, AURA_TRANSFORM, AURA_FEAR, AURA_CHARM = 12, 5, 56, 7, 6
+AURA_SILENCE, AURA_ROOT, AURA_SNARE = 27, 26, 33
+AUTO_REPEAT = 0x20
+ON_USE = "0"
+TRINKET = "12"
+_spell_facts = {}
+
+
+def control_kind(auras):
+    for kind, has in (("stun", AURA_STUN in auras), ("polymorph", {AURA_CONFUSE, AURA_TRANSFORM} <= auras),
+                      ("fear", AURA_FEAR in auras), ("disorient", AURA_CONFUSE in auras),
+                      ("charm", AURA_CHARM in auras), ("silence", AURA_SILENCE in auras),
+                      ("root", AURA_ROOT in auras), ("snare", AURA_SNARE in auras)):
+        if has:
+            return kind
+    return None
+
+
+def spell_facts():
+    try:
+        build = client.installed_version()
+        if build not in _spell_facts:
+            _spell_facts[build] = _read_spell_facts(build)
+        return _spell_facts[build]
+    except (OSError, ValueError, KeyError, game.GameNotFound):
+        return {}
+
+
+def _read_spell_facts(build):
+    def table(name):
+        stored = client.stored_build(name, build)
+        return client.rows(name, stored, stored=True) if stored else []
+    out = {}
+    fact = lambda sid: out.setdefault(int(sid), {})
+    auras = {}
+    for r in table("SpellEffect"):
+        auras.setdefault(int(r["SpellID"]), set()).add(int(r.get("EffectAura") or 0))
+    for sid, a in auras.items():
+        kind = control_kind(a)
+        if kind:
+            fact(sid)["cc"] = kind
+    lasts = {r["ID"]: int(r.get("Duration") or 0) for r in table("SpellDuration")}
+    for r in table("SpellMisc"):
+        if int(r.get("Attributes_2") or 0) & AUTO_REPEAT:
+            fact(r["SpellID"])["auto"] = 1
+        if lasts.get(r.get("DurationIndex"), 0) > 0:
+            fact(r["SpellID"])["dur"] = lasts[r["DurationIndex"]] / 1000
+    for r in table("SpellCooldowns"):
+        cd = max(int(r.get("RecoveryTime") or 0), int(r.get("CategoryRecoveryTime") or 0)) / 1000
+        if cd > 0:
+            f = fact(r["SpellID"])
+            f["cd"] = max(f.get("cd", 0), cd)
+    kinds = {r["ID"]: r.get("InventoryType") for r in table("Item")}
+    effects = {r["ID"]: r for r in table("ItemEffect") if r.get("TriggerType") == ON_USE}
+    for r in sorted(table("ItemXItemEffect"), key=lambda r: int(r["ItemID"])):
+        e = effects.get(r["ItemEffectID"])
+        if not e or not int(e.get("SpellID") or 0):
+            continue
+        use = "trinket" if kinds.get(r["ItemID"]) == TRINKET else "consumable" if int(e.get("Charges") or 0) < 0 \
+            else None
+        f = fact(e["SpellID"])
+        if use and f.get("use") != "trinket" and (use == "trinket" or "item" not in f):
+            f["item"], f["use"] = int(r["ItemID"]), use
+    return {sid: f for sid, f in out.items() if f}
+
+
 def item_name(item):
     return (client_table("items.json", "items")[1].get(str(item)) or [None])[0]
 
 
 ITEM_BUY = 6
+ITEM_STACK = 7
 ITEM_REQUIRED = 5
+ITEM_SELL = 8
 
 
-def item_buy_price(item):
+def item_sell_price(item):
     row = client_table("items.json", "items")[1].get(str(item)) or ()
-    return (row[ITEM_BUY] if len(row) > ITEM_BUY else 0) or None
+    return row[ITEM_SELL] if len(row) > ITEM_SELL else None
+
+
+def item_unit_price(item):
+    row = client_table("items.json", "items")[1].get(str(item)) or ()
+    price = row[ITEM_BUY] if len(row) > ITEM_BUY else 0
+    if not price:
+        return None
+    return price / ((row[ITEM_STACK] if len(row) > ITEM_STACK else 0) or 1)
 
 
 def item_infos(ids):
@@ -330,9 +427,19 @@ TODO_PATH = os.path.join(ROOT, "data", "todo.json")
 
 todo_lock = threading.Lock()
 
+WARNING_TODO = {"ammo": "restock:ammo", "petUnhappy": "character:feedPet", "shards": "restock:shards",
+                "mhPoison": "restock:mhPoison", "ohPoison": "restock:ohPoison", "poisons": "restock:poisons",
+                "water": "restock:water", "ankh": "restock:ankhs", "earthTotem": "restock:earthTotem",
+                "fireTotem": "restock:fireTotem", "waterTotem": "restock:waterTotem", "airTotem": "restock:airTotem",
+                "durability": "character:repair"}
+
 
 def load_todo():
     return {"silenced": {}, "dismissed": {}, **store.load_json(TODO_PATH, {})}
+
+
+def todo_answer(todo):
+    return {**todo, "tracks": WARNING_TODO}
 
 
 def save_todo(todo):

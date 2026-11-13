@@ -3,15 +3,16 @@
 
 name = Import/Export
 export = Export
-export.text = Saves everything the Index keeps into one file in the Downloads folder, for taking the Index to another PC. The file holds the characters, kills, runs, wish list, to-do, settings and the ground walked, with the map pictures, the paths and the downloads, so the Index on the other PC downloads nothing again
+export.text = Saves your own records into one file in your Downloads folder, so you can take them to another PC. The file holds your characters, kills, runs, wish list, to-do, settings and the ground you walked. The Index's own data comes with every install, so the file leaves it out
 export.key = Export to Downloads
 import = Import
-import.text = Reads an exported file on the other PC. The box takes the file's full path. The import is put in place when the Index restarts, and a file on this PC that is newer than its copy in the export stays as it is
+import.text = Reads an exported file on the other PC. The box takes the file's full path. The import brings back only your own records, and the Index's own data stays as this install has it. Your records go in place when you restart the Index, and a file on this PC that is newer than its copy in the export stays as it is
 import.box = The exported file, like D:\IndexOfAzeroth-data-2026-09-26.zip
 import.key = Import
 exporting = Exporting
 importing = Importing
 exported = Saved {size} GB as {path}
+exported.mb = Saved {size} MB as {path}
 imported = Imported {n} files and kept the {kept} newer files already on this PC. Restart the Index to put the files in place
 imported.one = Imported {n} file and kept the {kept} newer files already on this PC. Restart the Index to put the file in place
 failed = The export or import failed: {message}

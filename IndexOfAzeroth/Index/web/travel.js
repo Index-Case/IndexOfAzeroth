@@ -1,7 +1,7 @@
 // The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
 "use strict";
 
-const TRAVEL_KINDS = { flight: "flight path", zeppelin: "zeppelin and airship", boat: "boat" };
+const TRAVEL_KINDS = wordsOf("page.travel.kind");
 const TRAVEL_TINTS = { flight: "route-flight", zeppelin: "route-zeppelin", boat: "route-boat" };
 const SIDE_TINTS = { Alliance: "route-alliance", Horde: "route-horde" };
 const SETTLED_TINTS = { "route-alliance": "route-alliance-bright", "route-horde": "route-horde-bright" };
@@ -17,8 +17,8 @@ function travelKey(cat) {
   if (!(cat in TRAVEL_KINDS)) return "";
   const lit = travel.on.has(cat);
   return html`<button class="mob-go" data-routes="${cat}" aria-pressed="${lit ? "true" : "false"}" title="${lit
-    ? `Hide the ${TRAVEL_KINDS[cat]} routes`
-    : `Show every ${TRAVEL_KINDS[cat]} route on the map as faint lines`}">Routes</button>`;
+    ? word("page.travel.routes.hide", { kind: TRAVEL_KINDS[cat] })
+    : word("page.travel.routes.show", { kind: TRAVEL_KINDS[cat] })}">${word("page.travel.routes")}</button>`;
 }
 function toggleTravel(cat) {
   if (travel.on.has(cat)) travel.on.delete(cat); else travel.on.add(cat);
@@ -200,7 +200,7 @@ function pickTravel(hit) {
   const was = travel.picked, p = hit && spotPlace(hit);
   const at = p && fracToWorld(hit.map ?? app.state?.map, p.x, p.y);
   travel.picked = at ? { hit, stops: stopsOfSpot(hit) || [], at } : null;
-  if (travel.picked) travelGo.title = `Starts the Navigation Guide to this ${poiWhat(p.cat)}. Paste the line the page copies into the game's chat, as with every guide`;
+  if (travel.picked) travelGo.title = word("page.travel.go", { what: poiWhat(p.cat) });
   if (was || travel.picked) redraw();
   return was;
 }

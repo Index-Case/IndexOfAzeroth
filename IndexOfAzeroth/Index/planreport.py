@@ -101,6 +101,35 @@ def offer_finds(quests, log):
     return first({"k": "offer", "quest": q["name"]} for q in quests if q.get("name") and q.get("id") not in log)
 
 
+TRADE_GOODS = 7
+REAGENTS = {5: "cloth", 6: "leather", 7: "metal", 9: "herb", 8: "meat", 1: "parts", 10: "elemental", 12: "enchanting",
+            11: "goods"}
+
+
+def reagent_kind(item):
+    return REAGENTS.get(item.get("sub"), "reagent") if item.get("cls") == TRADE_GOODS else "reagent"
+
+
+def material_finds(rows, item, bank=None):
+    out = []
+    for r in rows:
+        if r.get("kind") != "material" or not r.get("name"):
+            continue
+        name, ways = r["name"], r.get("ways") or {}
+        out.append({"k": reagent_kind(item(r["item"])), "item": name})
+        if r.get("have"):
+            out.append({"k": "bags", "item": name})
+        if (bank or {}).get(r["item"]):
+            out.append({"k": "bank", "item": name})
+        if r.get("pick") == "vendor" and (ways.get("vendor") or {}).get("name"):
+            out.append({"k": "vendor", "item": name, "npc": ways["vendor"]["name"]})
+        if r.get("pick") == "auction":
+            out.append({"k": "auction", "item": name})
+        if ways.get("auction"):
+            out.append({"k": "weigh", "item": name})
+    return first(out)
+
+
 def lower(text):
     return text[:1].lower() + text[1:]
 

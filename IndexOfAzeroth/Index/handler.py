@@ -26,6 +26,7 @@ from itemtips import MISSING
 import races
 import books
 import legacy
+import legacynodes
 from characters import realm_label, seen_record
 import camping
 import datafiles
@@ -53,10 +54,10 @@ import upgrades
 import talentplan
 import youtube
 from serverlog import log_error, log_note
-from gamedata import ITEM_TIPS, SPELL_TIPS, item_ids, item_infos, load_todo, save_todo, spell_icons, stat_weights, stored_icon, todo_lock
-from planning import (NoRoom, build_epic, carried_now, covered_split, danger_stretches, game_prices, playing_char, playing_now, prof_panel,
+from gamedata import ITEM_TIPS, SPELL_TIPS, item_ids, item_infos, load_todo, save_todo, spell_icons, stat_weights, stored_icon, todo_answer, todo_lock
+from planning import (NoRoom, asked_epic, carried_now, covered_split, danger_stretches, game_prices, playing_char, playing_now, prof_panel,
                       profession_summary, quest_marks, quest_zones, round_or_through, start_fresh, wanted, weigh_route, camp_opens,
-                      camp_state, class_chains, planned_blind, route_travel)
+                      camp_state, class_chains, planned_blind, quest_levels_of, route_travel)
 from gathering import (GATHER_SEARCH_KEEP, GRIND_MAPS_MOST, GRIND_SEARCH_SECONDS, SEARCHES_MOST, GatherSearch,
                        _searches_lock, camp_walk, safest_way)
 from shared import quiet_table
@@ -163,6 +164,9 @@ def get_maps(h, hub):
     for mid, levels in hub.zone_levels.items():
         if mid in maps["maps"]:
             maps["maps"][mid]["levels"] = levels
+    for mid, kind in hub.zone_pvp.items():
+        if mid in maps["maps"]:
+            maps["maps"][mid]["pvp"] = kind
     for mid, areas in mapzones.AREAS.items():
         if mid in maps["maps"]:
             maps["maps"][mid]["areas"] = areas
@@ -354,6 +358,7 @@ def get_pack(h, hub):
 def get_shared(h, hub):
     asked = whole(h.query().get("version"))
     body = hub.shared.snapshot(asked) if hub.shared else {"version": None, "working": None, "epic": None}
+    body["profs"] = [carried_now(hub, p) for p in body.get("profs") or ()]
     body["playing"] = playing_char(hub)
     return h.send_json(body)
 
@@ -530,13 +535,22 @@ def get_leatherzones(h, hub):
     return h.send_json(body)
 
 
+def level_range(text):
+    lo, dash, hi = text.partition("-")
+    if not dash:
+        raise ValueError(f"a level range: {text}")
+    return int(lo), int(hi) if hi else None
+
+
 @serves("GET", "/api/epic")
 def get_epic(h, hub):
     q = h.query()
     try:
         anchor = (int(q["inst"]), finite(q["n"]), finite(q["w"])) if q.get("inst") else None
         parked = {int(p) for p in (q.get("parked") or "").split(".") if p}
-        body = carried_now(hub, build_epic(hub, q["key"], anchor, parked=parked, close=q.get("close") == "1"))
+        levels = [level_range(r) for r in (q.get("levels") or "").split(".") if r]
+        body = carried_now(hub, asked_epic(hub, q["key"], anchor, parked=parked, close=q.get("close") == "1",
+                                           quest_levels=levels))
     except (KeyError, ValueError):
         return h.send_error(400)
     if body is None:
@@ -735,7 +749,7 @@ def get_classspells(h, hub):
                         "trees": talent_trees(c, cid), "spec": upgrades.spec_tree(st.get("nums") or {}) if mine else 0,
                         "talentPlan": talentplan.talent_plan(c, cid, (talentplan.builds().get("classes") or {}).get(str(cid)),
                                                              st.get("nums") or {}, hub.talentranks.ranks(hub.characters.current),
-                                                             level, hub.characters.talent_build()) if mine else None,
+                                                             level, hub.characters.talent_build(), legacynodes.points(me)) if mine else None,
                         **({"petTrainer": nearest_service(hub, "pettrainer")} if mine and any(s.get("pet") == "trainer" for v in levels.values()
                                                                                             for s in v["spells"]) else {})})
 
@@ -751,6 +765,11 @@ GATED_AT = {"riding": "riding", "weapon": "weapons"}
 def gated_levels(gated, cid, me, known, level):
     out, have = {}, set(known or ())
     mine = list((gated.get("classes") or {}).get(str(cid), {}).items())
+    point_levels = legacynodes.points(me)
+    if point_levels is not None:
+        needs = {e["spent"] for _, entries in mine for e in entries if e["kind"] == "talent" and e.get("spent")}
+        mine = [(lv, [e for e in entries if e["kind"] != "talent"]) for lv, entries in mine]
+        mine += [(str(lv), [e]) for lv, e in talentplan.point_steps(point_levels, needs)]
     trainers = me.get("profTrainers") or {}
     for name in dict.fromkeys([p["name"] for p in me.get("professions") or ()] + sorted(me.get("recipes") or {})):
         seen = {r["spell"]: r for r in (trainers.get(name) or {}).get("ranks") or ()}
@@ -822,6 +841,23 @@ def get_replay_day(h, hub):
     rec = (hub.characters.snapshot().get("chars") or {}).get(key) or {}
     return h.send_json({"char": key or None, "day": day, **got, "icons": spell_icons(sorted(names)),
                         "className": rec.get("className")})
+
+
+@serves("GET", "/api/pvp")
+def get_pvp(h, hub):
+    key = _asked_char(h, hub)
+    if key is None:
+        return None
+    return h.send_json(hub.pvp.brief(key) if key else {"char": None, "fights": [], "off": [], "icons": {}})
+
+
+@serves("GET", "/api/pvp/fight")
+def get_pvp_fight(h, hub):
+    key = _asked_char(h, hub)
+    if key is None:
+        return None
+    got = hub.pvp.opened(key, h.query().get("id") or "") if key else None
+    return h.send_json(got) if got else h.send_error(404)
 
 
 @serves("GET", "/api/replay/kills")
@@ -1059,7 +1095,7 @@ def get_layers(h, hub):
 def get_todo(h, hub):
     with todo_lock:
         todo = load_todo()
-    return h.send_json(todo)
+    return h.send_json(todo_answer(todo))
 
 
 @serves("GET", "/api/settings")
@@ -1517,13 +1553,18 @@ def post_shared_epic(h, hub, body):
         if not isinstance(parked, list):
             raise TypeError("parked: a list of quest IDs")
         parked = {int(q) for q in parked}
+        levels = body.get("questLevels") or []
+        if not isinstance(levels, list):
+            raise TypeError("questLevels: a list of level ranges")
+        levels = quest_levels_of(key, levels)
     except (ValueError, KeyError, TypeError, IndexError):
         return h.send_error(400)
     if not hub.shared:
         return h.send_json({"started": False})
     version, last, side = (hub.shared.data or {}).get("version"), hub.shared.run_start, body.get("side") is True
     try:
-        started = start_fresh(hub, key, anchor, plan_mode(body.get("mode")), body.get("close") is True, parked, side=side)
+        started = start_fresh(hub, key, anchor, plan_mode(body.get("mode")), body.get("close") is True, parked, side=side,
+                              quest_levels=levels)
     except NoRoom as full:
         return h.send_json({"started": False, "full": list(full.args)})
     log_note(f"page start {key}{' side by side' if side else ''}: click {body.get('click')}, "
@@ -1554,7 +1595,14 @@ def post_shared_open(h, hub, body):
     key = body.get("key")
     if not isinstance(key, str) or not key:
         return h.send_error(400)
-    return h.send_json({"opened": bool(hub.shared) and hub.shared.open_epic(key, by="page", char=playing_char(hub))})
+    if not hub.shared:
+        return h.send_json({"opened": False})
+    me = playing_char(hub)
+    if hub.shared.open_epic(key, by="page", char=me):
+        return h.send_json({"opened": True})
+    side, at = hub.shared.epic_of(key, me)
+    room, running = hub.shared.side_room(me, key) if side and at is not None else (True, [])
+    return h.send_json({"opened": False, **({} if room else {"full": running})})
 
 
 @serves("POST", "/api/shared/pick", only_here="keeps a crafting epic's pick in Shared.lua in the game's addon folder")
@@ -1642,7 +1690,7 @@ def post_todo(h, hub, body):
                 log_error("writing the quiet warnings into Shared.lua")
     if ("silence" in body or "unsilence" in body) and getattr(hub, "watch", None):
         hub.watch.poke()
-    return h.send_json(todo)
+    return h.send_json(todo_answer(todo))
 
 
 ART = os.path.join(WEB, "art")

@@ -1,5 +1,11 @@
 # The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
-# placeholders: none
+# placeholders: side
 
 sea = The Great Sea
 maelstrom = The Maelstrom
+pvp.friendly = {side} territory: safe
+pvp.hostile = {side} territory: you can be attacked
+pvp.contested = Contested: open PvP
+pvp.sanctuary = Sanctuary: no fighting at all
+pvp.territory = {side} territory
+pvp.contested-zone = Contested

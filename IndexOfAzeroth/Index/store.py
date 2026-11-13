@@ -164,6 +164,17 @@ def running_builder():
     return base[6:-3] if base.startswith("build_") and base.endswith(".py") else None
 
 
+BUILDER_RUN = "WCC_BUILDER_RUN"
+
+
+def start_builder_run():
+    os.environ[BUILDER_RUN] = f"{os.getpid()}.{time.time_ns()}"
+
+
+def builder_run():
+    return os.environ.get(BUILDER_RUN) or str(os.getpid())
+
+
 def mark_missing(source, names, builder=None):
     names = set(names)
     if not names:

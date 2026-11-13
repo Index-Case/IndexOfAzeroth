@@ -1,5 +1,5 @@
 # The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
-# placeholders: item, count, items, station, skill, need, have, recipe, colour, to, at, cap, rank, npc, n, rest, last
+# placeholders: item, count, items, station, skill, need, have, recipe, colour, to, at, cap, rank, npc, n, rest, last, age
 
 name = {item} crafting epic
 grind = Grind until you have {count} {item}.
@@ -8,6 +8,13 @@ herbalism = Gather herbs until you have {count} {item}.
 mining = Mine until you have {count} {item}.
 auction = Buy {items} at the auction house.
 buy = Buy {items} at {npc}
+bank = Take {items} from your bank
+bank.old = Take {items} from your bank. The Index last saw your bank {age} ago.
+age = {n} days
+age.one = a day
+sell = Sell {items} at {npc}
+sold = You sold what a later step needs. Buy back {items}.
+sold.tip = Click to close this warning. The Index then plans the craft of what you sold again.
 got = {n} {item}
 got.one = a {item}
 list = {rest} and {last}
@@ -23,5 +30,3 @@ unlearnt = No source says yet where you learn {recipe}, and the Index asks again
 stuck = No recipe you know or a trainer teaches gives {skill} points at {at} yet.
 top = No rank of {skill} goes past {cap} yet.
 unsaid = You are at the cap, and no source says yet what skill {rank} asks for.
-buying = Buying {items}
-materials = materials for {item}

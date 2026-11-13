@@ -10,8 +10,9 @@ const queueSeen = { key: null, beepAt: 0, dismissed: new Set() };
 
 function queueLine(q, now = Date.now()) {
   if (!q) return null;
-  const state = q.match ? "Group found" : q.invite ? "Invited" : q.queued ? "Queued" : q.listed ? "Listed"
-    : q.applied ? "Asked to join" : null;
+  const state = q.match ? word("page.queue.state.match") : q.invite ? word("page.queue.state.invite")
+    : q.queued ? word("page.queue.state.queued") : q.listed ? word("page.queue.state.listed")
+    : q.applied ? word("page.queue.state.applied") : null;
   if (!state) return null;
   return { state, what: q.what || "", minutes: q.since == null ? null : Math.max(0, Math.floor((now / 1000 - q.since) / 60)) };
 }
@@ -19,34 +20,38 @@ function queueLine(q, now = Date.now()) {
 function queueLineHtml(q = app.queue, now = Date.now()) {
   const line = queueLine(q, now);
   if (!line) return "";
-  const waited = line.minutes == null ? "" : ` <small>${line.minutes} min</small>`;
-  return `<div class="st-head st-queue"><img class="st-hic" src="/icon/${QUEUE_ICON}.jpg" alt="">Group finder: ${esc(line.state)}${waited}</div>${
+  const waited = line.minutes == null ? "" : ` <small>${word("page.queue.minutes", { n: String(line.minutes) })}</small>`;
+  return `<div class="st-head st-queue"><img class="st-hic" src="/icon/${QUEUE_ICON}.jpg" alt="">${word("page.queue.line", { state: esc(line.state) })}${waited}</div>${
     line.what ? `<div class="st-queue-what">${esc(line.what)}</div>` : ""}`;
 }
 
 function queueWords(q) {
   const e = q.event, name = e.name || "";
-  const size = q.members ? `, ${q.members} in it${q.most ? ` of ${q.most}` : ""}` : "";
+  const size = !q.members ? "" : `, ${q.most ? word("page.queue.size.most", { n: q.members, most: q.most }) : word("page.queue.size", { n: q.members })}`;
   if (e.kind === "invite" && e.source === "finder") {
-    return ["GROUP FOUND", `The dungeon finder has a group${name ? ` for ${name}` : ""}. Accept the group in game`];
+    return [word("page.queue.found"), name ? word("page.queue.found.line.for", { name }) : word("page.queue.found.line")];
   }
   if (e.kind === "invite" && e.source === "listing") {
-    return ["GROUP INVITE", `${name || "A group you asked to join"} invites you. Answer the invite in game`];
+    return [word("page.queue.invite"), name ? word("page.queue.invite.listing.named", { name }) : word("page.queue.invite.listing")];
   }
-  if (e.kind === "invite") return ["GROUP INVITE", `${name || "Someone"} invites you to a group. Answer the invite in game`];
+  if (e.kind === "invite") return [word("page.queue.invite"), name ? word("page.queue.invite.line.named", { name }) : word("page.queue.invite.line")];
   if (e.kind === "joined") {
-    return ["GROUP FORMED", `${e.source === "invite" && name ? `You're in ${name}'s group` : `You joined ${name || "a group"}`}${size}`];
+    const joined = e.source === "invite" && name ? word("page.queue.joined.invite", { name })
+      : name ? word("page.queue.joined", { name }) : word("page.queue.joined.group");
+    return [word("page.queue.formed"), joined + size];
   }
-  if (e.kind === "formed") return ["GROUP FORMED", `The dungeon finder's group${name ? ` for ${name}` : ""} is ready${size}`];
-  if (e.kind === "full") return ["GROUP FULL", `Your group${name ? ` for ${name}` : ""} is full${size}`];
+  if (e.kind === "formed") {
+    return [word("page.queue.formed"), (name ? word("page.queue.formed.line.for", { name }) : word("page.queue.formed.line")) + size];
+  }
+  if (e.kind === "full") return [word("page.queue.full"), (name ? word("page.queue.full.line.for", { name }) : word("page.queue.full.line")) + size];
   return null;
 }
 
 function queueGoneWords(q) {
   const e = q.event, name = e.name || "";
-  if (e.source === "finder") return `The dungeon finder's group fell through${q.queued ? ". You're back in the queue" : ""}`;
-  if (e.source === "listing") return `${name || "A group you asked to join"} turned you down, or your ask ran out`;
-  return `The group invite${name ? ` from ${name}` : ""} ran out or was taken back`;
+  if (e.source === "finder") return q.queued ? word("page.queue.gone.finder.queued") : word("page.queue.gone.finder");
+  if (e.source === "listing") return name ? word("page.queue.gone.listing.named", { name }) : word("page.queue.gone.listing");
+  return name ? word("page.queue.gone.invite.from", { name }) : word("page.queue.gone.invite");
 }
 
 const queueKey = (e) => `queue:${e.n}:${e.at}`;

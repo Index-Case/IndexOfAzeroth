@@ -3,10 +3,10 @@
 
 level = Level {skill} to
 level.tip = This asks how far to level {skill} and how to get the materials, then starts the {skill} epic.
-gather = Gather
-gather.tip = Farms, skins, mines and gathers every material, and buys only what only a vendor sells, like Coarse Thread.
-buy = Buy
-buy.tip = Buys every material from a vendor or at the auction house, and farms only what nobody sells.
+cheap = Cheapest
+cheap.tip = Gets every material the way that costs the least, and crafts or smelts a material from cheaper ones where the skill for it is there.
+buy = Fastest
+buy.tip = Buys every missing material from a vendor or at the auction house, and farms only what nobody sells.
 both = Best of both
 both.tip = Buys a material from a vendor, or at the auction house when that costs less than farming it, and farms, gathers or crafts the rest, whichever is quickest.
 start = Start the {skill} epic

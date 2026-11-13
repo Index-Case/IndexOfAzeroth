@@ -137,7 +137,7 @@ def hand_end(steps, start):
 
 def train_step(L, core, spells, trainer, cost=None, pay=0):
     name, p = trainer[0], trainer[1]
-    text = f"Go train at {name}"
+    text = f"Train at {name}"
     return {"kind": "errand", "what": "train", "key": f"train:{L}", "quest": None, "questName": text, "text": text,
             "npc": name, "inst": p[0], "at": [round(p[1], 1), round(p[2], 1)] + ([round(p[3], 1)] if len(p) > 3 and p[3] is not None else []),
             "need": {"spells": [s["id"] for s in spells], "level": L, **({"pay": int(round(pay))} if pay else {})}, "min": L, "trip": L, "why": core_words(core),

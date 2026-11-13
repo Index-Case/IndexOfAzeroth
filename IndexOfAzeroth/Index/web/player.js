@@ -41,7 +41,7 @@ function spellHoverHtml(name) {
       else if (spellTips[s.id] === undefined) setTimeout(refreshHover, SPELL_TIP_AGAIN_MS);
     });
   }
-  const head = tip?.html || `<b class="q">${esc(s.name)}</b>${s.rank ? ` <span class="q0">${esc(s.rank)}</span>` : ""}`;
+  const head = spellTipHtml(tip) || `<b class="q">${esc(s.name)}</b>${s.rank ? ` <span class="q0">${esc(s.rank)}</span>` : ""}`;
   const word = tip && !tip.html ? `<div class="sp-line">${tipWord(tip)}</div>` : "";
   const cost = s.pet ? petSourceHtml(s) : s.state === "elsewhere" || s.cost == null ? ""
     : `<div class="sp-line">${money(s.cost)} at the trainer${s.game ? ", which is the game's price" : ""}</div>`;
@@ -137,16 +137,28 @@ function gatedChip(e, level) {
 const talentSteps = (d) => (d.talentPlan?.steps || []).map((s) => ({ kind: "plan", id: s.node, name: s.name, icon: s.icon,
   rank: s.rank, ranks: s.ranks, level: s.level, state: s.level <= (d.level || 1) ? "learn" : "later" }));
 const gatedAt = (d, lv) => [...(d.gated?.[String(lv)] || []), ...talentSteps(d).filter((s) => s.level === lv)];
+function talentTip(node) {
+  const t = (player.data?.trees || []).flatMap((tr) => tr.talents).find((x) => String(x.node) === String(node));
+  if (!t) return { t: null, tip: undefined };
+  const tip = keptTip(spellTips, t.id);
+  if (tip === undefined && !player.tipAsking.has(t.id)) {
+    player.tipAsking.add(t.id);
+    loadSpellTip(t.id).then((got) => { player.tipAsking.delete(t.id); if (got) refreshHover(); });
+  }
+  return { t, tip };
+}
+const planTipHtml = (e) => spellTipHtml(talentTip(e.id).tip, e.rank, e.ranks);
 function gatedHoverHtml(name) {
   const e = player.chips[`gated:${name.slice("gated:".length)}`];
   if (!e) return "";
   const line = (text) => `<div class="sp-line">${esc(text)}</div>`;
-  const parts = [`<b class="q">${esc(e.name)}</b>`, `<div class="sp-line sp-first">${e.level === "?" ? "Level not known" : `Level ${e.level}`}</div>`];
+  const tip = e.kind === "plan" ? planTipHtml(e) : "";
+  const parts = [tip || `<b class="q">${esc(e.name)}</b>`, `<div class="sp-line sp-first">${e.level === "?" ? "Level not known" : `Level ${e.level}`}</div>`];
   if (e.level === "?") parts.push(line(`We have no information yet on the level ${e.name} opens at`));
   else if (pastCap(e.level)) parts.push(line(pastCapWords()));
   else if (e.kind === "plan") parts.push(line(e.state === "learn" ? "You can take this talent now" : GATED_WORDS.later));
   else if (GATED_WORDS[e.state]) parts.push(line(e.kind === "talent" || e.kind === "milestone" ? (e.state === "known" ? "Reached" : GATED_WORDS.later) : GATED_WORDS[e.state]));
-  if (e.kind === "plan") parts.push(line(`Rank ${e.rank} of ${e.ranks}`), line(`Your build, ${player.data?.talentPlan?.build?.name || ""}, takes this talent at this level`));
+  if (e.kind === "plan") parts.push(...(tip ? [] : [line(`Rank ${e.rank} of ${e.ranks}`)]), line(`Your build, ${player.data?.talentPlan?.build?.name || ""}, takes this talent at this level`));
   else if (e.kind === "talent") parts.push(line(e.spent ? `This is the first level with ${e.spent} talent points, so talents that ask for ${e.spent} points spent can open from this level` : `Talent points: ${e.text}`));
   else if (e.kind === "milestone") parts.push(line(`The game says: ${e.text}`), line(`This level gives a point for Forever's milestone talents${e.of ? `, up to ${e.of} in all` : ""}`));
   else if (e.text) parts.push(line(e.text));

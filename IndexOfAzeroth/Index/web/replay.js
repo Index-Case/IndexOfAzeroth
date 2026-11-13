@@ -16,34 +16,34 @@ function replaySuiteHtml() {
   const pauses = REPLAY_PAUSES.map((p) => `<label class="rp-pause"><input type="checkbox" data-rp-pause="${p.id}"${replay.pauses.has(p.id) ? " checked" : ""}> ${p.name}</label>`).join("");
   return `<div class="rp-row">
     <span class="layer-pick"><button class="key small rp-day" id="rp-day" aria-haspopup="true" aria-expanded="false"
-      title="Pick the day to play back">${replay.day ? esc(dayName(replay.day)) : "No day recorded yet"}</button>
+      title="${esc(word("page.replay.day.tip"))}">${replay.day ? esc(dayName(replay.day)) : esc(word("page.replay.day.none"))}</button>
       <div class="layer-menu rp-days" id="rp-days" role="menu" hidden></div></span>
-    <button class="key small square" data-rp="back" title="Step back one recorded event (while paused)">⏮</button>
-    <button class="key small square" data-rp="rewind" title="Play the day backwards">⏪</button>
-    <button class="key small square" data-rp="play" id="rp-play" title="Play or pause the day">${replay.playing ? "⏸" : "▶"}</button>
-    <button class="key small square" data-rp="forward" title="Fast forward: play at the next speed up">⏩</button>
-    <button class="key small square" data-rp="next" title="Step forward one recorded event (while paused)">⏭</button>
-    <span class="rp-speeds"><button class="key small square" data-rp="slower" title="Slower">&minus;</button>
-      <span class="rp-speed-now" id="rp-speed" title="How many times faster than it was played">${replay.speed}x</span>
-      <button class="key small square" data-rp="faster" title="Faster">+</button></span>
+    <button class="key small square" data-rp="back" title="${esc(word("page.replay.back.tip"))}">⏮</button>
+    <button class="key small square" data-rp="rewind" title="${esc(word("page.replay.rewind.tip"))}">⏪</button>
+    <button class="key small square" data-rp="play" id="rp-play" title="${esc(word("page.replay.play.tip"))}">${replay.playing ? "⏸" : "▶"}</button>
+    <button class="key small square" data-rp="forward" title="${esc(word("page.replay.forward.tip"))}">⏩</button>
+    <button class="key small square" data-rp="next" title="${esc(word("page.replay.next.tip"))}">⏭</button>
+    <span class="rp-speeds"><button class="key small square" data-rp="slower" title="${esc(word("page.replay.slower.tip"))}">&minus;</button>
+      <span class="rp-speed-now" id="rp-speed" title="${esc(word("page.replay.speed.tip"))}">${replay.speed}x</span>
+      <button class="key small square" data-rp="faster" title="${esc(word("page.replay.faster.tip"))}">+</button></span>
     <span class="layer-pick"><button class="key small" id="rp-pause-key" aria-haspopup="true" aria-expanded="false"
-      title="Pick what the replay pauses on when it reaches it">Pause on</button>
+      title="${esc(word("page.replay.pause.tip"))}">${esc(word("page.replay.pause"))}</button>
       <div class="layer-menu rp-pauses" id="rp-pauses" role="menu" hidden>${pauses}</div></span>
     <button class="key small rp-toggle" data-rp="onward" aria-pressed="${replay.onward}"
-      title="At the end of a day the replay plays on into the next one, or into the day before when playing backwards">Next day</button>
+      title="${esc(word("page.replay.onward.tip"))}">${esc(word("page.replay.onward"))}</button>
     <button class="key small rp-toggle" data-rp="fade" aria-pressed="${replay.fade}"
-      title="The walked path fades from faint at its start to full strength at the arrow">Path fade</button>
+      title="${esc(word("page.replay.fade.tip"))}">${esc(word("page.replay.fade"))}</button>
     <button class="key small" id="rp-follow" data-rp="follow" aria-pressed="${followingReplay()}"
-      title="Keep the map centred on the replayed character">${RP_FOLLOW_ICON}Follow</button>
+      title="${esc(word("page.replay.follow.tip"))}">${RP_FOLLOW_ICON}${esc(word("page.replay.follow"))}</button>
     <span class="rp-clock" id="rp-clock">${replay.data ? clockOf(replay.t) : ""}</span>
     ${helpButton("replay")}
-    <button class="key small square x-mark" data-rp="close" title="Closes the replay and switches Replay off in Options">&times;</button>
+    <button class="key small square x-mark" data-rp="close" title="${esc(word("page.replay.close.tip"))}">&times;</button>
   </div>
   <div class="rp-time${replayHeld() ? " held" : ""}" id="rp-time">
     <div class="rp-edge rp-edge-start" id="rp-edge-start" data-rp-edge="-1" hidden></div>
     <div class="rp-edge rp-edge-end" id="rp-edge-end" data-rp-edge="1" hidden></div>
     <div class="rp-marks" id="rp-marks"></div><div class="rp-band" id="rp-band"></div><div class="rp-scale" id="rp-scale"
-      title="The mouse wheel over the timeline zooms in and out around the pointer. Dragging across the whole day zooms into that stretch. Zoomed in, dragging moves along the day and Shift with a drag zooms into a stretch. A double-click shows the whole day again"></div>
+      title="${esc(word("page.replay.timeline.tip"))}"></div>
     <div class="rp-pick" id="rp-pick" hidden></div><div class="rp-head" id="rp-head"></div>
   </div>`;
 }
@@ -67,11 +67,11 @@ function renderReplayTime() {
   if (scale) scale.innerHTML = ticksFor(replay.from, replay.to, px).ticks.map((k) =>
     `<i class="rp-tick${k.major ? " major" : ""}" style="left:${at(k.t)}">${k.label ? `<b>${k.label}</b>` : ""}</i>`).join("");
   head.style.left = at(replay.t);
-  for (const [id, dir, words] of [["rp-edge-start", -1, "Go back to"], ["rp-edge-end", 1, "Go on to"]]) {
+  for (const [id, dir] of [["rp-edge-start", -1], ["rp-edge-end", 1]]) {
     const edge = $(id), day = dayBeside(dir);
     if (!edge) continue;
     edge.hidden = !day;
-    edge.title = day ? `${words} ${dayName(day)}` : "";
+    edge.title = !day ? "" : dir < 0 ? word("page.replay.edge.back", { day: dayName(day) }) : word("page.replay.edge.on", { day: dayName(day) });
   }
 }
 
@@ -412,7 +412,7 @@ function replayClick(e) {
 
 function daysMenuHtml() {
   return replay.days.length ? replay.days.map((d) => `<button class="layer-item" data-rp-day="${d}" role="menuitem"
-    aria-pressed="${d === replay.day}">${esc(dayName(d))}</button>`).join("") : `<p class="rp-none">The Index hasn't recorded a day of yours yet.</p>`;
+    aria-pressed="${d === replay.day}">${esc(dayName(d))}</button>`).join("") : `<p class="rp-none">${word("page.replay.days.none")}</p>`;
 }
 
 function toggleReplayMenu(menuId, keyId, html) {

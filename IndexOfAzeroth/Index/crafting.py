@@ -1,19 +1,25 @@
 # The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+import collections
 import math
+import time
 
 import farmspots
 import profepics
 import words
-from camping import buy_line, counted, names
+from camping import BANK_KEY, SELL_KEY, buy_line
+from errands import MERCHANT, money_before, pays
+from errands import vendor_price
 from facts import RUN_SPEED
 
 WAYS = ("vendor", "auction", "grind", "gather", "quest", "craft")
-MODES = ("gather", "buy", "both")
+MODES = ("gather", "buy", "both", "cheap")
 BOTH = "both"
+CHEAP = "cheap"
 DEPTH_MOST = 4
+BATCH_YARDS = 150
 BATCH = 10
 KEY = "craft:"
-AUCTION = {"auction"}
+BANK = {"bank"}
 
 
 def farm_seconds(spot, short):
@@ -29,24 +35,24 @@ def goal(item, total):
     return {"item": int(item), "count": int(total)}
 
 
-def craft_goals(pd, src, me, item, total, carry, picks=None):
+def craft_goals(pd, src, me, item, total, carry, picks=None, mode=BOTH):
     rec = src.recipe(item)
     up = {"goals": [], "route": [], "walls": []}
     then = rec and (1 if rec["yours"] is None else rec["yours"])
     if (rec and (carry or {}).get(item, 0) < total and not rec["known"] and rec["how"] is not None
             and rec["skill"] is not None and rec["skill"] > then):
-        up = levelling(pd, src, me, rec["line"], rec["skill"], BOTH, picks)
+        up = levelling(pd, src, me, rec["line"], rec["skill"], mode, picks)
     return {**up, "goals": up["goals"] + [goal(item, total)]}
 
 
-def materials(goals, carry, src, picks=None, mode=BOTH):
+def materials(goals, carry, src, picks=None, mode=BOTH, bank=None):
     picked = {int(k): v for k, v in (picks or {}).items() if str(k).lstrip("-").isdigit()}
     pool = {int(i): int(n) for i, n in (carry or {}).items()}
-    tree = Tree(src, picked, mode=mode)
+    tree = Tree(src, picked, mode=mode, bank={int(i): int(n) for i, n in (bank or {}).items()})
     rows, tops, seconds, cost = [], [], 0.0, 0
     for g in goals:
         seg = g.get("level")
-        top = tree.take(int(g["item"]), int(g["count"]), "goal", {} if seg else pool)
+        top = tree.take(int(g["item"]), int(g["count"]), "goal", {} if seg else pool, banked=not seg)
         if seg:
             tree.at[g["recipe"]["line"]] = seg["from"]
         tree.settle(top, 0, (), pool, g.get("recipe"))
@@ -69,19 +75,23 @@ def flatten(node, parent, depth, rows):
 
 class Tree:
 
-    def __init__(self, src, picks, tools=None, mode=BOTH, at=None):
+    def __init__(self, src, picks, tools=None, mode=BOTH, at=None, bank=None):
         self.src, self.picks, self.mode = src, picks, mode
         self.tools = set() if tools is None else tools
         self.at = {} if at is None else at
+        self.bank = {} if bank is None else bank
 
     def skill(self, recipe):
         return self.at.get(recipe.get("line"), recipe.get("yours"))
 
-    def take(self, item, need, kind, pool):
+    def take(self, item, need, kind, pool, banked=True):
         have = min(max(0, pool.get(item, 0)), need)
         pool[item] = pool.get(item, 0) - have
-        return {"item": item, "name": self.src.name(item), "kind": kind, "need": need, "have": have, "short": need - have,
-                "ways": None, "pick": None, "seconds": 0.0, "cost": 0, "children": []}
+        out = min(max(0, self.bank.get(item, 0)), need - have) if banked else 0
+        if out:
+            self.bank[item] -= out
+        return {"item": item, "name": self.src.name(item), "kind": kind, "need": need, "have": have + out, "banked": out,
+                "short": need - have - out, "ways": None, "pick": None, "seconds": 0.0, "cost": 0, "children": []}
 
     def settle(self, node, depth, path, pool, recipe=None):
         if not node["short"]:
@@ -116,6 +126,10 @@ class Tree:
         vendor, house = ways["vendor"], ways["auction"]
         if vendor and vendor.get("limited"):
             return self.rule(node, {**ways, "vendor": None}, depth, path, pool) or "vendor"
+        if self.mode == CHEAP:
+            cheap = self.cheapest(node, ways, depth, path, pool)
+            if cheap:
+                return cheap
         if vendor and self.mode != "gather":
             return "vendor"
         if house and (self.mode == "buy" or self.mode == BOTH and house.get("cheaper")):
@@ -137,11 +151,24 @@ class Tree:
         times = {w: t for w, t in times.items() if t < math.inf}
         return min(times, key=lambda w: (times[w], WAYS.index(w))) if times else None
 
-    def dry(self, node, recipe, depth, path, pool):
-        scratch = Tree(self.src, self.picks, set(self.tools), self.mode, self.at)
+    def cheapest(self, node, ways, depth, path, pool):
+        costs = {way: (ways[way].get("price") or 0) * node["short"] for way in ("vendor", "auction") if ways[way]}
+        recipe = ways["craft"]
+        if recipe and self.skill(recipe) is not None and learnable(recipe, self.skill(recipe)):
+            trial = self.dry(node, recipe, depth, path, pool, whole=True)
+
+            def got(n):
+                return not n["short"] or (n["pick"] is not None and all(got(k) for k in n["children"]))
+            if all(got(k) for k in trial["children"]):
+                costs["craft"] = trial["cost"]
+        order = ("craft", "vendor", "auction")
+        return min(costs, key=lambda way: (costs[way], order.index(way))) if costs else None
+
+    def dry(self, node, recipe, depth, path, pool, whole=False):
+        scratch = Tree(self.src, self.picks, set(self.tools), self.mode, self.at, dict(self.bank))
         trial = {**node, "children": []}
         scratch.craft(trial, recipe, depth, path + (node["item"],), dict(pool))
-        return trial["seconds"]
+        return trial if whole else trial["seconds"]
 
     def craft(self, node, recipe, depth, path, pool):
         crafts = math.ceil(node["short"] / max(1, recipe.get("makes") or 1))
@@ -181,9 +208,10 @@ class Tree:
 
 class Sources:
 
-    def __init__(self, look, pd, known=(), here=None, quest_seconds=None, talk=10.0):
+    def __init__(self, look, pd, known=(), here=None, quest_seconds=None, talk=10.0, me=None):
         self.look, self.pd, self.cd = look, pd, pd.cd
         self.known, self.here, self.quest_seconds, self.talk = set(known or ()), here, quest_seconds, talk
+        self.me = me or {}
         self.kept = {}
 
     def _kept(self, what, item, make):
@@ -202,6 +230,11 @@ class Sources:
         found = [self.info(c) for c in self.look.crafts(item)]
         short = lambda r: max(0, (r["skill"] or 0) - (r["yours"] or 0))
         return min(found, key=lambda r: (r["yours"] is None, not r["known"], short(r), r["spell"]), default=None)
+
+    @staticmethod
+    def sells(item):
+        import gamedata
+        return gamedata.item_sell_price(item)
 
     def info(self, c):
         cd, spell = self.cd, int(c["recipe"])
@@ -226,8 +259,8 @@ class Sources:
             v = self.look.vendor(item)
             if not v:
                 return None
-            return {"name": v.get("name"), "price": self.pd.unit_price(item), "seconds": (v.get("yards") or 0) / RUN_SPEED + self.talk,
-                    "limited": bool(v.get("limited"))}
+            return {"name": v.get("name"), "price": vendor_price(self.pd.unit_price(item), self.me),
+                    "seconds": (v.get("yards") or 0) / RUN_SPEED + self.talk, "limited": bool(v.get("limited"))}
         return self._kept("vendor", item, make)
 
     def auction(self, item, spots):
@@ -256,12 +289,15 @@ def per_craft(src, recipe, mode=BOTH, picks=None):
     made = materials([{"item": recipe["item"], "count": BATCH * recipe["makes"], "recipe": recipe,
                        "level": {"from": recipe["skill"] or 1, "to": recipe["skill"] or 1}}], {}, src, picks, mode)
     nowhere = any(r["short"] and r["pick"] is None for r in made["rows"])
-    return made["seconds"] / BATCH, made["cost"] / BATCH, nowhere
+    return made["seconds"] / BATCH, made["cost"] / BATCH - (src.sells(recipe["item"]) or 0) * recipe["makes"], nowhere
 
 
-def rank_cost(cost):
+CLOSE_COPPER = 50
+
+
+def rank_cost(cost, mode=BOTH):
     seconds, copper, nowhere = cost
-    return nowhere, seconds, copper
+    return (nowhere, copper // CLOSE_COPPER, seconds) if mode == CHEAP else (nowhere, seconds, copper)
 
 
 def levelling(pd, src, me, line, to, mode=BOTH, picks=None):
@@ -278,7 +314,7 @@ def levelling(pd, src, me, line, to, mode=BOTH, picks=None):
 
     def weighed(spell):
         if spell not in costs:
-            costs[spell] = rank_cost(per_craft(src, info(spell), mode, picks))
+            costs[spell] = rank_cost(per_craft(src, info(spell), mode, picks), mode)
         return costs[spell]
     route = pd.route(line, skill, to, (me.get("known") or {}).get(name) or (), level, me.get("items"), per_craft=weighed,
                      cuts={r["cap"] for r in rs})
@@ -317,6 +353,34 @@ def rank_wall(rank, prof, level, cap):
     return None
 
 
+def skill_ups(pd, src, me, goals, carry, picks=None, mode=BOTH, bank=None):
+    if mode != CHEAP:
+        return goals, []
+    rows, raised = [], {}
+
+    def weigh(g):
+        made = materials(g, carry, src, picks, mode, bank)
+        return sum(1 for r in made["rows"] if r["short"] and r["pick"] is None), made["cost"], made
+    best = weigh(goals)
+    while True:
+        asks = {(rec["line"], rec["skill"]) for r in best[2]["rows"]
+                for rec in [(r.get("ways") or {}).get("craft")] if r["short"] and r["pick"] in ("vendor", "auction") and rec
+                and rec.get("yours") is not None and rec.get("skill") and not rec.get("known")
+                and rec["skill"] > max(rec["yours"], raised.get(rec["line"], 0))}
+        found = None
+        for line, to in sorted(asks):
+            up = levelling(pd, src, me, line, to, mode, picks)
+            if up["walls"] or not up["goals"]:
+                continue
+            trial = weigh(up["goals"] + goals)
+            if trial[:2] < (found or best)[:2] and trial[0] <= best[0]:
+                found = (*trial, up, line, to)
+        if not found:
+            return goals, rows
+        goals, rows, best = found[3]["goals"] + goals, found[3]["route"] + rows, found[:3]
+        raised[found[4]] = found[5]
+
+
 
 
 def epic_name(item):
@@ -347,22 +411,39 @@ def farm_text(kind, item, count):
     return words.say("both.craft.grind", said)
 
 
-def chores(steps, made, chores_, pd, me, key, label):
-    return Placer(steps, made, chores_, pd, me, key, label).run()
+DAY = 86400.0
+
+
+def bank_age(at, now=None):
+    days = int(((time.time() if now is None else now) - at) // DAY) if at else 0
+    if days < 1:
+        return None
+    return words.say("both.craft.age.one", {}) if days == 1 else words.say("both.craft.age", {"n": days})
+
+
+def chores(steps, made, chores_, pd, me, key):
+    return Placer(steps, made, chores_, pd, me, key).run()
 
 
 class Placer:
 
-    def __init__(self, steps, made, chores_, pd, me, key, label):
+    def __init__(self, steps, made, chores_, pd, me, key):
         self.steps, self.rows, self.c, self.pd, self.cd, self.me = list(steps), made["rows"], chores_, pd, pd.cd, me
-        self.key, self.label = key, label
-        self.carry = me.get("items") or {}
+        self.key = key
+        self.banked = collections.Counter()
+        for r in self.rows:
+            self.banked[r["item"]] += r.get("banked") or 0
+        bags = me.get("items") or {}
+        self.carry = {i: bags.get(i, 0) + self.banked.get(i, 0) for i in set(bags) | set(self.banked)}
         self.kids = {i: [] for i in range(len(self.rows))}
         for i, r in enumerate(self.rows):
             if r["parent"] is not None:
                 self.kids[r["parent"]].append(i)
         self.goals = made.get("goals") or ([0] if self.rows else [])
         self.walls, self.missing, self.learnt = [], set(), {}
+        self.left = {}
+        self.made = []
+        self.bank_at = made.get("bankAt")
         for w in made.get("walls") or ():
             self.wall(w["key"], w["text"], w["need"])
         self.skill, self.taught, self.up, self.stopped = {}, set(), {}, set()
@@ -372,13 +453,115 @@ class Placer:
         return self.carry.get(item, 0) + sum(r["short"] for r in self.rows if r["item"] == item and r["pick"] in picks
                                              and not r.get("level"))
 
+    def stretches(self):
+        root, first = {}, {}
+        for g in self.goals:
+            todo = [g]
+            while todo:
+                i = todo.pop()
+                root[i] = g
+                todo.extend(self.kids[i])
+                r = self.rows[i]
+                if r["pick"] == "craft" and not r.get("level"):
+                    first.setdefault(r["item"], g)
+        out = {}
+        for i, r in enumerate(self.rows):
+            if i in root and r["parent"] is not None:
+                above = self.rows[r["parent"]]
+                out[i] = root[i] if above.get("level") else first.get(above["item"], root[i])
+        return out
+
     def run(self):
-        self.materials()
+        self.stretch, self.order = self.stretches(), {g: k for k, g in enumerate(self.goals)}
+        self.withdraw()
         for i in self.goals:
+            self.materials(i)
             self.craft(i)
+        self.sell(len(self.steps), ":last")
         for w in self.walls:
             self.c.here(self.steps, len(self.steps), "wall", w["key"], w["text"], w["need"])
         return self.steps
+
+    def withdraw(self):
+        out = {i: n for i, n in sorted(self.banked.items()) if n}
+        if not out:
+            return
+        left = [(self.cd.item_name(i), n) for i, n in out.items()]
+        need = {"items": [[i, self.carry[i]] for i in out]}
+        age = bank_age(self.bank_at)
+
+        def make(n, p, *_):
+            step = self.c.chore("supplies", f"{self.key}{BANK_KEY}", buy_line(left, bank=True, age=age), n, p, need)
+            return {**step, **({"seen": age} if age else {})}
+        at, _ = self.c.paid(self.steps, len(self.steps), self.c.errands.places(BANK, self.c.side, ids=True), make, 0)
+        if at is None:
+            self.missing |= set(out)
+
+    def held(self, k):
+        bags, made = collections.Counter(self.carry), {key: (item, n) for key, item, n in self.made}
+        for s in self.steps[:k]:
+            need = s.get("need") or {}
+            for i, n in need.get("items") or ():
+                bags[int(i)] = max(bags[int(i)], int(n))
+            if s.get("key") in made:
+                item, n = made[s["key"]]
+                bags[item] += n
+            for i, n in (s.get("takes") or {}).get("uses") or ():
+                bags[i] = max(0, bags[i] - n)
+            for i, keep, _ in need.get("most") or ():
+                bags[i] = min(bags[i], keep)
+            if s.get("kind") == "turnin" and s.get("want"):
+                bags[int(s["want"])] += 1
+        return bags
+
+    def craft_key(self, i):
+        r = self.rows[i]
+        spell = r["recipe"]["spell"]
+        return f"{self.key}:craft:{spell}:{r['level']['to']}" if r.get("level") else f"{self.key}:craft:{spell}"
+
+    def sell(self, k, tag, visit=None):
+        where = {s.get("key"): j for j, s in enumerate(self.steps)}
+        bags, made, sold, later = self.held(k), collections.Counter(), collections.Counter(), collections.Counter()
+        for key, item, n in self.made:
+            if where.get(key, k) < k:
+                made[item] += n
+        for s in self.steps:
+            for i, _, n in (s.get("need") or {}).get("most") or ():
+                sold[i] += n
+        for r in self.rows:
+            if r["parent"] is not None and where.get(self.craft_key(r["parent"]), k) >= k:
+                later[r["item"]] += r["need"]
+        sells = {}
+        for item in sorted(made):
+            n, price = min(bags[item] - later[item], made[item] - sold[item]), Sources.sells(item)
+            if n > 0 and price:
+                sells[item] = (n, price)
+        if not sells:
+            return
+        left = [(self.cd.item_name(i), n) for i, (n, _) in sells.items()]
+        skills = [[self.cd.names.get(line, ""), max(to for to, key in ups if where.get(key, k) < k)]
+                  for line, ups in sorted(self.up.items()) if any(where.get(key, k) < k for _, key in ups)]
+        need = {"most": [[i, bags[i] - n, n] for i, (n, _) in sells.items()], "skills": skills}
+        gain = int(sum(n * price for n, price in sells.values()))
+
+        def make(n, p, *_):
+            return {**self.c.chore("supplies", f"{self.key}{SELL_KEY}{tag}", buy_line(left, n, sell=True), n, p, need),
+                    "gain": gain}
+        vendors = self.c.errands.places(MERCHANT, self.c.side, ids=True)
+        if visit is None:
+            self.c.fit(self.steps, k, vendors, make)
+            return
+        at = visit["at"]
+        if ":auction" in visit["key"]:
+            near = [p for p in vendors if p[1][0] == visit["inst"] and math.dist(p[1][1:3], at[:2]) <= BATCH_YARDS]
+            if not near:
+                return
+            name, place = min(near, key=lambda p: math.dist(p[1][1:3], at[:2]))[:2]
+        else:
+            name, place = visit["npc"], (visit["inst"], at[0], at[1], at[2] if len(at) > 2 else None, visit.get("map"))
+        self.steps.insert(k, make(name, place))
+        if "pay" in visit["need"] and pays(money_before(self.steps, k + 1, self.me.get("money")), visit["need"]["pay"]) is True:
+            visit["need"] = {a: b for a, b in visit["need"].items() if a != "pay"}
 
     def wall(self, key, text, need):
         key = f"{self.key}:wall:{key}"
@@ -389,17 +572,76 @@ class Placer:
         return next((k for k, s in enumerate(self.steps) if s.get("key") == key), None)
 
 
-    def materials(self):
-        rows = [r for r in self.rows if r["short"] and r["pick"] not in (None, "craft", "quest")]
-        sold = {r["item"]: self.target(r["item"], ("vendor",)) for r in rows if r["pick"] == "vendor"}
+    def materials(self, g):
+        rows = [r for i, r in enumerate(self.rows) if self.stretch.get(i) == g and r["short"]
+                and r["pick"] not in (None, "craft", "quest")]
+        if not rows:
+            return
+        later = collections.Counter()
+        for i, r in enumerate(self.rows):
+            if i in self.stretch and self.order[self.stretch[i]] > self.order[g]:
+                later[r["item"]] += r["have"]
+
+        def held(item, picks):
+            mine = [r for r in rows if r["item"] == item and r["pick"] in picks]
+            have = later[item] + sum(r["have"] for r in mine)
+            return have, have + sum(r["short"] for r in mine)
+        tag = f":{self.order[g] + 1}" if self.order[g] else ""
+        lo, before = len(self.steps), {id(s) for s in self.steps}
+        sold = {r["item"]: held(r["item"], ("vendor",)) for r in rows if r["pick"] == "vendor"}
         if sold:
-            self.c.buy(self.steps, 0, f"{self.key}:buy", sold, words.say("both.craft.materials", {"item": self.label}))
-            self.missing |= set(sold) - self.got()
-        house = {r["item"]: r for r in rows if r["pick"] == "auction"}
+            had = {id(s) for s in self.steps}
+            self.c.buy(self.steps, lo, f"{self.key}:buy{tag}", {i: n for i, (_, n) in sold.items()},
+                       held={i: h for i, (h, _) in sold.items()})
+            got = {int(e[0]) for s in self.steps if id(s) not in had for e in ((s.get("need") or {}).get("items") or ())}
+            self.missing |= set(sold) - got
+        house = {r["item"]: held(r["item"], ("auction",)) for r in rows if r["pick"] == "auction"}
         if house:
-            self.auction(house)
+            self.auction(house, rows, tag)
+        for s in [s for s in self.steps if id(s) not in before and s.get("what") == "supplies"]:
+            got = house if ":auction" in s["key"] else sold
+            self.left[id(s)] = {int(i): got[int(i)][1] - got[int(i)][0] for i, _ in s["need"]["items"] if int(i) in got}
+            self.ahead(s)
+        bought = [s for s in self.steps if id(s) not in before and s.get("what") == "supplies"]
+        visit = next((s for s in bought if ":auction" not in s["key"]), bought[0] if bought else None)
+        if visit is not None:
+            self.sell(self.steps.index(visit), tag or ":1", visit)
         for item in dict.fromkeys(r["item"] for r in rows if r["pick"] in ("grind", "gather")):
-            self.session(item, next(r for r in rows if r["item"] == item), self.target(item, ("grind", "gather")))
+            if self.position(f"{self.key}:farm:{item}") is None:
+                self.session(item, next(r for r in rows if r["item"] == item), self.target(item, ("grind", "gather")))
+
+    def ahead(self, s):
+        k = self.steps.index(s)
+        prev, money, cost = self.steps[k - 1] if k else None, self.me.get("money"), s.get("cost") or 0
+        if prev is None or money is None or not prev.get("at") or not s.get("at"):
+            return
+        if prev.get("inst") == s.get("inst") and math.dist(prev["at"][:2], s["at"][:2]) <= BATCH_YARDS:
+            return
+        for j in range(k - 1, -1, -1):
+            e = self.steps[j]
+            if id(e) in self.left and e.get("npc") == s.get("npc") and e.get("at") == s.get("at"):
+                if sum(x.get("cost") or 0 for x in self.steps[:j + 1]) + cost > money:
+                    return
+                add, mine = self.left.pop(id(s)), self.left[id(e)]
+                want, rows = {int(i): n for i, n in s["need"]["items"]}, {int(i): n for i, n in e["need"]["items"]}
+                for i, n in add.items():
+                    rows[i] = rows[i] + n if i in rows else want[i]
+                    mine[i] = mine.get(i, 0) + n
+                    for x in self.steps[j + 1:k]:
+                        if id(x) in self.left:
+                            x["need"]["items"] = [[a, b + n if int(a) == i else b] for a, b in x["need"]["items"]]
+                e["need"] = {**e["need"], "items": [[i, rows[i]] for i in sorted(rows)]}
+                if (e.get("cost") or 0) + cost:
+                    e["cost"] = (e.get("cost") or 0) + cost
+                    if "pay" in e["need"]:
+                        e["need"]["pay"] = e["cost"]
+                names = [(self.cd.item_name(i), mine[i]) for i in sorted(mine)]
+                e["text"] = buy_line(names) if ":auction" in e["key"] else buy_line(names, e["npc"])
+                for name in ("questName", "name"):
+                    if name in e:
+                        e[name] = e["text"]
+                del self.steps[k]
+                return
 
     def got(self):
         out = set()
@@ -409,18 +651,16 @@ class Placer:
                 out.add(int(s["want"]))
         return out
 
-    def auction(self, house):
+    def auction(self, house, rows, tag):
         name = self.cd.item_name
-        left = [(name(i), self.target(i, ("auction",)) - self.carry.get(i, 0)) for i in sorted(house)]
-        said = names([counted(n, item) for item, n in left])
-        cost = sum(int(round(r["ways"]["auction"]["price"] * r["short"])) for r in self.rows
-                   if r["item"] in house and r["short"] and r["pick"] == "auction")
-        need = {"items": [[i, self.target(i, ("auction",))] for i in sorted(house)]}
+        left = [(name(i), house[i][1] - house[i][0]) for i in sorted(house)]
+        cost = sum(int(round(r["ways"]["auction"]["price"] * r["short"])) for r in rows
+                   if r["item"] in house and r["pick"] == "auction")
+        need = {"items": [[i, house[i][1]] for i in sorted(house)]}
 
         def make(n, p, *_):
-            return self.c.chore("supplies", f"{self.key}:auction", buy_line(left), n, p, need, cost)
-        at, _ = self.c.paid(self.steps, 0, self.c.errands.places(AUCTION, self.c.side, ids=True), make, cost, "supplies",
-                            words.say("both.craft.buying", {"items": said}), said)
+            return self.c.chore("supplies", f"{self.key}:auction{tag}", buy_line(left), n, p, need, cost)
+        at, _ = self.c.paid(self.steps, len(self.steps), self.c.errands.auctioneers(self.c.side), make, cost)
         if at is None:
             self.missing |= set(house)
 
@@ -435,7 +675,7 @@ class Placer:
             return {**step, "npc": "", "farm": kind, "item": item, "target": row["name"],
                     "spawns": [list(s[:2]) for s in spot.get("spawns") or ()],
                     **({"mobs": list(spot.get("ids") or ())} if kind in ("kill", "skin") else {})}
-        if self.c.fit(self.steps, 0, [place], make) is None:
+        if self.c.fit(self.steps, len(self.steps), [place], make) is None:
             self.steps.append(make(*place))
 
 
@@ -503,7 +743,7 @@ class Placer:
             return False
         if not all(under):
             return False
-        key = f"{self.key}:craft:{spell}"
+        key = self.craft_key(i)
         if self.position(key) is not None:
             return True
         kids = [self.rows[j]["item"] for j in self.kids[i]]
@@ -511,10 +751,19 @@ class Placer:
         lo = self.lesson(rec, lo, kids)
         if lo is None:
             return False
-        target = self.target(r["item"], ("craft",))
-        at = self.c.here(self.steps, lo, "craft", key, craft_text(r["name"], target - self.carry.get(r["item"], 0), rec["station"]),
-                         {"items": [[r["item"], target]]}, takes={"items": kids, "recipes": [spell], "skills": [name]})
+        mine = [j for j, x in enumerate(self.rows) if x["item"] == r["item"] and x["pick"] == "craft" and not x.get("level")]
+        short = sum(self.rows[j]["short"] for j in mine)
+        at = self.c.here(self.steps, lo, "craft", key, craft_text(r["name"], short, rec["station"]),
+                         {"items": [[r["item"], self.held(lo)[r["item"]] + short]]},
+                         takes={"items": kids, "recipes": [spell], "skills": [name], "uses": self.uses(mine)})
         return at is not None
+
+    def uses(self, crafts):
+        out = collections.Counter()
+        for i in crafts:
+            for j in self.kids[i]:
+                out[self.rows[j]["item"]] += self.rows[j]["need"]
+        return [[i, n] for i, n in sorted(out.items())]
 
     def climb(self, i):
         r = self.rows[i]
@@ -541,12 +790,14 @@ class Placer:
         if lo is None:
             self.stopped.add(line)
             return False
-        key = f"{self.key}:craft:{spell}:{seg['to']}"
+        key = self.craft_key(i)
         at = self.c.here(self.steps, lo, "craft", key, level_text(r["name"], seg, name, rec["station"]), {"skills": [[name, seg["to"]]]},
-                         takes={"items": kids, "recipes": [spell], "skills": [name]})
+                         takes={"items": kids, "recipes": [spell], "skills": [name], "uses": self.uses([i])})
         if at is None:
             self.stopped.add(line)
             return False
+        self.made.append((key, r["item"], r["need"]))
+        self.steps[at]["made"] = [r["item"], self.held(at)[r["item"]] + r["need"], r["need"]]
         self.skill[line] = seg["to"]
         self.up.setdefault(line, []).append((seg["to"], key))
         return True

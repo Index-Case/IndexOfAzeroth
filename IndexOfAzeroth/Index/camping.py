@@ -2,8 +2,11 @@
 import re
 from collections import Counter
 
-from errands import money_note
+from errands import vendor_price
+from gamedata import client_table, item_unit_price
 from plansteps import gap, spot
+import legacynodes
+import mapzones
 import planunits
 from questplan import open_to
 import store
@@ -15,6 +18,8 @@ KEY = "camp:epic"
 NAME = "Camping epic"
 CAMPING_SORT = -666
 CAMP_AURA = "Camp Benefits"
+PERMANENCE, PERMANENCE_CAMP = 1225502, 1
+FIELD_GUIDE, FIELD_GUIDE_COOLDOWN = 1225479, 0
 KITS = 2
 SKIP_FOR = 60
 SOON = 2
@@ -31,6 +36,46 @@ def category(name):
     return "".join(name.lower().split())
 
 
+OTHERS_MOST = 3
+
+
+def trainers(cd, errands, side, name, spell=None, refused=None, enders=()):
+    found = list(errands.places({category(name)}, side, ids=True))
+    listed = {p[3] for p in found}
+    for n, place, npc in enders:
+        if npc not in listed:
+            found.append((n, place, {}, npc))
+            listed.add(npc)
+    teach = cd.teachers.get(spell) or {}
+    refused = refused or {}
+
+    def refuses(npc):
+        r = refused.get(npc)
+        if r is None:
+            return False
+        return r["spells"] is None or (spell in r["spells"] and (cd.learn_rank(spell) or 0) <= r["rank"])
+    return [p for p in found if (not teach or p[3] in teach) and not refuses(p[3])]
+
+
+def refusals(record):
+    caps = {p.get("name"): p.get("max") or 0 for p in (record or {}).get("professions") or ()}
+    return {int(npc): {"spells": None if r.get("spells") is None else set(r["spells"]), "rank": r.get("rank") or 0}
+            for npc, r in ((record or {}).get("refused") or {}).items()
+            if caps.get(r.get("prof"), 0) <= (r.get("max") or 0)}
+
+
+def at_trainer(step, npc, picked, words_at):
+    here = (step["inst"], *step["at"][:2])
+    others = sorted((p for p in picked if p[3] != npc), key=lambda p: (p[1][0] != step["inst"], gap(here, p[1])))
+    out = []
+    for n, place, _, ni in others[:OTHERS_MOST]:
+        zone = (mapzones.MAPS.get(str(place[4])) or {}).get("name") if len(place) > 4 and place[4] else None
+        out.append({"npc": n, "ni": ni, "inst": place[0],
+                    "at": [round(place[1], 1), round(place[2], 1)] + ([round(place[3], 1)] if place[3] is not None else []),
+                    "text": words_at(n), **({"map": int(place[4]), "zone": zone} if zone else {})})
+    return {**step, "npcId": npc, **({"others": out} if out else {})}
+
+
 def counted(n, name):
     return words.say("both.craft.got.one" if n == 1 else "both.craft.got", {"n": n, "item": name})
 
@@ -39,8 +84,16 @@ def names(parts):
     return parts[0] if len(parts) == 1 else words.say("both.craft.list", {"rest": ", ".join(parts[:-1]), "last": parts[-1]})
 
 
-def buy_line(left, npc=None):
+BANK_KEY = ":bank"
+SELL_KEY = ":sell"
+
+
+def buy_line(left, npc=None, bank=False, sell=False, age=None):
     items = names([counted(n, name) for name, n in left])
+    if sell:
+        return words.say("both.craft.sell", {"items": items, "npc": npc})
+    if bank:
+        return words.say("both.craft.bank.old" if age else "both.craft.bank", {"items": items, "age": age or ""})
     if npc is None:
         return words.say("both.craft.auction", {"items": items})
     return words.say("both.craft.buy", {"items": items, "npc": npc})
@@ -207,7 +260,6 @@ class Chores:
         self.learnt = set()
         self.tools = set()
         self.later = []
-        self.notes = []
         self.area = None
 
 
@@ -299,28 +351,17 @@ class Chores:
         return i
 
     def trainers(self, prof, spell=None):
-        found = list(self.errands.places({category(self.cd.names.get(prof, ""))}, self.side, ids=True))
-        listed = {p[3] for p in found}
-        for name, inst, north, west, height, map_ in (self.area or {}).get("enders") or ():
-            for npc, theirs in self.cd.by_name.get(name, ()):
-                if theirs == prof and npc not in listed:
-                    found.append((name, (inst, north, west, height, map_), {}, npc))
-                    listed.add(npc)
-        teach = self.cd.teachers.get(spell, {})
-        return [p for p in found if p[3] in teach] or found
+        enders = [(name, (inst, north, west, height, map_), npc)
+                  for name, inst, north, west, height, map_ in (self.area or {}).get("enders") or ()
+                  for npc, theirs in self.cd.by_name.get(name, ()) if theirs == prof]
+        return trainers(self.cd, self.errands, self.side, self.cd.names.get(prof, ""), spell, self.me.get("refused"), enders)
 
     def vendors(self, items):
         return self.errands.vendors_of(items, self.side, {i: self.cd.sellers(i) for i in items},
                                        {i: self.cd.stocked(i) for i in items})
 
-    def paid(self, steps, lo, places, make, cost, what, doing, brief):
-        at, why = self.errands.fit_paid(steps, lo, len(steps), places, self.anchor, make, cost, self.me.get("money"))
-        self.note(why, what, doing, cost, brief)
-        return at, why
-
-    def note(self, why, what, doing, cost, brief):
-        if why in ("short", "unknown"):
-            self.notes.append(money_note(what, why, doing, cost, self.me.get("money"), brief))
+    def paid(self, steps, lo, places, make, cost):
+        return self.errands.fit_paid(steps, lo, len(steps), places, self.anchor, make, cost, self.me.get("money"))
 
     def after(self, steps, places, lo):
         at = {p[0] for p in places}
@@ -337,10 +378,13 @@ class Chores:
                                takes={**takes, "items": [cd.blueprint[spell]]})
             else:
                 cost = cd.cost(spell, self.me.get("prices"))
-                at, why = self.paid(steps, lo, self.trainers(cd.prof(spell), spell),
-                                    lambda n, p, *_: {**self.errands.step("learn", f"learn:{spell}", f"Learn {cd.name(spell)} at {n}",
-                                                                          n, p, need, cost), "takes": takes},
-                                    cost, "learn", f"Learning {cd.name(spell)}", cd.name(spell))
+                picked = self.trainers(cd.prof(spell), spell)
+                at, why = self.paid(steps, lo, picked,
+                                    lambda n, p, _, npc: at_trainer(
+                                        {**self.errands.step("learn", f"learn:{spell}", f"Learn {cd.name(spell)} at {n}",
+                                                             n, p, need, cost), "takes": takes},
+                                        npc, picked, lambda o: f"Learn {cd.name(spell)} at {o}"),
+                                    cost)
             if at is None:
                 return None, why
             self.learnt.add(spell)
@@ -353,11 +397,11 @@ class Chores:
                     continue
                 wants[item] = max(wants.get(item, 0), n) if tool else wants.get(item, 0) + n
         buys = {i: n for i, n in wants.items() if n > self.count(i)}
-        price_of = lambda items: sum((cd.item(i).get("price") or 0) * (buys[i] - self.count(i)) for i in items)
-        words_of = lambda items: names([counted(buys[i] - self.count(i), cd.item_name(i)) for i in items])
+        price_of = lambda items: sum(vendor_price(item_unit_price(i) or 0, self.me) * (buys[i] - self.count(i))
+                                     for i in items)
         left = lambda items: [(cd.item_name(i), buys[i] - self.count(i)) for i in items]
         while buys:
-            bought, at, whys = [], None, []
+            bought, at = [], None
             for rows in self.vendors(sorted(buys)):
                 sells = {place[3]: items for place, items in rows}
 
@@ -366,16 +410,11 @@ class Chores:
                     bought.extend(items)
                     return self.errands.step("supplies", "supplies", buy_line(left(items), n), n, p,
                                              cd.buy_need(npc, [[i, buys[i]] for i in items]), price_of(items))
-                at, why = self.errands.fit_paid(steps, lo, len(steps), [place for place, _ in rows], self.anchor, make,
-                                                lambda i, p, sells=sells: price_of(sells[p[3]]), self.me.get("money"))
+                at, _ = self.paid(steps, lo, [place for place, _ in rows], make, lambda i, p, sells=sells: price_of(sells[p[3]]))
                 if at is not None:
                     break
-                whys.append(why)
             if at is None:
-                why = next((w for w in whys if w != "far"), "far")
-                self.note(why, "supplies", f"Buying {words_of(sorted(buys))}", price_of(buys),
-                          names([cd.item_name(i) for i in sorted(buys)]))
-                return None, why
+                return None, "far"
             buys = {i: n for i, n in buys.items() if i not in bought}
             self.tools |= {i for i in bought if any(i in cd.tools(s) for k, s, _ in todo if k == "craft")}
             lo = at + 1
@@ -453,7 +492,7 @@ class Chores:
             at, _ = self.paid(steps, lo, cooks,
                               lambda n, p, *_: {**self.errands.step("learn", f"learn:{cd.cooking}", f"Learn {name} at {n}", n, p,
                                                                     {"skills": [[name, 1]]}, rank.get("cost")), **least},
-                              rank.get("cost"), "learn", f"Learning {name}", name)
+                              rank.get("cost"))
             if at is not None:
                 lo, self.skills[cd.cooking] = at + 1, 1
                 if rank:
@@ -501,8 +540,8 @@ _restock = {"key": None, "part": None}
 
 def restock(cd, services):
     from layers import sells
-    was = _restock["key"]
-    if was is not None and was[0] is cd and was[1] is services:
+    was, priced = _restock["key"], client_table("items.json", "items")[0]
+    if was is not None and was[0] is cd and was[1] is services and was[2] == priced:
         return _restock["part"]
     fires = []
     for spell in cd.fires:
@@ -511,11 +550,11 @@ def restock(cd, services):
             continue
         tool = min(cd.tools(spell), default=None)
         fires.append([spell, cd.made[spell], wood[0], wood[1], cd.place_rank(spell), cd.names.get(cd.prof(spell), ""), tool])
-    fires.sort(key=lambda f: ((cd.item(f[2]).get("price") or 0) * f[3], f[0]))
+    fires.sort(key=lambda f: ((item_unit_price(f[2]) or 0) * f[3], f[0]))
     wanted = sorted({f[2] for f in fires} | {f[6] for f in fires if f[6]})
-    items = [[i, cd.item_name(i), cd.item(i).get("price") or 0,
+    items = [[i, cd.item_name(i), item_unit_price(i) or 0,
               sorted(sv["id"] for sv in services or () if sv.get("id") is not None and sells(sv, [i]))] for i in wanted]
-    _restock.update(key=(cd, services), part={"fires": fires, "items": items})
+    _restock.update(key=(cd, services, priced), part={"fires": fires, "items": items})
     return _restock["part"]
 
 
@@ -600,7 +639,10 @@ def panel(cd, me, use_text):
     lasts = lambda a: (auras.get(str(a)) or {}).get("lasts")
     welcome = ticks.CAMPFIRE_AURAS[0]
     kit_use = cd.item(cd.made[cd.fires[0]]).get("use") or {}
-    camp = {"sit": lasts(welcome), "benefits": lasts(cd.aura), "fire": kit_use.get("lasts"), "cooldown": lasts(cd.cool_aura)}
+    benefits, cooldown = lasts(cd.aura), lasts(cd.cool_aura)
+    longer, shorter = legacynodes.value(me, PERMANENCE, PERMANENCE_CAMP), legacynodes.value(me, FIELD_GUIDE, FIELD_GUIDE_COOLDOWN)
+    camp = {"sit": lasts(welcome), "benefits": benefits and round(benefits * (1 + longer / 100)), "fire": kit_use.get("lasts"),
+            "cooldown": cooldown and max(0, round(cooldown + shorter / 1000))}
     had = me.get("auras") or {}
     for key, aura in (("benefitsLeft", cd.aura), ("cooldownLeft", cd.cool_aura)):
         if aura in had:

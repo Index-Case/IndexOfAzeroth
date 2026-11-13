@@ -90,13 +90,26 @@ def your_build(class_builds, tree_points, cls, pick=None):
     return max(mine, key=lambda b: len(b.get("roles") or ()))
 
 
-def step_levels(count, level, unspent):
+def point_steps(point_levels, needs):
+    if not point_levels:
+        return []
+    first, last = point_levels[0], point_levels[-1]
+    out = [(first, {"kind": "talent", "name": "Talent points",
+                    "text": f"{point_levels.count(first)} at level {first}, {len(point_levels)} by level {last}"})]
+    for need in sorted(n for n in needs if point_levels.count(first) < n <= len(point_levels)):
+        out.append((point_levels[need - 1], {"kind": "talent", "name": f"Talents for {need} points spent", "spent": need}))
+    return out
+
+
+def step_levels(count, level, unspent, point_levels=None):
     unspent = max(0, unspent or 0)
+    if point_levels is not None:
+        return ([level] * unspent + [at for at in point_levels if at > level])[:count]
     after = max(level, FIRST_POINT - 1)
     return [level if i < unspent else after + i - unspent + 1 for i in range(count)]
 
 
-def talent_plan(c, cls, class_builds, nums, saved, level, pick=None):
+def talent_plan(c, cls, class_builds, nums, saved, level, pick=None, point_levels=None):
     trees = (c or {}).get("trees") or []
     points = [int(nums.get(f"tree{t}Points") or 0) for t in range(1, len(trees) + 1)] if nums else []
     b = your_build(class_builds, points, cls, pick)
@@ -106,7 +119,7 @@ def talent_plan(c, cls, class_builds, nums, saved, level, pick=None):
     ranks, assumed = live_ranks(saved, points, b["order"], nodes) if saved is not None else ({}, 0)
     left = plan(b["order"], ranks, nodes)
     taken, steps = dict(ranks), []
-    for n, at in zip(left, step_levels(len(left), level or 1, nums.get("talentPoints") if nums else 0)):
+    for n, at in zip(left, step_levels(len(left), level or 1, nums.get("talentPoints") if nums else 0, point_levels)):
         taken[n] = taken.get(n, 0) + 1
         t = nodes[n][1]
         steps.append({"level": at, "node": n, "id": t.get("id"), "name": t.get("name"), "icon": t.get("icon"),

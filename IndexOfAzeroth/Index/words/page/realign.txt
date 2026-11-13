@@ -1,0 +1,23 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: build, step, kinds, kind, places
+
+title = Re-aligning
+wait.1 = The Kirin Tor are re-aligning the ley lines
+wait.2 = The cartographers of Stormwind are redrawing their charts
+wait.3 = A dwarf is holding the old maps up to the new ones and squinting
+wait.4 = The surveyors are pacing the roads again and grumbling about it
+wait.5 = The scribes are copying out the new pages by hand
+wait.6 = A gnome engineer is recalibrating the gears with a large wrench
+wait.7 = The Explorers' League is checking its notes against the new dig
+wait.8 = Two loremasters are comparing the old tomes with the new. They have agreed on nothing yet
+wait.9 = A Kirin Tor apprentice is tuning the arcane compass. A rat nearby is now purple
+wait.10 = The keepers of Uldaman are putting their vaults in order
+
+build = build {build}
+build.new = the new build
+rebuilding = The Index is rebuilding its data for {build}
+rebuilding.step = The Index is rebuilding its data for {build} ({step})
+kind = the {kind}
+kind.places = the {kind} ({places})
+checking = The Index is checking the data it kept from before {build}: {kinds}
+not-current = Until the re-aligning is done, what the page shows may not be up to date.

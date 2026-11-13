@@ -1,0 +1,26 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: name
+
+wait.1 = Hemet Nesingwary is drawing the map between shots
+wait.2 = A dwarf surveyor is pacing out the hills
+wait.3 = A gnome cartographer is measuring the ridge with a ruler
+wait.4 = Nesingwary's porters are carrying the maps uphill
+wait.5 = A night elf scout is sketching the trees one at a time
+wait.6 = A goblin is measuring the land and charging by the yard
+wait.7 = A troll tracker is reading the ground for you
+wait.8 = A Tauren pathfinder is walking the land to learn its shape
+wait.9 = Hemet's apprentice is inking the coastline and his sleeve
+wait.10 = The Explorers' League stopped mapping to dig something up
+
+github.1 = A scribe is copying scrolls from GitHub's library
+github.2 = A dwarf archivist at GitHub is fetching the scrolls
+github.3 = A gnome is carrying the scrolls back from GitHub
+github = GitHub
+slow = {name} is slow today. Hemet's porters are sitting on their packs
+
+ahead.1 = Nesingwary's scouts are riding on ahead of you
+ahead.2 = A dwarf outrider is mapping the road past your next waypoint
+ahead.3 = A night elf scout went ahead to look at the next leg
+ahead.4 = Hemet's trackers are a little way ahead of you on the trail
+ahead.5 = A goblin surveyor went ahead to measure the next leg. He will bill you later
+ahead.6 = A troll scout is sniffing out the trail ahead of you

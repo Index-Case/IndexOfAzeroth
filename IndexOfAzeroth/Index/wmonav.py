@@ -58,15 +58,26 @@ UNIT = 1600 / 3 / 128
 chunk_dict = wm.chunks
 
 
-def group_geometry(raw, drawn=None):
-    top = chunk_dict(raw)
-    mogp = top.get("MOGP", b"")
-    sub, at = {}, 68
+GROUP_HEADER = 68
+GROUP_FLAGS = 8
+GROUP_PORTALS = 36
+
+
+def group_parts(raw):
+    mogp = chunk_dict(raw).get("MOGP", b"")
+    sub, at = {}, GROUP_HEADER
     while at + 8 <= len(mogp):
         tag = mogp[at:at + 4][::-1].decode("latin1")
         size = struct.unpack_from("<I", mogp, at + 4)[0]
         sub.setdefault(tag, mogp[at + 8:at + 8 + size])
         at += 8 + size
+    head = {"flags": 0, "portals": (0, 0)}
+    if len(mogp) >= GROUP_HEADER:
+        head = {"flags": struct.unpack_from("<I", mogp, GROUP_FLAGS)[0], "portals": struct.unpack_from("<HH", mogp, GROUP_PORTALS)}
+    return head, sub
+
+
+def group_faces(sub):
     verts = np.frombuffer(sub.get("MOVT", b""), "<f4").reshape(-1, 3).astype(np.float32)
     if sub.get("MOVX"):
         idx = np.frombuffer(sub["MOVX"], "<u4").reshape(-1, 3).astype(np.int64)
@@ -81,6 +92,12 @@ def group_geometry(raw, drawn=None):
         flags, material = mopy[:, 0], mopy[:, 1]
     else:
         flags, material = np.zeros(len(idx), np.uint8), np.zeros(len(idx), np.uint8)
+    return verts, idx, flags, material
+
+
+def group_geometry(raw, drawn=None):
+    _, sub = group_parts(raw)
+    verts, idx, flags, material = group_faces(sub)
     n = min(len(idx), len(flags))
     if drawn is None:
         solid = ((flags[:n] & 0x08) != 0) | (((flags[:n] & 0x20) != 0) & ((flags[:n] & 0x04) == 0)) | (material[:n] == 0xFF)
@@ -200,7 +217,70 @@ def wmo_doodads(root, chosen=0):
         name, x, y, z, qx, qy, qz, qw, scale = struct.unpack_from("<I3f4ff", modd, i * WMO_DOODAD)
         k = name & 0xFFFFFF
         if k < len(models) and models[k]:
-            out.append((models[k], x, y, z, qx, qy, qz, qw, scale))
+            out.append((models[k], x, y, z, qx, qy, qz, qw, scale, i))
+    return out
+
+
+WMO_PORTAL = 20
+WMO_PORTAL_REF = 8
+
+
+def building_portals(root, refs):
+    mopv, mopt, mopr = root.get("MOPV", b""), root.get("MOPT", b""), root.get("MOPR", b"")
+    verts = np.frombuffer(mopv[:len(mopv) // 12 * 12], "<f4").reshape(-1, 3).astype(np.float64)
+    out = []
+    for i in range(0, len(mopt) - WMO_PORTAL + 1, WMO_PORTAL):
+        first, count, nx, ny, nz, _ = struct.unpack_from("<HH4f", mopt, i)
+        out.append({"verts": verts[first:first + count], "normal": np.array([nx, ny, nz]), "sides": {}})
+    for group, (first, count) in enumerate(refs):
+        for k in range(first, min(first + count, len(mopr) // WMO_PORTAL_REF)):
+            portal, _, side = struct.unpack_from("<HHh", mopr, k * WMO_PORTAL_REF)
+            if portal < len(out):
+                out[portal]["sides"][group] = -1 if side < 0 else 1
+    return [p for p in out if len(p["verts"]) >= 3]
+
+
+NIGHT_LIT = 0x10
+WMO_MATERIAL = 64
+
+
+def night_lit(root):
+    momt = root.get("MOMT", b"")
+    return {i // WMO_MATERIAL for i in range(0, len(momt) - WMO_MATERIAL + 1, WMO_MATERIAL)
+            if struct.unpack_from("<I", momt, i)[0] & NIGHT_LIT}
+
+
+def panes(sub, materials):
+    verts, idx, _, material = group_faces(sub)
+    n = min(len(idx), len(material))
+    tris = idx[:n][np.isin(material[:n], sorted(materials))] if materials else idx[:0]
+    tris = tris[(tris < len(verts)).all(axis=1)]
+    if not len(tris):
+        return []
+    _, spot = np.unique(np.round(verts[tris.ravel()].astype(np.float64), 2), axis=0, return_inverse=True)
+    spot = np.asarray(spot).reshape(-1, 3)
+    parent = np.arange(spot.max() + 1)
+
+    def root_of(a):
+        while parent[a] != a:
+            parent[a] = parent[parent[a]]
+            a = parent[a]
+        return a
+    for a, b, c in spot:
+        ra = root_of(a)
+        parent[root_of(b)] = ra
+        parent[root_of(c)] = ra
+    of = np.array([root_of(a) for a in spot[:, 0]])
+    out = []
+    for pane in np.unique(of):
+        p = verts[tris[of == pane]].astype(np.float64)
+        cross = np.cross(p[:, 1] - p[:, 0], p[:, 2] - p[:, 0])
+        area = np.linalg.norm(cross, axis=1) / 2
+        way = cross.sum(axis=0) / 2
+        if area.sum() <= 0 or np.linalg.norm(way) < area.sum() / 2:
+            continue
+        out.append({"middle": (p.mean(axis=1) * area[:, None]).sum(axis=0) / area.sum(), "facing": way / np.linalg.norm(way),
+                    "area": float(area.sum()), "points": p.reshape(-1, 3)})
     return out
 
 

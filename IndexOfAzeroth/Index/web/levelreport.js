@@ -3,70 +3,14 @@
 
 
 const REPORT_MISSING = {
-  played: [
-    "A dwarf of the Explorers' League started counting your hours at this level, then found a dig site and forgot.",
-    "The bronze dragons keep the hours of every level, and they aren't telling anyone how long this one took.",
-    "Two Tauren elders argued over how long this level took you. They agreed that it was a while.",
-    "The goblin who sells hourglasses in Booty Bay wants a deposit before he says how long you spent here.",
-    "Brann Bronzebeard wrote down how long you spent at this level, and then he lost the notebook.",
-    "A night elf sentinel kept time for this level, but she counts in moons and she is still waiting for one.",
-  ],
-  gold: [
-    "A Venture Company accountant took your ledger for this level and has not come back.",
-    "The bankers of Ironforge were closed for a holiday that nobody else has heard of.",
-    "The goblins of Gadgetzan counted your gold for this level and kept the total as their fee.",
-    "A Defias bookkeeper had your gold count for this level. Nobody has seen him since the Deadmines.",
-    "A kobold was put in charge of your gold count. He only wanted the candle.",
-    "The Steamwheedle Cartel will tell you what you made at this level, for a small consideration.",
-  ],
-  goldHour: [
-    "The goblins of the Gadgetzan auction house tried to count your gold per hour and are still arguing about the decimal.",
-    "A gnome in Tinker Town is building a machine to work out your gold per hour. He has been building it for some time.",
-    "The apothecaries of the Undercity were asked for your gold per hour. They sent back a vial, which helped nobody.",
-    "A Booty Bay pirate offered to work out your gold per hour, but he only counts in doubloons.",
-    "An ogre in Dire Maul was given your gold per hour to count. He got as far as two.",
-    "The dwarves of the Ironforge mint weighed your gold, but nobody gave them the hours to weigh it against.",
-  ],
-  pace: [
-    "A gnome engineer was timing your level with a stopwatch. The stopwatch exploded.",
-    "The night elves measured your pace in centuries and found this level too short to write down.",
-    "A Darkspear troll watched you level and says you were quick. He gave no number.",
-    "The Kirin Tor have a spell for your levelling speed, and the apprentice who knew it is a sheep this week.",
-    "A goblin bookmaker took bets on how fast you would level and left town before paying out.",
-    "A kodo herder from Mulgore timed your level against his slowest kodo. The kodo has not finished yet.",
-  ],
-  kills: [
-    "The Argent Dawn sent a clerk to count your kills at this level. He is still counting the boars.",
-    "A murloc kept the count of your kills at this level. Nobody can read what he wrote.",
-    "The Scourge claim some of your kills as their own and are disputing the count.",
-    "A Forsaken apothecary says your kills will be counted once they stop getting back up.",
-    "The spirit healers keep a list of everyone you sent their way, and they don't share it.",
-    "A Kodo herder offered to tally your kills, but he only counts in kodos.",
-  ],
-  spell: [
-    "The Kirin Tor asked all over Dalaran about your favourite spell. Nobody would say.",
-    "A gnome counted every spell you cast at this level and then turned himself into a sheep by mistake.",
-    "Your class trainer has a guess at your favourite spell and keeps it to themselves.",
-    "The Shen'dralar keep a book of everyone's favourite spells, and the page with yours is missing.",
-    "A murloc watched every spell you cast at this level and liked all of them the same.",
-    "The shamans of the Earthen Ring asked the elementals about your favourite spell and got four different answers.",
-  ],
-  stats: [
-    "A dwarf of Ironforge measured your new strength with a hammer and wrote nothing down.",
-    "The druids of the Cenarion Circle say you grew this level, but they measure growth in tree rings.",
-    "A goblin offered to weigh your new stats on his scales, for a fee that he hasn't named yet.",
-    "The scribes of Stormwind write down a level's new stats when you next log out or reload, and not a moment before.",
-    "An Orgrimmar grunt sized you up after this level and said you look about the same.",
-    "The gnomes built a machine to read your new stats. The machine is in Gnomeregan, which is a problem.",
-  ],
-  when: [
-    "You reached level {level}{where} at some point in the last few days. The goblin keeping the calendar was paid by the hour and saw no reason to rush.",
-    "You reached level {level}{where}, sometime. A gnome had a clock on it, and the clock is now a small fire.",
-    "You reached level {level}{where} while nobody was looking. The bronze dragons know when, and they're not saying.",
-    "You reached level {level}{where} on a day the scribes of Stormwind took off. They have written it down as 'recently'.",
-    "You reached level {level}{where}. A Tauren elder says it was a few moons ago. A night elf says it was a moment ago. Both are sure.",
-    "You reached level {level}{where} at an hour the Undercity's clocks don't keep, since nobody there needs to know when lunch is.",
-  ],
+  played: Object.values(wordsOf("page.level-report.missing.played")),
+  gold: Object.values(wordsOf("page.level-report.missing.gold")),
+  goldHour: Object.values(wordsOf("page.level-report.missing.gold-hour")),
+  pace: Object.values(wordsOf("page.level-report.missing.pace")),
+  kills: Object.values(wordsOf("page.level-report.missing.kills")),
+  spell: Object.values(wordsOf("page.level-report.missing.spell")),
+  stats: Object.values(wordsOf("page.level-report.missing.stats")),
+  when: Object.values(wordsOf("page.level-report.missing.when")),
 };
 const reportMissingLine = (what, random = Math.random) => {
   const pool = REPORT_MISSING[what] || [];
@@ -134,9 +78,10 @@ function sealSvg(level) {
 
 const lrLink = (go, words, data = {}) => `<button class="lr-link" data-lr="${go}"${Object.entries(data).map(([k, v]) =>
   ` data-${k}="${esc(v)}"`).join("")}>${esc(words)}</button>`;
-const LR_STAT_WORDS = { str: "Strength", agi: "Agility", sta: "Stamina", int: "Intellect", spi: "Spirit" };
-const andWords = (list) => (list.length < 2 ? list.join("") : `${list.slice(0, -1).join(", ")} and ${list[list.length - 1]}`);
-const plural = (n, one, many) => `${num(n)} ${n === 1 ? one : many}`;
+const LR_STATS = ["str", "agi", "sta", "int", "spi"];
+const lrStatWord = (k) => wordsOf("page.stats.long")[k];
+const andWords = (list) => (list.length < 2 ? list.join("")
+  : word("page.level-report.and", { list: list.slice(0, -1).join(", "), last: list[list.length - 1] }));
 const LR_QUEST_ZONES = 5, LR_QUEST_NAMES = 4;
 
 function zoneMapNamed(name) {
@@ -147,66 +92,80 @@ function zoneMapNamed(name) {
 const zoneLink = (name, map) => (map != null && app.maps?.[map] ? lrLink("zone", name || app.maps[map].name, { map }) : esc(name || ""));
 
 const REPORT_MISSING_TITLE = {
-  played: (lv) => `Time spent at level ${lv}`, gold: (lv) => `Gold made at level ${lv}`, goldHour: () => "Gold an hour",
-  pace: () => "Experience an hour", kills: (lv) => `Kills at level ${lv}`, spell: (lv) => `Favourite spell at level ${lv}`,
-  stats: () => "Your new stats",
+  played: (level) => word("page.level-report.missing-title.played", { level }),
+  gold: (level) => word("page.level-report.missing-title.gold", { level }),
+  goldHour: () => word("page.level-report.missing-title.gold-hour"),
+  pace: () => word("page.level-report.missing-title.pace"),
+  kills: (level) => word("page.level-report.missing-title.kills", { level }),
+  spell: (level) => word("page.level-report.missing-title.spell", { level }),
+  stats: () => word("page.level-report.missing-title.stats"),
 };
 const quipLine = (quips, what, random, level) =>
   (quips.push({ title: REPORT_MISSING_TITLE[what]?.(level) || "", line: reportMissingLine(what, random) }), "");
 
 function fightLines(r) {
-  const before = r.from, out = [];
+  const level = r.from, out = [];
   if (r.deaths != null) {
-    out.push(r.deaths === 0 ? `<li>You didn't die once at level ${before}.</li>`
-      : `<li>You died ${r.deaths === 1 ? "once" : `${num(r.deaths)} times`} at level ${before}.</li>`);
+    out.push(`<li>${r.deaths === 0 ? word("page.level-report.died.none", { level })
+      : wordCount("page.level-report.died", r.deaths, { n: num(r.deaths), level })}</li>`);
   }
-  if (r.dealt != null) out.push(`<li>You dealt ${num(r.dealt)} damage at level ${before}.</li>`);
-  if (r.taken != null) out.push(`<li>You took ${num(r.taken)} damage at level ${before}.</li>`);
-  if (r.fighting > 0) out.push(`<li>You spent ${esc(clock(r.fighting))} in fights at level ${before}.</li>`);
+  if (r.dealt != null) out.push(`<li>${word("page.level-report.dealt", { n: num(r.dealt), level })}</li>`);
+  if (r.taken != null) out.push(`<li>${word("page.level-report.taken", { n: num(r.taken), level })}</li>`);
+  if (r.fighting > 0) out.push(`<li>${word("page.level-report.fighting", { time: esc(clock(r.fighting)), level })}</li>`);
   return out.join("");
 }
 
 function numbersLines(r, random, quips = []) {
-  const before = r.from, out = [];
-  const miss = (what) => quipLine(quips, what, random, before);
+  const level = r.from, out = [];
+  const miss = (what) => quipLine(quips, what, random, level);
   const hours = r.played > 0 ? r.played / 3600 : null;
-  out.push(r.played > 0 ? `<li>You spent ${esc(clock(r.played))} at level ${before}.</li>` : miss("played"));
+  out.push(r.played > 0 ? `<li>${word("page.level-report.played", { time: esc(clock(r.played)), level })}</li>` : miss("played"));
   if (r.gold == null) out.push(miss("gold"));
-  else if (r.gold > 0) out.push(`<li>You made ${money(r.gold)} at level ${before}.</li>`);
-  else if (r.gold < 0) out.push(`<li>You spent ${money(-r.gold)} more than you made at level ${before}.</li>`);
-  else out.push(`<li>Your gold stayed the same at level ${before}.</li>`);
-  out.push(r.gold > 0 && hours ? `<li>You made ${money(Math.round(r.gold / hours))} an hour at level ${before}.</li>` : r.gold != null && r.gold <= 0 ? "" : miss("goldHour"));
-  out.push(r.xpLevel && hours ? `<li>You earned ${num(r.xpLevel / hours)} experience an hour at level ${before}.</li>` : miss("pace"));
+  else if (r.gold > 0) out.push(`<li>${word("page.level-report.gold.made", { money: money(r.gold), level })}</li>`);
+  else if (r.gold < 0) out.push(`<li>${word("page.level-report.gold.lost", { money: money(-r.gold), level })}</li>`);
+  else out.push(`<li>${word("page.level-report.gold.same", { level })}</li>`);
+  out.push(r.gold > 0 && hours ? `<li>${word("page.level-report.gold.hour", { money: money(Math.round(r.gold / hours)), level })}</li>`
+    : r.gold != null && r.gold <= 0 ? "" : miss("goldHour"));
+  out.push(r.xpLevel && hours ? `<li>${word("page.level-report.pace", { n: num(r.xpLevel / hours), level })}</li>` : miss("pace"));
   if (r.counting && r.kills == null && !r.spell) {
-    out.push(`<li>Your kills and favourite spell at level ${before} are still being counted.</li>`);
+    out.push(`<li>${word("page.level-report.counting", { level })}</li>`);
     return out.join("");
   }
-  out.push(r.kills != null ? `<li>You killed ${plural(r.kills, "enemy", "enemies")} at level ${before}.</li>` : miss("kills"));
+  out.push(r.kills != null ? `<li>${wordCount("page.level-report.kills", r.kills, { n: num(r.kills), level })}</li>` : miss("kills"));
   out.push(fightLines(r));
-  out.push(r.spell ? `<li>Your favourite spell at level ${before} was ${lrLink("spell", r.spell.name, { level: r.spell.level || before })}.</li>` : miss("spell"));
+  out.push(r.spell ? `<li>${word("page.level-report.favourite", { spell: lrLink("spell", r.spell.name, { level: r.spell.level || level }), level })}</li>`
+    : miss("spell"));
   return out.join("");
 }
 
 function statsLines(r, random, quips = []) {
   const s = r.stats || {}, out = [];
-  const went = (word, was, now, by) => (was != null && now != null && was !== now ? `<li>Your ${word} went up from ${num(was)} to ${num(now)}.</li>`
-    : by ? `<li>Your ${word} went up by ${num(by)}.</li>` : "");
-  out.push(went("health", s.wasHealth, s.nowHealth, s.health), went("mana", null, null, s.mana));
-  const gains = Object.keys(LR_STAT_WORDS).filter((k) => s[k] != null);
-  for (const k of gains) if (s[k] > 0) out.push(k === "spi" ? went("Spirit", s.wasSpirit, s.nowSpirit, s.spi) : `<li>Your ${LR_STAT_WORDS[k]} went up by ${num(s[k])}.</li>`);
-  if (!gains.length && s.wasSpirit != null && s.nowSpirit != null) out.push(went("Spirit", s.wasSpirit, s.nowSpirit));
-  if (s.talents > 0) out.push(`<li>You have ${plural(s.talents, "new talent point", "new talent points")}.</li>`);
+  const went = (stat, was, now, by) => (was != null && now != null && was !== now
+    ? `<li>${word("page.level-report.stat.from", { stat, was: num(was), now: num(now) })}</li>`
+    : by ? `<li>${word("page.level-report.stat.by", { stat, n: num(by) })}</li>` : "");
+  out.push(went(word("page.level-report.stat.health"), s.wasHealth, s.nowHealth, s.health),
+    went(word("page.level-report.stat.mana"), null, null, s.mana));
+  const gains = LR_STATS.filter((k) => s[k] != null);
+  for (const k of gains) if (s[k] > 0) out.push(k === "spi" ? went(lrStatWord("spi"), s.wasSpirit, s.nowSpirit, s.spi) : went(lrStatWord(k), null, null, s[k]));
+  if (!gains.length && s.wasSpirit != null && s.nowSpirit != null) out.push(went(lrStatWord("spi"), s.wasSpirit, s.nowSpirit));
+  if (s.talents > 0) out.push(`<li>${wordCount("page.level-report.talent-points", s.talents, { n: num(s.talents) })}</li>`);
   if (!gains.length && !out.some(Boolean)) quipLine(quips, "stats", random, r.level);
   return out.join("");
 }
 
 function gatedLine(e) {
   const at = { level: e.level };
-  if (e.kind === "talent" && e.spent) return `<li>You can now pick ${lrLink("road", "talents", at)} that ask for ${e.spent} points spent.</li>`;
-  if (e.kind === "talent") return `<li>You can now spend ${lrLink("road", "talent points", at)}.</li>`;
-  if (e.kind === "milestone") return `<li>This level gives you a ${lrLink("road", "milestone talent point", at)}.</li>`;
-  const teacher = e.at ? ` from ${lrLink("near", e.kind === "riding" ? "a riding trainer" : e.kind === "weapon" ? "a weapon master" : "your trainer", { cat: e.at })}` : "";
-  return `<li>You can now learn ${lrLink("road", e.name, at)}${teacher}.</li>`;
+  if (e.kind === "talent" && e.spent) {
+    return `<li>${word("page.level-report.tier", { link: lrLink("road", word("page.level-report.tier.link"), at), spent: e.spent })}</li>`;
+  }
+  if (e.kind === "talent") return `<li>${word("page.level-report.points", { link: lrLink("road", word("page.level-report.points.link"), at) })}</li>`;
+  if (e.kind === "milestone") {
+    return `<li>${word("page.level-report.milestone", { link: lrLink("road", word("page.level-report.milestone.link"), at) })}</li>`;
+  }
+  const name = lrLink("road", e.name, at);
+  if (!e.at) return `<li>${word("page.level-report.learn", { name })}</li>`;
+  const teacher = wordsOf("page.level-report.teacher")[e.kind === "riding" || e.kind === "weapon" ? e.kind : "class"];
+  return `<li>${word("page.level-report.learn.from", { name, teacher: lrLink("near", teacher, { cat: e.at }) })}</li>`;
 }
 
 function skillLines(r) {
@@ -214,34 +173,48 @@ function skillLines(r) {
   if (!u) return "";
   const out = [];
   const spells = (u.spells || []).filter((s) => !s.pet), pets = (u.spells || []).filter((s) => s.pet);
-  for (const s of spells) out.push(`<li>${lrLink("spell", s.name, { level: s.level })}${s.rank ? ` (${esc(s.rank)})` : ""} is at your class trainer now.</li>`);
+  const spellAt = (s) => `${lrLink("spell", s.name, { level: s.level })}${s.rank ? ` (${esc(s.rank)})` : ""}`;
+  for (const s of spells) out.push(`<li>${word("page.level-report.spell.class", { spell: spellAt(s) })}</li>`);
   if (spells.length) {
     const cost = spells.every((s) => s.cost != null) ? spells.reduce((sum, s) => sum + s.cost, 0) : null;
-    out.push(`<li>Your ${lrLink("near", "class trainer", { cat: "class" })} teaches ${spells.length === 1 ? "this spell" : "these spells"}${cost ? ` for ${spells.length > 1 ? word("page.price.total", { money: money(cost) }) : money(cost)}` : ""}.</li>`);
+    const link = lrLink("near", word("page.level-report.teaches.link"), { cat: "class" });
+    out.push(`<li>${cost ? wordCount("page.level-report.teaches.cost", spells.length,
+      { link, money: spells.length > 1 ? word("page.price.total", { money: money(cost) }) : money(cost) })
+      : wordCount("page.level-report.teaches", spells.length, { link })}</li>`);
   }
-  for (const s of pets) out.push(`<li>${lrLink("spell", s.name, { level: s.level })}${s.rank ? ` (${esc(s.rank)})` : ""} is at a ${lrLink("near", "pet trainer", { cat: "pettrainer" })} now.</li>`);
+  for (const s of pets) {
+    out.push(`<li>${word("page.level-report.spell.pet", { spell: spellAt(s),
+      link: lrLink("near", word("page.level-report.spell.pet.link"), { cat: "pettrainer" }) })}</li>`);
+  }
   for (const e of u.gated || []) out.push(gatedLine(e));
   for (const t of u.talents || []) {
-    out.push(`<li>Take <img class="lr-icon" src="/fileicon/${esc(t.icon)}.jpg" alt="">${lrLink("road", t.name, { level: t.level })}${
-      t.ranks > 1 ? ` (rank ${t.rank} of ${t.ranks})` : ""} with this point.</li>`);
+    const fill = { icon: `<img class="lr-icon" src="/fileicon/${esc(t.icon)}.jpg" alt="">`, talent: lrLink("road", t.name, { level: t.level }),
+                   rank: t.rank, ranks: t.ranks };
+    out.push(`<li>${t.ranks > 1 ? word("page.level-report.talent.rank", fill) : word("page.level-report.talent", fill)}</li>`);
   }
   return out.join("");
 }
 
 function unlockLines(r, skills = "") {
   const u = r.unlocks;
-  if (!u) return `<li class="lr-missing">The scribes are still writing down what level ${r.level} opened for you.</li>`;
+  if (!u) return `<li class="lr-missing">${word("page.level-report.scribes", { level: r.level })}</li>`;
   const out = [];
   for (const d of u.dungeons || []) {
-    out.push(d.why === "door" ? `<li>${lrLink("dungeon", d.name, { key: d.key })} lets you in now.</li>` : `<li>${lrLink("dungeon", d.name, { key: d.key })} is at your level now.</li>`);
+    const dungeon = lrLink("dungeon", d.name, { key: d.key });
+    out.push(`<li>${d.why === "door" ? word("page.level-report.dungeon.door", { dungeon }) : word("page.level-report.at-level", { name: dungeon })}</li>`);
   }
-  for (const z of u.zones || []) if (app.maps?.[z.map]) out.push(`<li>${zoneLink(app.maps[z.map].name, z.map)} is at your level now.</li>`);
+  for (const z of u.zones || []) {
+    if (app.maps?.[z.map]) out.push(`<li>${word("page.level-report.at-level", { name: zoneLink(app.maps[z.map].name, z.map) })}</li>`);
+  }
   for (const g of u.gear || []) {
-    out.push(`<li>You can now wear ${`<button class="lr-link" data-lr="gear" data-tip="${esc(g.id)}">${esc(g.name || `Item ${g.id}`)}</button>`}, which is in your bags.</li>`);
+    const item = `<button class="lr-link" data-lr="gear" data-tip="${esc(g.id)}">${esc(g.name || word("page.level-report.gear.item", { id: g.id }))}</button>`;
+    out.push(`<li>${word("page.level-report.gear", { item })}</li>`);
   }
   out.push(...questLines(u.quests || []));
-  if (!out.length && !skills) out.push(`<li>Level ${r.level} opens nothing new for you.</li>`);
-  if ((u.dungeons || []).length || (u.gear || []).length) out.push(`<li>Your ${lrLink("gear", "Next upgrades")} show the dungeon gear for your new level.</li>`);
+  if (!out.length && !skills) out.push(`<li>${word("page.level-report.nothing", { level: r.level })}</li>`);
+  if ((u.dungeons || []).length || (u.gear || []).length) {
+    out.push(`<li>${word("page.level-report.upgrades", { link: lrLink("gear", word("page.level-report.upgrades.link")) })}</li>`);
+  }
   return out.join("");
 }
 
@@ -258,31 +231,37 @@ function questLines(quests) {
   const out = zones.slice(0, LR_QUEST_ZONES).map(([zone, list]) => {
     const named = list.slice(0, LR_QUEST_NAMES).map((q) => (q.x != null && app.maps?.[q.map]
       ? lrLink("quest", q.name, { map: q.map, x: q.x, y: q.y, giver: q.giver || q.name }) : esc(q.name)));
-    if (list.length > LR_QUEST_NAMES) named.push(`${plural(list.length - LR_QUEST_NAMES, "more quest", "more quests")}`);
-    if (!zone) return `<li>You can also take ${andWords(named)}.</li>`;
-    return `<li>${zoneLink(zone, list[0].map ?? zoneMapNamed(zone))} has ${plural(list.length, "new quest", "new quests")} for you: ${andWords(named)}.</li>`;
+    const more = list.length - LR_QUEST_NAMES;
+    if (more > 0) named.push(wordCount("page.level-report.quests.more", more, { n: num(more) }));
+    if (!zone) return `<li>${word("page.level-report.quests.loose", { quests: andWords(named) })}</li>`;
+    return `<li>${wordCount("page.level-report.quests.zone", list.length,
+      { n: num(list.length), zone: zoneLink(zone, list[0].map ?? zoneMapNamed(zone)), quests: andWords(named) })}</li>`;
   });
   const rest = zones.slice(LR_QUEST_ZONES).reduce((n, [, list]) => n + list.length, 0);
-  if (rest) out.push(`<li>Other zones have ${plural(rest, "more new quest", "more new quests")} for you.</li>`);
+  if (rest) out.push(`<li>${wordCount("page.level-report.quests.rest", rest, { n: num(rest) })}</li>`);
   return out;
 }
+
+const REACHED = wordsOf("page.level-report.reached");
+const reachedLine = (text, level, where, on) => text.split("{where}").map((part) => fillWords(esc(part), { level, on })).join(where);
 
 function reportHtml(r, who = "", random = Math.random) {
   const at = r.at ? new Date(r.at * 1000) : r.atDay ? new Date(r.atDay * 1000) : null;
   const day = at ? at.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "";
-  const when = r.at ? `${day} at ${at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}` : day;
-  const where = r.zone ? ` in ${zoneLink(r.zone, zoneMapNamed(r.zone))}` : "";
-  const reached = when ? `You reached level ${r.level}${where} <span class="lr-when">on ${esc(when)}</span>.`
-    : reportMissingLine("when", random).split("{where}").map((part) => esc(part.replace("{level}", r.level))).join(where);
+  const when = r.at ? word("page.level-report.when", { day, time: at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) }) : day;
+  const where = r.zone ? ` ${word("page.level-report.where", { zone: zoneLink(r.zone, zoneMapNamed(r.zone)) })}` : "";
+  const reached = when
+    ? reachedLine(REACHED.day, r.level, where, `<span class="lr-when">${esc(word("page.level-report.on", { when }))}</span>`)
+    : reachedLine(reportMissingLine("when", random), r.level, where);
   const quips = [];
   const section = (title, lines) => (lines ? `<h3>${title}</h3><ul>${lines}</ul>` : "");
   const stats = statsLines(r, random, quips), skills = skillLines(r), numbers = numbersLines(r, random, quips);
-  return `<h2 class="lr-title">Congratulations on level ${r.level}</h2>
+  return `<h2 class="lr-title">${word("page.level-report.title", { level: r.level })}</h2>
     <p class="lr-who">${esc(who)}${who ? ". " : ""}${reached}</p>
-    ${section("Your new stats", stats)}
-    ${section("New skills and talents", skills)}
-    <h3>New at level ${r.level}</h3><ul>${unlockLines(r, skills)}</ul>
-    ${section(`Your time at level ${r.from}`, numbers)}
+    ${section(word("page.level-report.section.stats"), stats)}
+    ${section(word("page.level-report.section.skills"), skills)}
+    <h3>${word("page.level-report.section.new", { level: r.level })}</h3><ul>${unlockLines(r, skills)}</ul>
+    ${section(word("page.level-report.section.time", { level: r.from }), numbers)}
     ${quips.length ? `<ul class="lr-quips">${quips.map((q) => `<li class="lr-missing">${q.title ? `<b class="lr-quip-title">${esc(q.title)}:</b> ` : ""}“${esc(q.line)}”</li>`).join("")}</ul>` : ""}`;
 }
 
@@ -329,9 +308,9 @@ function polaroidHtml(r, char) {
   const day = at ? new Date(at * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "";
   const [wl, wt, wr, wb] = f.window, [st, sb] = f.strip;
   const lines = [r.zone, day].filter(Boolean).map((t) => `<span>${esc(t)}</span>`).join("");
-  return `<button class="lr-polaroid${f.art ? "" : " card"}" data-lr-photo="${esc(r.shot.id)}" title="This opens the picture large"
+  return `<button class="lr-polaroid${f.art ? "" : " card"}" data-lr-photo="${esc(r.shot.id)}" title="${word("page.level-report.photo.open")}"
       style="left:${pct(b.left)};top:${pct(b.top)};width:${pct(b.w)};height:${pct(b.h)};transform:rotate(${b.tilt.toFixed(2)}deg)">
-    <img class="lr-pol-photo" src="/levelshot/${esc(r.shot.id)}.jpg" alt="Where you were at level ${r.level}" draggable="false"
+    <img class="lr-pol-photo" src="/levelshot/${esc(r.shot.id)}.jpg" alt="${word("page.level-report.photo.alt", { level: r.level })}" draggable="false"
       style="left:${pct(wl)};top:${pct(wt)};width:${pct(wr - wl)};height:${pct(wb - wt)}">
     ${f.art ? `<img class="lr-pol-frame" src="${f.art}" alt="" draggable="false">` : ""}
     <span class="lr-pol-caption" style="left:4%;right:4%;top:${pct(st)};height:${pct(sb - st)}">${lines}</span></button>`;
@@ -339,7 +318,7 @@ function polaroidHtml(r, char) {
 
 function openPhoto(id) {
   const box = $("lr-photo");
-  box.innerHTML = `<img src="/levelshot/${esc(id)}-big.jpg" alt="Where you were when you levelled up" draggable="false">`;
+  box.innerHTML = `<img src="/levelshot/${esc(id)}-big.jpg" alt="${word("page.level-report.photo.big.alt")}" draggable="false">`;
   box.hidden = false;
 }
 const closePhoto = () => { $("lr-photo").hidden = true; };
@@ -522,7 +501,7 @@ function reportClicked(e) {
   else if (d.lr === "near") guideToKind(d.cat);
   else if (d.lr === "dungeon") openJournal(d.key);
   else if (d.lr === "zone") showZone(+d.map);
-  else if (d.lr === "quest") guideToSpot(+d.map, +d.x, +d.y, d.giver, "a quest giver");
+  else if (d.lr === "quest") guideToSpot(+d.map, +d.x, +d.y, d.giver, word("page.level-report.giver"));
   else if (d.lr === "gear") openGear();
   else return;
   closeReport();
@@ -533,12 +512,12 @@ function levelSmallHtml() {
   const r = lr.reports[lr.at];
   const back = lr.at > 0, on = lr.at < lr.reports.length - 1;
   return `<div class="lr-small${r ? "" : " none"}">
-    <div class="lr-small-label">Level report</div>
+    <div class="lr-small-label">${word("page.level-report.small.label")}</div>
     <div class="lr-small-row">
-      <button class="key small square lr-arrow" data-lr-step="-1"${back ? "" : " disabled"} title="${back ? `The level ${lr.reports[lr.at - 1].level} report` : "There is no earlier level report"}">&lsaquo;</button>
-      <button class="lr-small-scroll" data-lr-open="${r ? r.level : ""}"${r ? "" : " disabled"} title="${r ? `This opens the level ${r.level} report` : "The first level report comes with the next level up"}">
+      <button class="key small square lr-arrow" data-lr-step="-1"${back ? "" : " disabled"} title="${back ? word("page.level-report.small.step", { level: lr.reports[lr.at - 1].level }) : word("page.level-report.small.first")}">&lsaquo;</button>
+      <button class="lr-small-scroll" data-lr-open="${r ? r.level : ""}"${r ? "" : " disabled"} title="${r ? word("page.level-report.small.open", { level: r.level }) : word("page.level-report.small.none")}">
         <img src="${LEVEL_ART.small}" alt=""><span class="lr-small-num">${r ? r.level : ""}</span></button>
-      <button class="key small square lr-arrow" data-lr-step="1"${on ? "" : " disabled"} title="${on ? `The level ${lr.reports[lr.at + 1].level} report` : "There is no later level report"}">&rsaquo;</button>
+      <button class="key small square lr-arrow" data-lr-step="1"${on ? "" : " disabled"} title="${on ? word("page.level-report.small.step", { level: lr.reports[lr.at + 1].level }) : word("page.level-report.small.last")}">&rsaquo;</button>
     </div></div>`;
 }
 on("playerHead", levelSmallHtml);

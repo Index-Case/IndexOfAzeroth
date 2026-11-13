@@ -6,10 +6,10 @@ app.dungeon = null;
 app.run = null; app.group = null; app.quests = null; app.cap = []; app.gameGuide = null;
 
 const DPOI = [
-  ["d:bosses", "Bosses", "achievement_boss_edwinvancleef", "numbered in the order they're met"],
-  ["d:rares", "Rare spawns", "inv_misc_head_dragon_01", "the NPCs menu's rares in this dungeon"],
-  ["d:myquests", "Your quests", "inv_misc_note_01", "targets of quests in the quest log"],
-  ["d:allquests", "All quests", "inv_misc_note_02", "every quest target in this dungeon"],
+  ["d:bosses", word("page.dungeon.poi.bosses"), "achievement_boss_edwinvancleef", word("page.dungeon.poi.bosses.note")],
+  ["d:rares", word("page.dungeon.poi.rares"), "inv_misc_head_dragon_01", word("page.dungeon.poi.rares.note")],
+  ["d:myquests", word("page.dungeon.poi.mine"), "inv_misc_note_01", word("page.dungeon.poi.mine.note")],
+  ["d:allquests", word("page.dungeon.poi.all"), "inv_misc_note_02", word("page.dungeon.poi.all.note")],
 ];
 const ROLE_LETTER = { tank: "T", healer: "H", damage: "D" };
 const POWER_COLOR = { 0: tint("quality-rare"), 1: tint("power-rage"), 2: tint("class-druid"), 3: tint("class-rogue") };
@@ -56,11 +56,11 @@ const MAX_STARS = 40;
 function toggleWish(id) {
   const stars = dungeon.stars || [];
   if (!stars.includes(id) && stars.length >= MAX_STARS) {
-    showToast(`A character's star list holds ${MAX_STARS} items. Unstar an item first`);
+    showToast(word("page.dungeon.stars.full", { n: MAX_STARS }));
     return;
   }
   postJson("/api/wish", { toggle: id }).then((ids) => { dungeon.stars = ids; renderJournal(); renderRun(); },
-    (e) => askFailed("The star wasn't saved", e));
+    (e) => askFailed(word("page.dungeon.stars.failed"), e));
 }
 
 const isWished = (id) => !!dungeon.stars?.includes(id);
@@ -69,18 +69,18 @@ function starredLoot(b, det) {
   const ids = (b?.loot || []).filter((id) => isWished(id) && det.items[id]);
   if (!ids.length) return "";
   const names = ids.map((id) => `<span class="q${esc(det.items[id].q)}" data-tip="${id}">${esc(det.items[id].n)}</span>`);
-  return `Starred loot ${esc(b.name)} can drop: ${names.join(", ")}`;
+  return word("page.dungeon.stars.next", { name: esc(b.name), loot: names.join(", ") });
 }
 
 function starredDown(b, det) {
   const names = (b?.loot || []).filter(isWished).map((id) => det.items[id]?.n).filter(Boolean);
-  return names.length ? `${b.name} is down. Starred loot it can drop: ${names.join(", ")}` : "";
+  return names.length ? word("page.dungeon.stars.down", { name: b.name, loot: names.join(", ") }) : "";
 }
 
 function starsToLoad() {
   const game = app.run?.wish, page = dungeon.stars;
   if (!game || !page || (game.length === page.length && game.every((id) => page.includes(id)))) return "";
-  return "Your starred loot changed since the game loaded it";
+  return word("page.dungeon.stars.changed");
 }
 
 function runKills(key, r = app.run) {
@@ -168,7 +168,7 @@ function applyDungeon() {
   s.pos = null;
   s.zone = d.name;
   app.dungeon = { key: d.key, floor, instance: inst.id };
-  if (fresh && app.guide?.dungeonKey === d.key) endGuide(`Arrived at ${app.guide.name}`);
+  if (fresh && app.guide?.dungeonKey === d.key) endGuide(word("page.dungeon.arrived", { name: app.guide.name }));
   if (fresh) {
     app.view.continent = null; app.view.world = false; app.view.zoom = 1; app.view.follow = true;
     app.trail = [];
@@ -232,13 +232,13 @@ function dungeonPoiCounts(d) {
 
 function buildDungeonMenu(menu) {
   const d = dungeonDetail(app.dungeon.key), n = dungeonPoiCounts(d);
-  const asked = d ? "" : `<p class="menu-note">${askNote(`/api/dungeon/${app.dungeon.key}`, { what: "the dungeon's bosses and quests",
+  const asked = d ? "" : `<p class="menu-note">${askNote(`/api/dungeon/${app.dungeon.key}`, { what: word("page.dungeon.poi.what"),
     again: detailAgain(app.dungeon.key) })}</p>`;
-  menu.innerHTML = `<div class="poi-all"><button data-all="1">All</button><button data-all="0">None</button></div>`
-    + `<div class="layer-group">${esc(d?.name || "Dungeon")}</div>${asked}` + DPOI.map(([key, label, icon, note]) =>
+  menu.innerHTML = `<div class="poi-all"><button data-all="1">${word("page.dungeon.all")}</button><button data-all="0">${word("page.dungeon.none")}</button></div>`
+    + `<div class="layer-group">${esc(d?.name || word("page.dungeon.dungeon"))}</div>${asked}` + DPOI.map(([key, label, icon, note]) =>
     `<label><input type="checkbox" value="${key}"${poi.on.has(key) ? " checked" : ""}>
       <img src="/icon/${icon}.jpg" alt=""> ${label}${key in n ? ` (${n[key]})` : ""}${note ? `<small>${note}</small>` : ""}</label>`).join("") +
-    `<p class="menu-note">Outside the dungeon, this menu shows the town list again.</p>`;
+    `<p class="menu-note">${word("page.dungeon.poi.outside")}</p>`;
 }
 
 
@@ -300,11 +300,12 @@ function drawDungeon(s, size, scale) {
     drawBossMarker(x, y, i + 1, state, b.rare);
     const loot = b.loot.filter(isWished).map((id) => d.items[id]?.n).filter(Boolean);
     poi.drawn.push({ x, y, p: { name: b.name, cat: "boss", dungeonKey: d.key, bossIndex: i, levels: b.levels ?? null,
-      sub: [b.rare ? "Rare spawn" : `Boss ${i + 1}`, state === "down" ? "down" : state === "next" ? "next up" : "", b.sub || "",
-        loot.length ? `starred: ${loot.join(", ")}` : ""].filter(Boolean).join(", ") } });
+      sub: [b.rare ? word("page.dungeon.boss.rare") : word("page.dungeon.boss", { i: i + 1 }),
+        state === "down" ? word("page.dungeon.boss.down") : state === "next" ? word("page.dungeon.boss.next") : "", b.sub || "",
+        loot.length ? word("page.dungeon.boss.starred", { loot: loot.join(", ") }) : ""].filter(Boolean).join(", ") } });
   });
 }
-POI_LABEL.boss = "Click to open this boss in the journal";
+POI_LABEL.boss = word("page.dungeon.boss.tip");
 
 
 function renderRun() {
@@ -330,10 +331,11 @@ function renderRun() {
       .map((it, n) => `<img src="${itemIcon(it)}" alt="${esc(it.n)}" data-tip="${r.loot[n]}" class="q${it.q}">`).join("");
     const starred = next ? starredLoot(next.b, next.x) : "";
     html = `<div class="run-head"><span class="with-help"><span class="next-label">${esc(d.name)}</span>${helpButton("run")}</span><span class="run-time">${hms(r.seconds)}</span></div>
-      <div class="run-bosses">${down} of ${all || "?"} bosses${next ? `, next <b>${esc(next.b.name)}</b> <small>${mobLevelHtml(next.b.levels)}</small>` : down ? ", all down" : ""}</div>
+      <div class="run-bosses">${word("page.dungeon.run.bosses", { n: String(down), all: all || "?" })}${next
+        ? `, ${word("page.dungeon.run.next")} <b>${esc(next.b.name)}</b> <small>${mobLevelHtml(next.b.levels)}</small>` : down ? `, ${word("page.dungeon.run.all-down")}` : ""}</div>
       ${starred ? `<div class="run-starred">${starred}</div>` : ""}
-      <div class="run-facts"><span>XP ${num(r.xp)}${perHour ? ` <small>(${num(perHour)} an hour)</small>` : ""}</span>
-        <span>${money(r.money)}</span><span>${r.deaths} ${r.deaths === 1 ? "death" : "deaths"}</span></div>
+      <div class="run-facts"><span>${word("page.dungeon.run.xp", { xp: num(r.xp) })}${perHour ? ` <small>${word("page.dungeon.run.rate", { rate: num(perHour) })}</small>` : ""}</span>
+        <span>${money(r.money)}</span><span>${wordCount("page.dungeon.run.deaths", r.deaths, { n: String(r.deaths) })}</span></div>
       ${loot ? `<div class="run-loot">${loot}</div>` : ""}`;
   }
   box.hidden = !html;
@@ -345,17 +347,18 @@ function partySection(help = "") {
   if (!members.length) return "";
   const rows = members.map((m) => {
     const color = CLASS_COLORS[m.className] || tint("class-other");
-    const flags = [m.dead ? "Dead" : m.ghost ? "Ghost" : "", m.offline ? "Offline" : "", m.far && !m.offline ? "Far" : ""].filter(Boolean).join(", ");
+    const flags = [m.dead ? word("page.dungeon.party.dead") : m.ghost ? word("page.dungeon.party.ghost") : "",
+      m.offline ? word("page.dungeon.party.offline") : "", m.far && !m.offline ? word("page.dungeon.party.far") : ""].filter(Boolean).join(", ");
     const hp = m.health ?? 100, power = m.power;
     return `<div class="party-row${m.dead || m.ghost || m.offline ? " out" : ""}">
-      <span class="party-role" title="${esc(m.role || "no role")}">${ROLE_LETTER[m.role] || ""}</span>
-      <span class="party-name" style="color:${color}">${esc(m.name)}${m.leader ? " <small>lead</small>" : ""}</span>
+      <span class="party-role" title="${esc(m.role || word("page.dungeon.party.no-role"))}">${ROLE_LETTER[m.role] || ""}</span>
+      <span class="party-name" style="color:${color}">${esc(m.name)}${m.leader ? ` <small>${word("page.dungeon.party.lead")}</small>` : ""}</span>
       <span class="party-level">${m.level}</span>
       <span class="party-bars"><span class="party-hp" style="width:${m.health == null ? 100 : hp}%;background:${hp < 35 ? tint("hp-red") : tint("hp-green")}"></span>
         ${power == null ? "" : `<span class="party-pw" style="width:${power}%;background:${POWER_COLOR[m.powerType] || tint("quality-rare")}"></span>`}</span>
       ${flags ? `<small class="party-flag">${flags}</small>` : ""}</div>`;
   }).join("");
-  return `<div class="st-head">${stIcon(SECTION_ICONS.Party, "st-hic")}Party${help}</div>${rows}`;
+  return `<div class="st-head">${stIcon(SECTION_ICONS.party, "st-hic")}${word("page.dungeon.party")}${help}</div>${rows}`;
 }
 
 function dungeonWarnings() {
@@ -364,8 +367,8 @@ function dungeonWarnings() {
   const oldest = Math.max(...app.cap);
   const wait = Math.max(1, 60 - oldest);
   return [{ key: "instanceCap", level: n >= 5 ? "out" : "low",
-    text: n >= 5 ? "Instance cap reached" : `${n} of 5 instances this hour`,
-    detail: n >= 5 ? `The next one frees up in ${wait} min` : `One more new instance, then wait. The oldest frees up in ${wait} min` }];
+    text: n >= 5 ? word("page.dungeon.cap") : word("page.dungeon.cap.count", { n }),
+    detail: n >= 5 ? word("page.dungeon.cap.wait", { min: wait }) : word("page.dungeon.cap.one-more", { min: wait }) }];
 }
 
 

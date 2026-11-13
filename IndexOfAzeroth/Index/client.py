@@ -31,6 +31,8 @@ _make_lock = threading.RLock()
 _told = set()
 _read = {}
 _said = {}
+READ = "tables-read.json"
+_noted = set()
 
 
 def path_of(table, build, folder=None):
@@ -129,12 +131,13 @@ def _db2_files(data):
     return out
 
 
-def db2_file(table):
-    return (_kept_read(mainstores.standing(os.path.join(DEFS, TABLE_FILES)), _db2_files) or {}).get(table.lower())
+def db2_file(table, defs=None):
+    path = os.path.join(defs, TABLE_FILES) if defs else mainstores.standing(os.path.join(DEFS, TABLE_FILES))
+    return (_kept_read(path, _db2_files) or {}).get(table.lower())
 
 
-def definition(table):
-    defs = mainstores.standing(DEFS)
+def definition(table, defs=None):
+    defs = defs or mainstores.standing(DEFS)
     try:
         names = _kept_read(defs, lambda _: {n[:-4].lower(): n for n in os.listdir(defs) if n.endswith(".dbd")})
     except OSError:
@@ -345,11 +348,36 @@ def _stored_lines(table, last, layout, want):
     return out
 
 
-def fill_gap(table, build, table_hash, csv_bytes, layout, have, last=None):
+def _agreed(table, csv_bytes, last, after):
+    def read(data):
+        lines = csv.reader(io.StringIO(data.decode("utf-8"), newline=""))
+        head = next(lines, [])
+        if "ID" not in head:
+            raise ValueError("no ID column")
+        at = head.index("ID")
+        return head, {int(r[at]): r for r in lines if len(r) > at and r[at].isdigit()}
+    try:
+        (hb, mine), (hl, before), (ha, later) = (read(d) for d in (
+            csv_bytes, raw(table, last, stored=True), raw(table, after, stored=True)))
+    except (OSError, csv.Error, UnicodeDecodeError, ValueError, storedonly.NotStored) as e:
+        return None, f"the stored tables of {last} and {after} unread: {e}"
+    at = [(hb.index(c), hl.index(c), ha.index(c)) for c in hb if c in hl and c in ha]
+
+    def cells(r, n):
+        return [r[i[n]] if i[n] < len(r) else None for i in at]
+    gave = {rid for rid, b in before.items() if rid in later and cells(b, 1) == cells(later[rid], 2)
+            and (rid not in mine or cells(mine[rid], 0) != cells(b, 1))}
+    return (gave, {rid for rid in mine if rid not in before and rid not in later}), None
+
+
+def fill_gap(table, build, table_hash, csv_bytes, layout, have, last=None, after=None):
     last = last or last_hotfixed(table, build)
     if last is None:
         return csv_bytes, {"rows": 0}
     hotfixed, why = _hotfixed(table_hash, last)
+    agreed = hotfixed is None and after is not None
+    if agreed:
+        hotfixed, why = _agreed(table, csv_bytes, last, after)
     gave, deleted = hotfixed if hotfixed is not None else (None, set())
     still, test = _still(table, build, gave, why)
     have = set(have)
@@ -357,6 +385,8 @@ def fill_gap(table, build, table_hash, csv_bytes, layout, have, last=None):
     keep = gave & have if gave is not None else set()
     drop = deleted & have
     filled = {"rows": 0, "kept": 0, "dropped": 0, "from": last, "test": test}
+    if agreed and hotfixed is not None:
+        filled["kept by"] = f"{last} and {after} agreeing"
     if hotfixed is None:
         filled["not kept"] = why
     try:
@@ -503,12 +533,12 @@ def _by_key(sections):
     return out
 
 
-def _read_install(table, build, held=None):
+def _read_install(table, build, held=None, defs=None):
     if os.environ.get(casc.OFF):
         return None
-    fid, defined = db2_file(table), None
+    fid, defined = db2_file(table, defs), None
     try:
-        defined = definition(table)
+        defined = definition(table, defs)
     except (OSError, ValueError) as e:
         _said[table.lower()] = f"definition: {e}"
     if fid is None or defined is None:
@@ -531,6 +561,13 @@ def _read_install(table, build, held=None):
     except (ValueError, struct.error, IndexError, KeyError) as e:
         _said[table.lower()] = f"{type(e).__name__}: {e}"
         return None
+
+
+def install_lacks(table, build, defs=None):
+    _said.pop(table.lower(), None)
+    if _read_install(table, build, keys(build), defs) is not None:
+        return None
+    return _said.get(table.lower()) or "the install can't be read here"
 
 
 def local(table, build):
@@ -575,9 +612,11 @@ def _keep_made(table, build, data, note):
         store.save_json(made_path(build), notes)
 
 
-def settle_gap(build, last):
+def settle_gap(build, last, after=None):
     if game.version_key(last) >= game.version_key(build):
         return {"": f"{last} isn't before {build}: the gap rule takes the rows of a hotfixed build before it"}
+    if after is not None and game.version_key(after) <= game.version_key(build):
+        return {"": f"{after} isn't after {build}: the rows that stood across it need a hotfixed build after it"}
     try:
         if build == installed_version():
             return {"": f"{build} is the installed build: its tables are made from the install"}
@@ -604,8 +643,9 @@ def settle_gap(build, last):
         if table not in hashes:
             out[table] = "no table hash: no note of the table"
             continue
-        if not os.path.exists(path_of(table, last)):
-            out[table] = f"no stored table of {last}"
+        missing = [b for b in (last, after) if b is not None and not os.path.exists(path_of(table, b))]
+        if missing:
+            out[table] = f"no stored table of {missing[0]}"
             continue
         with open(path_of(table, build), "rb") as f:
             data = f.read()
@@ -618,7 +658,7 @@ def settle_gap(build, last):
         at = head.index("ID")
         have = [int(r[at]) for r in own if len(r) > at and r[at].isdigit()]
         with _make_lock:
-            got, filled = fill_gap(table, build, hashes[table], data, layout, have, last)
+            got, filled = fill_gap(table, build, hashes[table], data, layout, have, last, after)
             if got != data:
                 _keep_made(table, build, got, {"hash": hashes[table], "hotfixes": f"build {last.rsplit('.', 1)[-1]}",
                                                "definition": defined[1], "filled": filled})
@@ -649,7 +689,58 @@ def raw(table, build=None, check=None, stored=False):
             os.makedirs(KEPT, exist_ok=True)
             store.write_fetched(path, data)
     with open(path, "rb") as f:
-        return f.read()
+        data = f.read()
+    if asked is None or asked == _installed():
+        note_read(table, data)
+    return data
+
+
+def _installed():
+    try:
+        return installed_version()
+    except (OSError, game.GameNotFound):
+        return None
+
+
+def table_hash(data):
+    return hashlib.sha1(data).hexdigest()
+
+
+def note_read(table, data):
+    builder = store.running_builder()
+    if not builder or table in _noted:
+        return
+    _noted.add(table)
+    path, run = os.path.join(KEPT, READ), store.builder_run()
+    os.makedirs(KEPT, exist_ok=True)
+    with store.locked(path):
+        read = store.load_json(path, {})
+        read = read if isinstance(read, dict) else {}
+        last = read.get(builder)
+        kept = last["tables"] if isinstance(last, dict) and last.get("run") == run else {}
+        read[builder] = {"run": run, "tables": dict(sorted({**kept, table: table_hash(data)}.items()))}
+        store.save_json(path, dict(sorted(read.items())))
+
+
+def note_ran(kept=None):
+    builder = store.running_builder()
+    if not builder or _noted:
+        return
+    kept = kept or KEPT
+    path = os.path.join(kept, READ)
+    os.makedirs(kept, exist_ok=True)
+    with store.locked(path):
+        read = store.load_json(path, {})
+        read = read if isinstance(read, dict) else {}
+        if builder not in read:
+            read[builder] = {"run": store.builder_run(), "tables": {}}
+            store.save_json(path, dict(sorted(read.items())))
+
+
+def tables_read():
+    read = store.load_json(mainstores.standing(os.path.join(KEPT, READ)), {})
+    return {b: dict(e["tables"]) for b, e in read.items() if isinstance(e, dict) and isinstance(e.get("tables"), dict)} \
+        if isinstance(read, dict) else {}
 
 
 def filled(table, build):
@@ -695,10 +786,10 @@ def rows(table, build=None, stored=False):
 
 
 def main(argv):
-    if len(argv) != 4 or argv[1] != "settle":
-        raise SystemExit("python client.py settle BUILD LAST")
+    if len(argv) not in (4, 5) or argv[1] != "settle":
+        raise SystemExit("python client.py settle BUILD LAST [AFTER]")
     import jsontext
-    print(jsontext.dumps(settle_gap(argv[2], argv[3]), 1))
+    print(jsontext.dumps(settle_gap(*argv[2:]), 1))
 
 
 if __name__ == "__main__":

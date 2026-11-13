@@ -12,40 +12,45 @@ const WARNING_ROW = { ammo: "ammo", petUnhappy: "petHappiness", shards: "shards"
 const BEEP_REPEAT_MS = 60000;
 const ZERO_IS_FINE = new Set(["tree1Points", "tree2Points", "tree3Points", "hearth", "reincarnation", "petTraining", "special", "specialFree", "totem1", "totem2", "totem3", "totem4"]);
 
-const ammoLabel = (s) => s.ammoName || s.ammoBetter || "Ammo";
+const ammoLabel = (s) => s.ammoName || s.ammoBetter || word("page.status.ammo");
 
-function shootingTime(n) {
+function shootingTime(n, row = false) {
   const speed = n.rangedSpeed ? n.rangedSpeed / 1000 : 0;
-  return speed ? `about ${clock(n.ammo * speed)} of shooting` : "";
+  if (!speed) return "";
+  const time = clock(n.ammo * speed);
+  return row ? word("page.status.shooting.row", { time }) : word("page.status.shooting", { time });
 }
 
 function poisonText(n, hand) {
-  if (!n[`${hand}Enchanted`]) return "None";
+  if (!n[`${hand}Enchanted`]) return word("page.status.poison.none");
   const sec = n[`${hand}PoisonSec`] || 0, charges = n[`${hand}PoisonCharges`] || 0;
-  return clock(sec) + (charges ? ` <small>${charges} charges</small>` : "");
+  return clock(sec) + (charges ? ` <small>${word("page.status.poison.charges", { n: charges })}</small>` : "");
 }
 
 function warningText(w, n) {
   if (w.text) return [w.text, w.detail || ""];
   const low = w.level === "low";
   if (w.spell) {
-    return [`${w.spell.name} Rank ${w.spell.best} isn't on your bars`,
-      `Your bars have Rank ${w.spell.have}. Drag the new rank from your spellbook, or cast the spell by name in the macro.`];
+    return [word("page.status.warn.rank", { name: w.spell.name, rank: w.spell.best }), word("page.status.warn.rank.detail", { have: w.spell.have })];
   }
   switch (w.key) {
-    case "ammo": return low ? [`Ammo low: ${num(n.ammo)} left`, shootingTime(n)] : ["OUT OF AMMO", "Buy arrows or bullets"];
-    case "petUnhappy": return ["Pet is unhappy", "Your pet does 75% damage and may run away. Feed your pet."];
-    case "shards": return low ? [`Soul shards low: ${n.shards} left`, "Use Drain Soul on a few kills"] : ["OUT OF SOUL SHARDS", "Drain Soul to get more"];
-    case "mhPoison": return low ? ["Main hand poison running out", poisonText(n, "mh").replace(/<[^>]+>/g, "")] : ["NO POISON ON MAIN HAND", ""];
-    case "ohPoison": return low ? ["Off hand poison running out", poisonText(n, "oh").replace(/<[^>]+>/g, "")] : ["NO POISON ON OFF HAND", ""];
-    case "poisons": return low ? [`Poisons low: ${n.poisons} left in bags`, ""] : ["NO POISONS LEFT IN BAGS", "Buy or craft more"];
-    case "water": return low ? [`Water low: ${n.water} left`, ""] : ["OUT OF WATER", ""];
-    case "ankh": return low ? [`Ankhs low: ${n.ankhs} left`, ""] : ["NO ANKH", "Reincarnation won't work"];
-    case "earthTotem": return ["EARTH TOTEM MISSING", "Earth totems won't cast"];
-    case "fireTotem": return ["FIRE TOTEM MISSING", "Fire totems won't cast"];
-    case "waterTotem": return ["WATER TOTEM MISSING", "Water totems won't cast"];
-    case "airTotem": return ["AIR TOTEM MISSING", "Air totems won't cast"];
-    case "durability": return low ? [`Gear durability at ${n.durability}%`, "Repair soon"] : ["BROKEN GEAR", "Repair now"];
+    case "ammo": return low ? [word("page.status.warn.ammo", { n: num(n.ammo) }), shootingTime(n)]
+      : [word("page.status.warn.ammo.out"), word("page.status.warn.ammo.out.detail")];
+    case "petUnhappy": return [word("page.status.warn.pet"), word("page.status.warn.pet.detail")];
+    case "shards": return low ? [word("page.status.warn.shards", { n: n.shards }), word("page.status.warn.shards.detail")]
+      : [word("page.status.warn.shards.out"), word("page.status.warn.shards.out.detail")];
+    case "mhPoison": return low ? [word("page.status.warn.mh-poison"), poisonText(n, "mh").replace(/<[^>]+>/g, "")] : [word("page.status.warn.mh-poison.out"), ""];
+    case "ohPoison": return low ? [word("page.status.warn.oh-poison"), poisonText(n, "oh").replace(/<[^>]+>/g, "")] : [word("page.status.warn.oh-poison.out"), ""];
+    case "poisons": return low ? [word("page.status.warn.poisons", { n: n.poisons }), ""]
+      : [word("page.status.warn.poisons.out"), word("page.status.warn.poisons.out.detail")];
+    case "water": return low ? [word("page.status.warn.water", { n: n.water }), ""] : [word("page.status.warn.water.out"), ""];
+    case "ankh": return low ? [word("page.status.warn.ankh", { n: n.ankhs }), ""] : [word("page.status.warn.ankh.out"), word("page.status.warn.ankh.out.detail")];
+    case "earthTotem": return [word("page.status.warn.earth-totem"), word("page.status.warn.earth-totem.detail")];
+    case "fireTotem": return [word("page.status.warn.fire-totem"), word("page.status.warn.fire-totem.detail")];
+    case "waterTotem": return [word("page.status.warn.water-totem"), word("page.status.warn.water-totem.detail")];
+    case "airTotem": return [word("page.status.warn.air-totem"), word("page.status.warn.air-totem.detail")];
+    case "durability": return low ? [word("page.status.warn.durability", { n: n.durability }), word("page.status.warn.durability.detail")]
+      : [word("page.status.warn.durability.out"), word("page.status.warn.durability.out.detail")];
     default: return [w.key, ""];
   }
 }
@@ -132,10 +137,11 @@ function bandClicked(e) {
 $("warnings").addEventListener("click", bandClicked);
 
 function loudInGame() {
-  return (app.status?.warnings || []).filter((w) => !w.quiet && movedToTodo(w));
+  return (app.status?.warnings || []).filter((w) => !w.quiet).map((w) => ({ ...w, never: isSilencedWarning(w) }))
+    .filter((w) => w.never || movedToTodo(w));
 }
 function quietInGame() {
-  return (app.status?.warnings || []).filter((w) => w.quiet && w.level === "low" && !movedToTodo(w) && !isSilencedWarning(w));
+  return (app.status?.warnings || []).filter((w) => w.quiet && !movedToTodo(w) && !isSilencedWarning(w));
 }
 
 const WARN_ORDER = { news: 0, out: 1 };
@@ -147,10 +153,10 @@ function renderWarnings() {
     .map((w) => {
       const [title, detail] = warningText(w, st?.nums || {});
       const click = w.queue ? ` data-queue="${esc(w.key)}"` : dismissable(w) ? ` data-key="${esc(w.key)}" data-sig="${esc(warningSignature(w))}" data-todo="${esc(todoForWarning(w))}"
-        title="Click to move this warning to the To do list. The game keeps the warning quiet from the next /reload"` : "";
+        title="${word("page.status.warn.move")}"` : "";
       return `<div class="warn ${w.level}${w.invite ? " invite" : ""}${click && !w.queue ? " dismissable" : ""}"${click}>${esc(title)}${detail ? `<small>${esc(detail)}</small>` : ""}</div>`;
     }).join("");
-  if (warnings.length && !sound.ctx) html += `<div class="warn sound">Click anywhere on the page once to turn on warning sounds</div>`;
+  if (warnings.length && !sound.ctx) html += `<div class="warn sound">${word("page.status.warn.sound")}</div>`;
   setHtml($("warnings"), html);
 }
 
@@ -164,33 +170,35 @@ function hoverHtml(name, pinned = false) {
   const other = window.HOVERS?.[name] || window.HOVERS?.[`${name.split(":")[0]}:`];
   if (other) return other(pinned, name);
   const d = alts.data, b = d?.chars?.[d.current]?.bags;
-  if (!b) return `<div class="hv"><div class="hv-note">Your bags show here after the addon next reads them</div></div>`;
+  if (!b) return `<div class="hv"><div class="hv-note">${word("page.status.bags.none")}</div></div>`;
   wantItemInfo([...Object.keys(b.items), ...(b.each || []).map((x) => x.id)], () => refreshHover());
   const info = (id) => app.itemInfo?.[baseItem(id)] || {};
   const icon = (i) => (i.icon ? `<img src="/icon/${esc(i.icon)}.jpg" alt="">` : "");
   const line = (i, label, right, id) => `<div class="hv-row"${id ? ` data-tip="${id}"` : ""}>${icon(i)}<span class="hv-name${
     i.quest ? " hv-quest" : ""}">${label}</span><span class="hv-n">${right}</span></div>`;
-  const foot = pinned ? "" : `<div class="hv-foot">Click to keep this list open</div>`;
+  const foot = pinned ? "" : `<div class="hv-foot">${word("page.status.bags.pin")}</div>`;
   const bag = (x) => {
-    const i = x.id ? info(x.id) : { icon: "inv_misc_bag_08", n: "Backpack" };
-    const kind = x.family & 1 ? "quiver" : x.family & 2 ? "ammo pouch" : x.family ? "special" : "";
-    return line(i, `${esc(i.n || "A bag")}${kind ? ` <small>${kind}</small>` : ""}`, `${x.free} <small>free of ${x.slots}</small>`, x.id || null);
+    const i = x.id ? info(x.id) : { icon: "inv_misc_bag_08", n: word("page.status.bags.backpack") };
+    const kind = x.family & 1 ? word("page.status.bags.quiver") : x.family & 2 ? word("page.status.bags.pouch") : x.family ? word("page.status.bags.special") : "";
+    return line(i, `${esc(i.n || word("page.status.bags.bag"))}${kind ? ` <small>${kind}</small>` : ""}`,
+      `${x.free} <small>${word("page.status.bags.free", { slots: x.slots })}</small>`, x.id || null);
   };
   if (name === "ammo") {
     const called = app.status?.strs?.ammoName, better = app.status?.strs?.ammoBetter;
     const ammo = Object.entries(b.items).filter(([id]) => info(id).n && [called, better].includes(info(id).n))
-      .map(([id, n]) => line(info(id), esc(info(id).n), `${num(n)} <small>in ${Math.ceil(n / AMMO_STACK)} stack${n > AMMO_STACK ? "s" : ""}</small>`, id));
+      .map(([id, n]) => line(info(id), esc(info(id).n), `${num(n)} <small>${wordCount("page.status.ammo.stacks", Math.ceil(n / AMMO_STACK))}</small>`, id));
     const holders = (b.each || []).filter((x) => x.family & 3).map(bag);
-    return `<div class="hv"><div class="hv-head">Ammo</div>${ammo.join("") || `<div class="hv-note">${esc(called || "No ammo")} isn't in your bags</div>`}
-      ${holders.length ? `<div class="hv-head">Quiver or pouch</div>${holders.join("")}` : ""}${foot}</div>`;
+    return `<div class="hv"><div class="hv-head">${word("page.status.ammo.head")}</div>${ammo.join("")
+      || `<div class="hv-note">${word("page.status.ammo.missing", { name: esc(called || word("page.status.ammo.none")) })}</div>`}
+      ${holders.length ? `<div class="hv-head">${word("page.status.ammo.holder")}</div>${holders.join("")}` : ""}${foot}</div>`;
   }
   const items = Object.entries(heldItems(b)).sort(([x], [y]) => (info(x).n || "").localeCompare(info(y).n || ""));
   const cap = pinned ? items.length : 24;
-  const shown = items.slice(0, cap).map(([id, n]) => line(info(id), esc(info(id).n || `Item ${id}`), num(n), id)).join("");
-  const more = items.length > cap ? `<div class="hv-note">and ${items.length - cap} more</div>` : "";
+  const shown = items.slice(0, cap).map(([id, n]) => line(info(id), esc(info(id).n || word("page.status.bags.item", { id })), num(n), id)).join("");
+  const more = items.length > cap ? `<div class="hv-note">${word("page.status.bags.more", { n: items.length - cap })}</div>` : "";
   const each = (b.each || []).map(bag).join("");
-  return `<div class="hv">${each ? `<div class="hv-head">Bags</div>${each}` : ""}<div class="hv-head">In them</div>
-    ${shown || `<div class="hv-note">Nothing</div>`}${more}${foot}</div>`;
+  return `<div class="hv">${each ? `<div class="hv-head">${word("page.status.bags.head")}</div>${each}` : ""}<div class="hv-head">${word("page.status.bags.in")}</div>
+    ${shown || `<div class="hv-note">${word("page.status.bags.nothing")}</div>`}${more}${foot}</div>`;
 }
 
 function durabilityItem(n) {
@@ -270,104 +278,145 @@ for (const heading of Object.keys(STATUS_ROWS)) {
 function sections(st, pos) {
   const n = st.nums || {}, s = st.strs || {}, out = [];
   const counted = (key, label) => (key in n ? row(key, label, num(n[key])) : null);
+  const of = (max) => `<small>${word("page.status.of", { of: max })}</small>`;
 
   const cls = [];
   if (st.classId === 3) {
     if (n.petActive) {
-      if ("petHappiness" in n) cls.push(row("petHappiness", "Pet", `${HAPPINESS[n.petHappiness] || "?"} <small>${n.petDamage}% damage</small>`, "",
-        { value: n.petHappiness, max: 3, dir: "empty" }));
-      if (s.petLoyalty) cls.push(row("petLoyalty", "Loyalty", esc(s.petLoyalty)));
-      if ("petTraining" in n) cls.push(row("petTraining", "Training points", num(n.petTraining)));
+      if ("petHappiness" in n) {
+        cls.push(row("petHappiness", word("page.options.character.class.pet"),
+          `${HAPPINESS[n.petHappiness] || "?"} <small>${word("page.status.pet.damage", { pct: n.petDamage })}</small>`, "",
+          { value: n.petHappiness, max: 3, dir: "empty" }));
+      }
+      if (s.petLoyalty) cls.push(row("petLoyalty", word("page.options.character.class.pet-loyalty"), esc(s.petLoyalty)));
+      if ("petTraining" in n) cls.push(row("petTraining", word("page.options.character.class.pet-training"), num(n.petTraining)));
     } else {
-      cls.push(row("petNone", "Pet", "Not out"));
+      cls.push(row("petNone", word("page.options.character.class.pet"), word("page.status.pet.none")));
     }
-    if ("ammo" in n) cls.push(Object.assign(row("ammo", esc(ammoLabel(s)), `${num(n.ammo)}${n.ammo ? ` <small>${shootingTime(n).replace("about ", "")}</small>` : ""}`, "",
+    if ("ammo" in n) cls.push(Object.assign(row("ammo", esc(ammoLabel(s)), `${num(n.ammo)}${n.ammo ? ` <small>${shootingTime(n, true)}</small>` : ""}`, "",
       n.ammoMax ? { value: n.ammo, max: n.ammoMax, dir: "empty" } : null), { hover: "ammo" }));
   }
   if (st.classId === 9) {
-    cls.push(counted("shards", "Soul shards"), counted("healthstones", "Healthstones"), counted("soulstones", "Soulstones"));
-    if (s.demon) cls.push(row("demon", "Demon", esc(s.demon)));
+    cls.push(counted("shards", word("page.options.character.class.shards")), counted("healthstones", word("page.options.character.class.healthstones")),
+      counted("soulstones", word("page.options.character.class.soulstones")));
+    if (s.demon) cls.push(row("demon", word("page.options.character.class.demon"), esc(s.demon)));
   }
   if (st.classId === 8) {
-    cls.push(counted("arcanePowder", "Arcane Powder"), counted("runeTeleport", "Runes of Teleportation"),
-      counted("runePortals", "Runes of Portals"), counted("lightFeather", "Light Feathers"), counted("manaGems", "Mana gems"));
+    cls.push(counted("arcanePowder", word("page.options.character.class.arcane-powder")), counted("runeTeleport", word("page.options.character.class.rune-teleport")),
+      counted("runePortals", word("page.options.character.class.rune-portals")), counted("lightFeather", word("page.options.character.class.light-feather")),
+      counted("manaGems", word("page.options.character.class.mana-gems")));
   }
   if (st.classId === 4) {
-    if ("mhEnchanted" in n) cls.push(row("mhPoison", "Main hand poison", poisonText(n, "mh"), "", { value: n.mhPoisonSec || 0, max: 1800, dir: "empty" }));
-    if ("ohEnchanted" in n) cls.push(row("ohPoison", "Off hand poison", poisonText(n, "oh"), "", { value: n.ohPoisonSec || 0, max: 1800, dir: "empty" }));
-    cls.push(counted("poisons", "Poisons in bags"), counted("flashPowder", "Flash Powder"), counted("blindingPowder", "Blinding Powder"));
+    if ("mhEnchanted" in n) {
+      cls.push(row("mhPoison", word("page.options.character.class.mh-poison"), poisonText(n, "mh"), "", { value: n.mhPoisonSec || 0, max: 1800, dir: "empty" }));
+    }
+    if ("ohEnchanted" in n) {
+      cls.push(row("ohPoison", word("page.options.character.class.oh-poison"), poisonText(n, "oh"), "", { value: n.ohPoisonSec || 0, max: 1800, dir: "empty" }));
+    }
+    cls.push(counted("poisons", word("page.options.character.class.poisons")), counted("flashPowder", word("page.options.character.class.flash-powder")),
+      counted("blindingPowder", word("page.options.character.class.blinding-powder")));
   }
-  if (st.classId === 5) cls.push(counted("holyCandles", "Holy Candles"), counted("sacredCandles", "Sacred Candles"));
-  if (st.classId === 11) cls.push(counted("rebirthSeeds", "Rebirth seeds"), counted("giftReagents", "Gift of the Wild reagents"));
-  if (st.classId === 2) cls.push(counted("divinitySymbols", "Symbols of Divinity"), counted("kingsSymbols", "Symbols of Kings"));
+  if (st.classId === 5) {
+    cls.push(counted("holyCandles", word("page.options.character.class.holy-candles")), counted("sacredCandles", word("page.options.character.class.sacred-candles")));
+  }
+  if (st.classId === 11) {
+    cls.push(counted("rebirthSeeds", word("page.options.character.class.rebirth-seeds")), counted("giftReagents", word("page.options.character.class.gift-reagents")));
+  }
+  if (st.classId === 2) {
+    cls.push(counted("divinitySymbols", word("page.options.character.class.divinity-symbols")),
+      counted("kingsSymbols", word("page.options.character.class.kings-symbols")));
+  }
   if (st.classId === 7) {
-    cls.push(counted("ankhs", "Ankhs"));
-    if ("reincarnation" in n) cls.push(row("reincarnation", "Reincarnation", n.reincarnation ? clock(n.reincarnation) : "Ready"));
-    for (const [key, label] of [["earthTotem", "Earth Totem"], ["fireTotem", "Fire Totem"], ["waterTotem", "Water Totem"], ["airTotem", "Air Totem"]]) {
-      if (key in n) cls.push(row(key, label, n[key] ? "In bags" : "Missing"));
+    cls.push(counted("ankhs", word("page.options.character.class.ankhs")));
+    if ("reincarnation" in n) {
+      cls.push(row("reincarnation", word("page.options.character.class.reincarnation"), n.reincarnation ? clock(n.reincarnation) : word("page.status.reincarnation.ready")));
+    }
+    for (const [key, label] of [["earthTotem", word("page.options.character.class.earth-totem")], ["fireTotem", word("page.options.character.class.fire-totem")],
+      ["waterTotem", word("page.options.character.class.water-totem")], ["airTotem", word("page.options.character.class.air-totem")]]) {
+      if (key in n) cls.push(row(key, label, n[key] ? word("page.status.totem.in-bags") : word("page.status.totem.missing")));
     }
     for (let i = 1; i <= 4; i++) {
       if (s[`totem${i}`]) cls.push(row(`totem${i}`, esc(s[`totem${i}`]), clock(n[`totem${i}`] || 0)));
     }
   }
   const classRows = cls.filter(Boolean);
-  if (classRows.length) out.push({ id: "class", title: st.className || "Class", classColor: CLASS_COLORS[st.className], rows: classRows });
+  if (classRows.length) {
+    out.push({ id: "class", title: st.className || word("page.options.character.class"), classColor: CLASS_COLORS[st.className], rows: classRows });
+  }
 
-  const supplies = [counted("food", "Food"), counted("water", "Water"), counted("bandages", "Bandages")].filter(Boolean);
-  if (supplies.length) out.push({ id: "supplies", title: "Supplies", rows: supplies });
+  const supplies = [counted("food", word("page.options.character.supplies.food")), counted("water", word("page.options.character.supplies.water")),
+    counted("bandages", word("page.options.character.supplies.bandages"))].filter(Boolean);
+  if (supplies.length) out.push({ id: "supplies", title: word("page.options.character.supplies"), rows: supplies });
 
   const hours = (n.sessionSeconds || 0) / 3600;
-  const gold = [row("money", "Gold", money(n.money || 0))];
-  if ("moneyStart" in n) gold.push(row("moneySession", "This session", signedMoney((n.money || 0) - n.moneyStart)));
-  if (hours > 0.05 && "moneyStart" in n) gold.push(row("moneyHour", "Per hour", signedMoney(Math.round(((n.money || 0) - n.moneyStart) / hours))));
-  gold.push(Object.assign(row("bags", "Free bag slots", `${n.bagFree ?? "?"} <small>of ${n.bagSlots ?? "?"}</small>`, n.bagFree === 0 ? "zero" : "",
+  const gold = [row("money", word("page.options.character.gold.money"), money(n.money || 0))];
+  if ("moneyStart" in n) gold.push(row("moneySession", word("page.options.character.gold.money-session"), signedMoney((n.money || 0) - n.moneyStart)));
+  if (hours > 0.05 && "moneyStart" in n) {
+    gold.push(row("moneyHour", word("page.options.character.gold.money-hour"), signedMoney(Math.round(((n.money || 0) - n.moneyStart) / hours))));
+  }
+  gold.push(Object.assign(row("bags", word("page.options.character.gold.bags"), `${n.bagFree ?? "?"} ${of(n.bagSlots ?? "?")}`, n.bagFree === 0 ? "zero" : "",
     { value: (n.bagSlots || 0) - (n.bagFree || 0), max: n.bagSlots, dir: "fill" }), { hover: "bags" }));
-  if (n.specialFree) gold.push(row("special", "Quiver or pouch free", num(n.specialFree)));
-  out.push({ id: "gold", title: "Gold and bags", rows: gold });
+  if (n.specialFree) gold.push(row("special", word("page.options.character.gold.special"), num(n.specialFree)));
+  out.push({ id: "gold", title: word("page.options.character.gold"), rows: gold });
 
   const gear = [];
-  if ("durability" in n) gear.push(row("durability", "Lowest durability", `${n.durability}%${durabilityItem(n)}`, "", { value: n.durability, max: 100, dir: "empty" }));
+  if ("durability" in n) {
+    gear.push(row("durability", word("page.options.character.gear.durability"), `${n.durability}%${durabilityItem(n)}`, "", { value: n.durability, max: 100, dir: "empty" }));
+  }
   if ("ammo" in n && st.classId !== 3) gear.push(row("ammo", esc(ammoLabel(s)), num(n.ammo), "", n.ammoMax ? { value: n.ammo, max: n.ammoMax, dir: "empty" } : null));
-  if (gear.length) out.push({ id: "gear", title: "Gear", rows: gear });
+  if (gear.length) out.push({ id: "gear", title: word("page.options.character.gear"), rows: gear });
   const profs = app.professions || [];
   const skills = (st.skills || []).filter((sk) => !profs.some((p) => p.name === sk.name))
     .map((sk) => row(`skill-${sk.name}`, esc(sk.name), `${sk.rank} <small>/ ${sk.max}</small>`, "",
       { value: sk.rank, max: sk.max, dir: "progress", heat: `skill:${sk.name}` }));
-  if (skills.length) out.push({ id: "weapon", title: "Weapon skill", rows: skills });
+  if (skills.length) out.push({ id: "weapon", title: word("page.options.character.weapon"), rows: skills });
   const levelled = profs.map((p) => {
     const up = skillRise(p.name, p.rank, n.sessionSeconds);
     return row(`skill-${p.name}`, esc(p.name), `${p.rank} <small>/ ${p.max}</small>${up > 0 ? ` <small class="st-up">+${up}</small>` : ""}`,
       skillRose(p.name, p.rank) ? "rose" : "", { value: p.rank, max: p.max, dir: "progress", heat: `skill:${p.name}` });
   });
-  if (levelled.length) out.push({ id: "skills", title: "Skills", rows: levelled });
+  if (levelled.length) out.push({ id: "skills", title: word("page.options.character.skills"), rows: levelled });
 
   if (pos && pos.xpMax && !(app.maxLevel != null && pos.level >= app.maxLevel)) {
     const left = pos.xpMax - pos.xp;
     const lvl = [];
     const perHour = hours > 0.03 ? n.sessionXP / hours : 0;
-    lvl.push(row("xpHour", "XP per hour", perHour ? num(perHour) : "<small>measuring</small>"));
-    if (perHour) lvl.push(row("toLevel", "Time to level", clock(left / perHour * 3600)));
+    lvl.push(row("xpHour", word("page.options.character.leveling.xp-hour"), perHour ? num(perHour) : `<small>${word("page.status.xp.measuring")}</small>`));
+    if (perHour) lvl.push(row("toLevel", word("page.options.character.leveling.to-level"), clock(left / perHour * 3600)));
     if (n.lastKillXP) {
-      lvl.push(row("kills", "Kills to level", `${num(Math.ceil(left / n.lastKillXP))} <small>at ${num(n.lastKillXP)} XP</small>`));
-      if (n.lastKillRested && pos.rested) lvl.push(row("restedKills", "Rested lasts", `${num(Math.ceil(pos.rested / (n.lastKillXP / 2)))} kills`));
+      lvl.push(row("kills", word("page.options.character.leveling.kills"),
+        `${num(Math.ceil(left / n.lastKillXP))} <small>${word("page.status.kills.at", { xp: num(n.lastKillXP) })}</small>`));
+      if (n.lastKillRested && pos.rested) {
+        lvl.push(row("restedKills", word("page.options.character.leveling.rested-kills"),
+          word("page.status.rested", { n: num(Math.ceil(pos.rested / (n.lastKillXP / 2))) })));
+      }
     }
-    out.push({ id: "leveling", title: "Leveling", rows: lvl });
+    out.push({ id: "leveling", title: word("page.options.character.leveling"), rows: lvl });
   }
 
   const travel = [];
-  if (s.bind || "hearth" in n) travel.push(row("hearth", "Hearthstone", `${esc(s.bind || "")}${"hearth" in n ? ` <small>${n.hearth ? clock(n.hearth) : "ready"}</small>` : ""}`));
-  if ("quests" in n) travel.push(row("quests", "Quests", `${n.quests} <small>of ${n.questsMax}</small>${n.questsDone ? ` <small>${n.questsDone} done</small>` : ""}`,
-    n.quests >= n.questsMax ? "zero" : "", { value: n.quests, max: n.questsMax, dir: "fill" }));
+  if (s.bind || "hearth" in n) {
+    travel.push(row("hearth", word("page.options.character.travel.hearth"),
+      `${esc(s.bind || "")}${"hearth" in n ? ` <small>${n.hearth ? clock(n.hearth) : word("page.status.hearth.ready")}</small>` : ""}`));
+  }
+  if ("quests" in n) {
+    travel.push(row("quests", word("page.options.character.travel.quests"),
+      `${n.quests} ${of(n.questsMax)}${n.questsDone ? ` <small>${word("page.status.quests.done", { n: n.questsDone })}</small>` : ""}`,
+      n.quests >= n.questsMax ? "zero" : "", { value: n.quests, max: n.questsMax, dir: "fill" }));
+  }
   if (s.repName) travel.push(row("rep", esc(s.repName), `${REACTIONS[n.repReaction] || ""} <small>${num(n.repValue || 0)} / ${num(n.repMax || 0)}</small>`, "",
     { value: n.repValue || 0, max: n.repMax || 0, dir: "progress" }));
-  if (travel.length) out.push({ id: "travel", title: "Travel and quests", rows: travel });
+  if (travel.length) out.push({ id: "travel", title: word("page.options.character.travel"), rows: travel });
 
   const time = [];
-  if ("serverMinutes" in n) time.push(row("server", "Server time", `${String(Math.floor(n.serverMinutes / 60)).padStart(2, "0")}:${String(n.serverMinutes % 60).padStart(2, "0")}`));
-  if ("sessionSeconds" in n) time.push(row("session", "Session", clock(n.sessionSeconds)));
-  if ("playedSeconds" in n) time.push(row("played", "Played", playedText(n.playedSeconds)));
-  if ("levelSeconds" in n) time.push(row("levelPlayed", "This level", playedText(n.levelSeconds)));
-  if (time.length) out.push({ id: "time", title: "Time", rows: time });
+  if ("serverMinutes" in n) {
+    time.push(row("server", word("page.options.character.time.server"),
+      `${String(Math.floor(n.serverMinutes / 60)).padStart(2, "0")}:${String(n.serverMinutes % 60).padStart(2, "0")}`));
+  }
+  if ("sessionSeconds" in n) time.push(row("session", word("page.options.character.time.session"), clock(n.sessionSeconds)));
+  if ("playedSeconds" in n) time.push(row("played", word("page.options.character.time.played"), playedText(n.playedSeconds)));
+  if ("levelSeconds" in n) time.push(row("levelPlayed", word("page.options.character.time.level-played"), playedText(n.levelSeconds)));
+  if (time.length) out.push({ id: "time", title: word("page.options.character.time"), rows: time });
   return out;
 }
 
@@ -396,9 +445,8 @@ function skillRose(name, rank) {
 
 
 const SECTION_ICONS = {
-  Supplies: "inv_misc_bag_08", "Gold and bags": "inv_misc_coin_01", Gear: "inv_chest_chain_05", "Weapon skill": "inv_sword_04",
-  Skills: "inv_misc_book_11",
-  Leveling: "achievement_level_10", "Travel and quests": "inv_misc_map_01", Time: "inv_misc_pocketwatch_01", Party: "inv_misc_groupneedmore",
+  supplies: "inv_misc_bag_08", gold: "inv_misc_coin_01", gear: "inv_chest_chain_05", weapon: "inv_sword_04", skills: "inv_misc_book_11",
+  leveling: "achievement_level_10", travel: "inv_misc_map_01", time: "inv_misc_pocketwatch_01", party: "inv_misc_groupneedmore",
 };
 const ROW_ICONS = {
   petHappiness: "ability_hunter_beastcall", petNone: "ability_hunter_beastcall", petLoyalty: "ability_hunter_beastsoothe",
@@ -449,7 +497,7 @@ function renderStatus() {
     const mine = !party && i === 0 ? help : "";
     const head = sec.classColor
       ? `<div class="st-head class" style="color:${sec.classColor}">${stIcon(`classicon_${(st.className || "").toLowerCase()}`, "st-hic")}${esc(sec.title)}${mine}</div>`
-      : `<div class="st-head">${stIcon(SECTION_ICONS[sec.title], "st-hic")}${esc(sec.title)}${mine}</div>`;
+      : `<div class="st-head">${stIcon(SECTION_ICONS[sec.id], "st-hic")}${esc(sec.title)}${mine}</div>`;
     const rows = sec.rows.map((r) => {
       const state = `${levels[r.key] || r.state || (zeroKeys.has(r.key) ? "zero" : "")}${barHot(r.bar) ? " hot" : ""}`;
       return `<div class="st-row ${state}"${r.hover ? ` data-hover="${r.hover}"` : ""}>${barHtml(r.bar)}<span class="st-label">${stIcon(rowIcon(r.key, st))}${r.label}</span><span class="st-value">${r.value}</span></div>`;

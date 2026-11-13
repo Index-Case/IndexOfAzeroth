@@ -43,7 +43,8 @@ function saveTrack(kind) {
   const t = app.tracks[kind];
   try {
     if (!t) localStorage.removeItem(trackStore(kind));
-    else if (kind === "epic") localStorage.setItem(trackStore(kind), JSON.stringify({ key: t.key, anchor: t.anchor, way: t.way, close: !!t.close, name: t.name }));
+    else if (kind === "epic") localStorage.setItem(trackStore(kind), JSON.stringify({ key: t.key, anchor: t.anchor, way: t.way, close: !!t.close, name: t.name,
+                                                                                         questLevels: t.questLevels }));
     else localStorage.setItem(trackStore(kind), JSON.stringify({ what: t.what, name: t.name, sub: t.sub, inst: t.inst, stops: t.stops, at: t.at, lap: t.lap,
                                                                 layer: t.layer, types: t.types, glass: t.glass, zone: t.zone, daredevil: t.daredevil,
                                                                 zones: t.zones, all: t.all, mobs: t.mobs, ids: t.ids, spots: t.spots }));
@@ -74,7 +75,7 @@ function loadTracks() {
   app.dismissed = keptOr(trackStore("epicDismissed"), null);
   try {
     const e = JSON.parse(localStorage.getItem(trackStore("epic")) || "null");
-    if (e?.key) { app.tracks.epic = newEpic(e.key, e.anchor, e.way ?? (e.safe ? "safe" : "any"), !!e.close, e.name); refreshEpic(true); }
+    if (e?.key) { app.tracks.epic = newEpic(e.key, e.anchor, e.way ?? (e.safe ? "safe" : "any"), !!e.close, e.name, e.questLevels); refreshEpic(true); }
     const g = JSON.parse(localStorage.getItem(trackStore("loop")) || "null");
     if (g?.stops?.length) app.tracks.loop = { kind: "loop", ...g, loop: true };
   } catch (e) {   }
@@ -825,6 +826,7 @@ function renderTracks() {
     }
   }
   drawQuestText();
+  frameNow();
   const chip = $("epic-mode"), e = app.tracks.epic;
   if (chip) { chip.hidden = !e; chip.textContent = e ? e.name : ""; }
 }

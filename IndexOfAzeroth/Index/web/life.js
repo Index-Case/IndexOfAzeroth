@@ -4,8 +4,8 @@
 const lessMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const WORDS = {
-  combat: { src: "art/in_combat.png", label: "In combat" },
-  dead: { src: "art/corpserun.png", label: "Corpse run" },
+  combat: { src: "art/in_combat.png", label: word("page.life-words.combat") },
+  dead: { src: "art/corpserun.png", label: word("page.life-words.dead") },
 };
 for (const w of Object.values(WORDS)) (w.img = new Image()).src = w.src;
 function wordHtml({ src, label, img }) {

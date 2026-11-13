@@ -150,8 +150,9 @@ function ask(q) {
   const answer = new Promise((done) => { settle = done; });
   askShown = { ...q, settle };
   const list = (q.list || []).length ? `<ul class="ask-list">${q.list.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : "";
-  const also = q.also ? `<button class="key small" data-ask="also">${esc(q.also.label)}</button>` : "";
-  const yesOff = q.yesOff ? ` disabled title="${esc(q.yesOff)}"` : "";
+  const also = [].concat(q.also || []).map((a, i) => `<button class="key small" data-ask="also" data-also="${i}"${a.tip
+    ? ` title="${esc(a.tip)}"` : ""}>${esc(a.label)}</button>`).join("");
+  const yesOff = q.yesOff ? ` disabled title="${esc(q.yesOff)}"` : q.yesTip ? ` title="${esc(q.yesTip)}"` : "";
   box.innerHTML = `<div class="gp-title">${esc(q.title)}</div><p>${esc(q.text)}</p>${list}${q.more ? `<p class="ask-more">${esc(q.more)}</p>` : ""}
     <div class="gp-foot"><button class="key small" data-ask="no">${esc(q.no || "No")}</button>${also}
       <button class="key small" data-ask="yes"${yesOff}>${esc(q.yes || "Yes")}</button></div>`;
@@ -162,11 +163,11 @@ function ask(q) {
 function dropAsk() {
   takeAsk()?.settle(null);
 }
-function answerAsk(yes) {
+function answerAsk(yes, which = 0) {
   const q = takeAsk();
   if (!q) return;
   q.settle(yes);
-  (yes === "also" ? q.also?.on : yes ? q.onYes : q.onNo)?.();
+  (yes === "also" ? [].concat(q.also || [])[which]?.on : yes ? q.onYes : q.onNo)?.();
 }
 function takeAsk() {
   const q = askShown;
@@ -178,7 +179,7 @@ function takeAsk() {
 }
 function askClicked(e) {
   const b = e.target.closest("button[data-ask]");
-  if (b && !b.disabled) answerAsk(b.dataset.ask === "also" ? "also" : b.dataset.ask === "yes");
+  if (b && !b.disabled) answerAsk(b.dataset.ask === "also" ? "also" : b.dataset.ask === "yes", Number(b.dataset.also) || 0);
 }
 $("ask-box").addEventListener("click", askClicked);
 closable(LAYER.question, () => !!askShown, () => answerAsk(false));
@@ -402,6 +403,7 @@ function apply(snap) {
     app.character = snap.character;
   }
   app.who = snap.who || null;
+  app.realmType = snap.realmType || null;
   app.maxLevel = snap.maxLevel || null;
   app.options = snap.options || {};
   if (app.character) step("load tracks", () => loadTracks());
@@ -589,6 +591,11 @@ function targetKeyName() {
 }
 const LOOP_WORDS = { grind: "grind", farm: "farm", gather: "gathering", skin: "skinning", mining: "mining", herbalism: "herbalism",
                      fishing: "fishing", treasure: "treasure" };
+function newerReason(name, newer) {
+  const why = planReasons(newer.reasons || []);
+  const said = newer.rating === "needed" ? "needs a new plan" : newer.rating === "worth" ? "has a new plan that is worth a reload" : "has its plan ready";
+  return { kind: "epic", needed: newer.rating === "needed", text: `${name} ${said}${why ? `. ${why}` : ""}` };
+}
 function reloadReasons() {
   const u = app.updates || {}, out = [];
   if (app.updates?.index?.addon === "waiting") {
@@ -598,10 +605,10 @@ function reloadReasons() {
   else if (u.addon === "reload") out.push({ kind: "addon", text: "The Index's addon changed since the game loaded it" });
   else if (lineTooNew()) out.push({ kind: "addon", text: "The addon in game is older than the page" });
   const newer = newerPlan(app.tracks?.epic);
-  if (newer && newer.rating !== "minor") {
-    const why = planReasons(newer.reasons || []);
-    const said = newer.rating === "needed" ? "needs a new plan" : newer.rating === "worth" ? "has a new plan that is worth a reload" : "has its plan ready";
-    out.push({ kind: "epic", needed: newer.rating === "needed", text: `${newer.name || "The quest epic"} ${said}${why ? `. ${why}` : ""}` });
+  if (newer && newer.rating !== "minor") out.push(newerReason(newer.name || "The quest epic", newer));
+  for (const p of myProfs()) {
+    const n = !p.closed && newerSide(p);
+    if (n && n.rating !== "minor") out.push(newerReason(capWords(epicTitle(p)), n));
   }
   const reopened = !newer && reopenedHere(app.tracks?.epic);
   if (reopened) out.push({ kind: "epic", text: `${reopened.name || "The quest epic"} is open again on the page, and the guide in game picks it up where you were` });
@@ -616,9 +623,13 @@ function reloadReasons() {
   if (waiting(p.target, "target") && !gameRunsLine("target", p.target)) {
     out.push({ kind: "target", paste: true, text: `The Target key for ${p.target.title || "an NPC"} is waiting for the game` });
   }
-  const loud = loudInGame().map((w) => warningText(w, app.status.nums)[0]);
-  if (loud.length) {
-    out.push({ kind: "warn", text: `${loud.length > 1 ? "Warnings you moved to To do still sound" : "A warning you moved to To do still sounds"} in game (${andList(loud)})` });
+  const loud = loudInGame(), title = (w) => warningText(w, app.status.nums)[0];
+  const moved = loud.filter((w) => !w.never).map(title), never = loud.filter((w) => w.never).map(title);
+  if (moved.length) {
+    out.push({ kind: "warn", text: `${moved.length > 1 ? "Warnings you moved to To do still sound" : "A warning you moved to To do still sounds"} in game (${andList(moved)})` });
+  }
+  if (never.length) {
+    out.push({ kind: "warn", text: wordCount("page.todo.never-loud", never.length, { names: andList(never) }) });
   }
   const hushed = quietInGame().map((w) => warningText(w, app.status.nums)[0]);
   if (hushed.length) {
@@ -708,12 +719,19 @@ function indexAsks() {
   const ix = app.updates?.index;
   if (!ix) return null;
   if (app.indexLoaded && ix.version !== app.indexLoaded) return "updated";
+  if (ix.news?.step === "installer") return app.indexSeen !== ix.news.version ? "installer" : null;
   return ix.news?.step === "offer" && app.indexAnswered !== ix.news.version ? "offer" : null;
 }
 
 function indexUpdateHtml() {
   const n = app.updates?.index?.news;
   if (!n || (n.step === "offer" && indexAsks() !== "offer")) return "";
+  if (n.step === "installer") {
+    app.indexSeen = n.version;
+    return `<section class="index-update"><p>${esc(word("page.update.installer", { version: n.version }))}</p>`
+      + `<div class="index-update-keys"><a class="key small" href="${esc(n.link)}" target="_blank" rel="noopener">`
+      + `${esc(word("page.launcher.download"))}</a></div></section>`;
+  }
   if (n.step === "offer") {
     return `<section class="index-update"><p>${esc(word("page.update.offer", { version: n.version, size: n.size }))}</p>`
       + `${n.changes ? `<p class="muted">${esc(n.changes)}</p>` : ""}<div class="index-update-keys">`
@@ -737,8 +755,9 @@ function updateReasons() {
   for (const r of reloadReasons()) {
     out.push(`${r.text}. ${r.restart ? "Restart the game" : r.paste ? "Type /reload in game or paste the line into the game's chat" : "Type /reload in game"}`);
   }
-  if (stoppedHereOnly()) {
-    out.push("The quest epic is closed on the page but its guide still runs in game. To close the guide there, close its card or the blue arrow, or type /reload");
+  for (const p of stoppedHereOnly()) {
+    out.push(p === app.plan ? "The quest epic is closed on the page but its guide still runs in game. To close the guide there, close its card or the blue arrow, or type /reload"
+      : word("page.craft.side.stillin", { epic: capWords(epicTitle(p)) }));
   }
   out.push(...endedInGame());
   for (const a of app.addons?.list || []) { const t = addonAction(a); if (t) out.push(t); }
@@ -999,7 +1018,9 @@ function packText() {
   const p = app.pack, pct = p.total ? ` ${Math.round(p.done / p.total * 100)}%` : "";
   return p.state === "exporting" ? `${word("page.options.import-export.exporting")}${pct}`
     : p.state === "importing" ? `${word("page.options.import-export.importing")}${pct}`
-    : p.state === "exported" ? word("page.options.import-export.exported", { size: (p.total / 2 ** 30).toFixed(1), path: p.path })
+    : p.state === "exported" ? (p.total >= 2 ** 30
+      ? word("page.options.import-export.exported", { size: (p.total / 2 ** 30).toFixed(1), path: p.path })
+      : word("page.options.import-export.exported.mb", { size: (p.total / 2 ** 20).toFixed(1), path: p.path }))
     : p.state === "imported" ? wordCount("page.options.import-export.imported", p.files, { kept: p.kept })
     : p.state === "failed" ? word("page.options.import-export.failed", { message: p.message }) : "";
 }
@@ -1109,6 +1130,11 @@ const lights = new Map();
 function lightOf(inst) {
   if (!lights.has(inst)) lights.set(inst, lights.size ? newLight() : relief);
   return lights.get(inst);
+}
+const contourLines = new Map();
+function linesOf(light) {
+  if (!contourLines.has(light)) contourLines.set(light, new Contours({ light, canvas: document.createElement("canvas"), drawn: () => redraw() }));
+  return contourLines.get(light);
 }
 const lightTint = new LightTint();
 const torches = new Torches();
@@ -1246,6 +1272,7 @@ const options = new OptionsWindow({ box: $("options"), key: $("btn-options"), ke
     column: { changed: setColumn },
     night: { changed: (on) => { app.nightOn = on; mapLight.nightShown?.(on); redraw(); } },
     zoneglow: { changed: (on) => { app.zoneGlowOn = on; redraw(); } },
+    contours: { can: () => relief.ready(), shown: () => false, changed: (on) => { app.contoursOn = on; showContoursKey(); redraw(); } },
     gauntlet: { changed: (on) => mapLight.pointerShown(on) },
     travellers: { changed: (on) => { app.travellersOn = on; redraw(); } },
     hotspots: { changed: (pct) => { app.hotspotShare = pct / 100; redraw(); } },
@@ -1345,6 +1372,9 @@ function drawRelief(size, scale, alpha, frames = []) {
   seaJob.lit = true;
   cloudsLit = takes > 0;
   litBeside = frames.map((f) => lightBeside(f, size, scale, tint)).filter(Boolean);
+  const lines = app.contoursOn && linesOf(relief).paint({ instance: info.instance, has: (key) => mapTiles.hasRender(info.instance, key) && clouds.tileReady(info.instance, key),
+    tileYards: app.tiles.tileYards, at, width: W, height: H, dpr }) ? linesOf(relief) : null;
+  const linesBeside = lines ? litBeside.filter((b) => b.lines) : [];
   const sheets = citySheets(app.displayMap, size).filter((c) => c.fade > 0), drawn = under.below.filter((c) => c.art);
   const laid = (paint) => (box = null) => {
     ctx.save();
@@ -1359,7 +1389,10 @@ function drawRelief(size, scale, alpha, frames = []) {
     paint(frame, box);
     ctx.restore();
   };
-  layLight = laid((frame, box) => relief.drawOn(ctx, W, H, drawn.length ? (light) => cutDrawings(light, drawn, frame) : null, litBeside, box));
+  layLight = laid((frame, box) => {
+    relief.drawOn(ctx, W, H, drawn.length ? (light) => cutDrawings(light, drawn, frame) : null, litBeside, box);
+    if (lines) lines.drawOn(ctx, W, H, linesBeside, box);
+  });
   layCores = laid(() => relief.coresOn(ctx, W, H, litBeside));
 }
 function lightBeside(f, size, scale, tint) {
@@ -1373,7 +1406,9 @@ function lightBeside(f, size, scale, tint) {
     torches, travellers, shaded: seaTicks.on, sun: storm.sun(), held: handMoves() });
   if (!lit) return null;
   const [x0, y0, x1, y1] = f.ground, corners = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([fx, fy]) => toScreen(fx, fy, size, scale, app.displayMap));
-  return { light, inst, part: (g, k) => {
+  const lines = app.contoursOn && linesOf(light).paint({ instance: inst, has: (key) => mapTiles.hasRender(inst, key) && clouds.tileReady(inst, key),
+    tileYards: app.tiles.tileYards, at, width: W, height: H, dpr }) ? linesOf(light) : null;
+  return { light, inst, lines, part: (g, k) => {
     corners.forEach(([sx, sy], i) => (i ? g.lineTo(sx * k, sy * k) : g.moveTo(sx * k, sy * k)));
     g.closePath();
   } };
@@ -2194,16 +2229,35 @@ function drawZoneNames(size, scale) {
       ctx.font = `${big ? 22 : 18}px ${serifFont}`;
       ctx.lineWidth = 4; ctx.strokeStyle = tint("black", 0.85); ctx.strokeText(name, x, y);
       ctx.fillStyle = ZONE_NAME; ctx.fillText(name, x, y);
-      const levels = app.maps[id].levels;
-      if (!levels) continue;
-      const text = zoneRangeText(levels), ly = y + (big ? 20 : 17);
+      const levels = app.maps[id].levels, pvp = big ? zonePvp(app.maps[id]) : null;
+      if (!levels && !pvp) continue;
+      const ly = y + (big ? 20 : 17);
       ctx.font = `${big ? 16 : 14}px ${serifFont}`;
-      ctx.lineWidth = 3.5; ctx.strokeText(text, x, ly);
-      ctx.fillStyle = zoneThreat(levels); ctx.fillText(text, x, ly);
+      ctx.lineWidth = 3.5;
+      const text = levels ? zoneRangeText(levels) : "";
+      if (levels) { ctx.strokeText(text, x, ly); ctx.fillStyle = zoneThreat(levels); ctx.fillText(text, x, ly); }
+      if (!pvp) continue;
+      const px = levels ? x + ctx.measureText(text).width / 2 + ctx.measureText("   ").width : x;
+      ctx.textAlign = levels ? "left" : "center";
+      ctx.strokeText(pvp.text, px, ly); ctx.fillStyle = pvp.color; ctx.fillText(pvp.text, px, ly);
+      ctx.textAlign = "center";
     }
   }
   ctx.globalAlpha = 1;
   ctx.lineJoin = "miter";
+}
+
+function zonePvp(m, side = app.status?.strs?.faction, realm = app.realmType) {
+  const kind = m?.pvp, pvpRealm = /PvP/.test(realm || "");
+  if (!kind) return null;
+  if (kind === "sanctuary") return { text: word("page.map.pvp.sanctuary"), color: tint("zone-sanctuary") };
+  if (kind === "contested") {
+    return { text: pvpRealm ? word("page.map.pvp.contested") : word("page.map.pvp.contested-zone"), color: tint("zone-contested") };
+  }
+  const fill = { side: kind }, mine = side === kind, known = side === "Alliance" || side === "Horde";
+  if (!known) return { text: word("page.map.pvp.territory", fill), color: ZONE_NAME };
+  const text = !pvpRealm ? word("page.map.pvp.territory", fill) : mine ? word("page.map.pvp.friendly", fill) : word("page.map.pvp.hostile", fill);
+  return { text, color: tint(mine ? "zone-friendly" : "zone-hostile") };
 }
 
 const ZONE_OVER = 3;
@@ -2545,11 +2599,8 @@ function paintBelow(size, scale) {
     for (const r of regions) {
       if (!clouds.has(r.instance)) continue;
       const on = (col, row) => { const [fx, fy] = placeIn(r.world, (32 - row) * T, (32 - col) * T, ...r.ui); return [(fx - at[0]) * kx, (fy - at[1]) * ky]; };
-      const tiles = view.map(([x, y]) => toWorld(r.world, (x - r.ui[0]) / (r.ui[2] - r.ui[0]), (y - r.ui[1]) / (r.ui[3] - r.ui[1])));
-      const cols = tiles.map((p) => 32 - p.w / T), rows = tiles.map((p) => 32 - p.n / T);
-      const box = [Math.max(0, Math.floor(Math.min(...cols))), Math.min(63, Math.floor(Math.max(...cols))),
-                   Math.max(0, Math.floor(Math.min(...rows))), Math.min(63, Math.floor(Math.max(...rows)))];
-      if (box[0] > box[1] || box[2] > box[3]) continue;
+      const box = regionCloudTiles(r, view.map(([x, y]) => ({ x, y })));
+      if (!box) continue;
       const [a0, b0] = on(0, 0), [a1, b1] = on(1, 1);
       clouds.paint(g, r.instance, box, on, [a1 - a0, b1 - b0], BELOW.res * dpr);
     }
@@ -2580,8 +2631,11 @@ function worldFrames(size, scale) {
     const map = continentMap(r.instance), box = mapTiles.renderBox(r.instance);
     if (map == null || r.instance === shown.instance || !box) continue;
     const on = (c, row) => worldToFrac(app.displayMap, { inst: r.instance, n: (32 - row) * T, w: (32 - c) * T }, app.maps, true);
+    const sky = cloudsOn(app.maps[map]) ? clouds.reachBox(r.instance) : null;
+    const reach = sky ? [Math.min(box[0], sky[0]), Math.min(box[1], sky[2]), Math.max(box[2], sky[1]), Math.max(box[3], sky[3])] : box;
     const a = on(box[0], box[1]), b = on(box[2] + 1, box[3] + 1), at = mapOn(map, app.displayMap, app.maps, true);
-    if (!a || !b || !at || !(boxShown([...a, ...b], size, scale) > 0)) continue;
+    const ra = on(reach[0], reach[1]), rb = on(reach[2] + 1, reach[3] + 1);
+    if (!a || !b || !ra || !rb || !at || !(boxShown([...ra, ...rb], size, scale) > 0)) continue;
     const cs = imgSize(mapImage(map)), kx = (at[2] - at[0]) * size.w / cs.w, ky = (at[3] - at[1]) * size.h / cs.h;
     const toMapIn = (x, y) => { const p = toMap(x, y, size, scale); return { x: (p.x - at[0]) / (at[2] - at[0]), y: (p.y - at[1]) / (at[3] - at[1]) }; };
     out.push({ map, info: app.maps[map], size: cs, scale: scale * kx, at, kx, ky, toMap: toMapIn, ground: [...a, ...b] });
@@ -2701,19 +2755,23 @@ function drawWorldClouds(size, scale) {
   for (const { instance, box, at, tile } of views) drawn += clouds.paint(ctx, instance, box, at, tile, scale * dpr);
   return drawn;
 }
+function regionCloudTiles(r, points) {
+  const T = app.tiles.tileYards, [x0, y0, x1, y1] = r.ui, [s0, s1, t0, t1] = clouds.span(r.instance);
+  const tiles = points.map((p) => toWorld(r.world, (p.x - x0) / (x1 - x0), (p.y - y0) / (y1 - y0)));
+  const cols = tiles.map((p) => 32 - p.w / T), rows = tiles.map((p) => 32 - p.n / T);
+  const box = [Math.max(s0, Math.floor(Math.min(...cols))), Math.min(s1, Math.floor(Math.max(...cols))),
+               Math.max(t0, Math.floor(Math.min(...rows))), Math.min(t1, Math.floor(Math.max(...rows)))];
+  return box[0] > box[1] || box[2] > box[3] ? null : box;
+}
 function worldCloudViews(size, scale) {
   if (!worldRender() || !app.tiles) return [];
   const T = app.tiles.tileYards, view = [[0, 0], [W, 0], [0, H], [W, H]].map(([x, y]) => toMap(x, y, size, scale));
   const out = [];
   for (const r of app.maps[WORLD_MAP]?.regions || []) {
     if (!clouds.has(r.instance)) continue;
-    const [x0, y0, x1, y1] = r.ui;
     const at = (col, row) => { const [fx, fy] = placeIn(r.world, (32 - row) * T, (32 - col) * T, ...r.ui); return [fx * size.w, fy * size.h]; };
-    const tiles = view.map((p) => toWorld(r.world, (p.x - x0) / (x1 - x0), (p.y - y0) / (y1 - y0)));
-    const cols = tiles.map((p) => 32 - p.w / T), rows = tiles.map((p) => 32 - p.n / T);
-    const box = [Math.max(0, Math.floor(Math.min(...cols))), Math.min(63, Math.floor(Math.max(...cols))),
-                 Math.max(0, Math.floor(Math.min(...rows))), Math.min(63, Math.floor(Math.max(...rows)))];
-    if (box[0] > box[1] || box[2] > box[3]) continue;
+    const box = regionCloudTiles(r, view);
+    if (!box) continue;
     const [a0, b0] = at(0, 0), [a1, b1] = at(1, 1);
     out.push({ instance: r.instance, box, at, tile: [a1 - a0, b1 - b0] });
   }
@@ -4034,6 +4092,7 @@ function layoutView() {
   const detailWas = app.detail.current + app.detail.drawn;
   chooseDetail(app.displayMap, size, scale);
   if (app.detail.current + app.detail.drawn !== detailWas) requestUpdate();
+  showContoursKey();
   chooseCities(app.displayMap, size, scale);
   showCity();
   wantMaps(size, scale);
@@ -4593,6 +4652,19 @@ function setHeadingUp(on) {
   try { localStorage.setItem("cc.headingUp", on ? "1" : "0"); } catch (e) {   }
 }
 
+let contoursKeyAt = null;
+function showContoursKey() {
+  const info = app.maps?.[app.displayMap], can = !!app.reliefOn && reliefWanted(info, app.detail.drawn, mapTiles.renders(info?.instance));
+  const look = `${!!app.contoursOn} ${can}`;
+  if (look === contoursKeyAt) return;
+  contoursKeyAt = look;
+  const key = $("btn-contours");
+  key.setAttribute("aria-pressed", String(!!app.contoursOn));
+  key.disabled = !can;
+  key.title = word(can ? "page.contours.tip" : "page.contours.none");
+}
+$("contours-label").textContent = word("page.contours.label");
+
 function zoneFillZoom(zone = app.state?.map) {
   const cont = continentOf(zone), z = widestPerYard(zone), c = cont != null ? widestPerYard(cont) : 0;
   return z > 0 && c > 0 ? z / c : 4;
@@ -4979,6 +5051,7 @@ function hideNote() {
 }
 $("mapnote").addEventListener("click", hideNote);
 $("btn-heading").addEventListener("click", () => setHeadingUp(!app.view.headingUp));
+$("btn-contours").addEventListener("click", () => options.set("contours", !app.contoursOn));
 $("btn-zoomin").addEventListener("click", () => zoomBy(1.4));
 $("btn-zoomout").addEventListener("click", () => zoomBy(1 / 1.4));
 document.querySelectorAll("[data-drawer]").forEach((b) => b.addEventListener("click", () => openDrawer(b.dataset.drawer)));

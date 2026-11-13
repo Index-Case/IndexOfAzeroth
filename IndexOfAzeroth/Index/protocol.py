@@ -205,6 +205,9 @@ STATUS_NUMBERS = {
     110: "addonOptions",
     111: "ammoKind", 112: "ammoGrade", 113: "waterGrade",
     114: "epicWay",
+    115: "attackPower", 116: "rangedAttackPower", 117: "spirit", 118: "healing", 119: "spellDamage",
+    120: "fireDamage", 121: "frostDamage", 122: "shadowDamage", 123: "arcaneDamage",
+    124: "meleeCrit",
 }
 ADDON_OPTIONS = {"warningSound": (1, True)}
 
@@ -230,6 +233,32 @@ RELOAD_HOW = {1: "held", 2: "hooked"}
 EXPLORED = 44
 QUEST_CLICKED = 45
 SIDES = 46
+REFUSED = 47
+ENEMIES = 48
+ENEMY_LEVEL_HIDDEN, ENEMY_LEVEL_SKULL = 0, 255
+
+
+def parse_refused(data):
+    r = Reader(data)
+    out = []
+    for _ in range(r.take("<B")):
+        npc, at, n = r.u24(), r.take("<I"), r.take("<B")
+        out.append({"npc": npc, "at": at, "spells": [r.u24() for _ in range(n)] if n else None})
+    return {"refused": out}
+
+
+def parse_enemies(data):
+    r = Reader(data)
+    out = []
+    for _ in range(r.take("<B")):
+        server, number, age, level = r.take("<H"), r.take("<I"), r.take("<H"), r.take("<B")
+        least = r.take("<B") if level == ENEMY_LEVEL_SKULL else None
+        cls, race, sex = r.take("<3B")
+        out.append({"guid": f"Player-{server}-{number:08X}", "age": age,
+                    "level": None if level in (ENEMY_LEVEL_HIDDEN, ENEMY_LEVEL_SKULL) else level, "least": least,
+                    "cls": cls or None, "race": race or None, "sex": sex if sex in (2, 3) else None,
+                    "guild": r.str(), "title": r.str()})
+    return out
 
 
 def parse_sides(data):
@@ -348,6 +377,10 @@ def parse_frame(data):
         return "questclick", parse_quest_clicked(data[1:])
     if kind == SIDES:
         return "sides", parse_sides(data[1:])
+    if kind == REFUSED:
+        return "refused", parse_refused(data[1:])
+    if kind == ENEMIES:
+        return "enemies", parse_enemies(data[1:])
     if kind in ADDED_FRAMES:
         return added_frame(kind, data)
     raise StripError(f"unknown frame type {kind}")
@@ -459,6 +492,7 @@ def parse_watched(data):
 
 
 LEGACY_WHOLE = 1
+LEGACY_NODES, LEGACY_NODES_WHOLE = 2, 4
 
 
 def parse_legacy(data):
@@ -467,7 +501,10 @@ def parse_legacy(data):
     for key in ("max", "cap", "unspent", "spent"):
         v = r.var()
         out[key] = v - 1 if v else None
-    out["whole"] = bool(r.take("<B") & LEGACY_WHOLE)
+    flags = r.take("<B")
+    out["whole"] = bool(flags & LEGACY_WHOLE)
+    nodes = [[r.u24(), r.u24(), r.take("<B")] for _ in range(r.take("<B"))] if flags & LEGACY_NODES else None
+    out["nodes"] = nodes if flags & LEGACY_NODES_WHOLE else None
     names = [r.str() for _ in range(r.take("<B"))]
     out["done"], ach = [], 0
     for k in range(r.take("<B")):

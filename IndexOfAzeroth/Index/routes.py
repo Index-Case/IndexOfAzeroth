@@ -263,7 +263,9 @@ class Routes:
         known = set() if ghost else self.known_flights(taxi, side)
         nodes = {n["id"]: n for n in self.data.get("flights", {}).get("nodes", ()) if mine(n)}
         flights = {fid: n for fid, n in nodes.items() if fid in known}
-        learnable = {fid: n for fid, n in nodes.items() if fid not in known and not n.get("unseen")} if known else {}
+        given = {i for ids in self.starts.get("classes", {}).values() for i in ids}
+        learnable = {fid: n for fid, n in nodes.items()
+                     if fid not in known and fid not in given and not n.get("unseen")} if known else {}
         where, learn_at = {}, {}
         for fid, n in flights.items():
             where[fid] = len(points)

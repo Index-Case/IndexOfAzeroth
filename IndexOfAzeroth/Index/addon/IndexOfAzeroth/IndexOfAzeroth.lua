@@ -161,9 +161,12 @@ end
 
 local SLOW_EVERY = 3
 local SLOTS = { "status", "group", "bars", "status", "entrances", "group", "run", "status", "guide",
-                "group", "quests", "addons", "kills", "gathers", "character", "taxi", "equipped", "bags", "bank", "warband", "rolls",
-                "epic", "sides", "loopstops", "heights", "legacy", "director", "directortext", "camps" }
-local SLOT_WHEN = { sides = function() return ns.SidesRunning and ns.SidesRunning() end }
+                "group", "quests", "addons", "kills", "enemies", "gathers", "character", "taxi", "equipped", "bags", "bank",
+                "warband", "rolls", "epic", "sides", "refused", "loopstops", "heights", "legacy", "director", "directortext",
+                "camps" }
+local SLOT_WHEN = { sides = function() return ns.SidesRunning and ns.SidesRunning() end,
+                    refused = function() return ns.RefusedKept and ns.RefusedKept() end,
+                    enemies = function() return ns.EnemiesDue and ns.EnemiesDue() end }
 
 local Report = ns.Report
 
@@ -176,6 +179,7 @@ local ENCODERS = {
   quests = function(said) return ns.EncodeQuests(said) end,
   addons = function() return ns.EncodeAddons() end,
   kills = function() return ns.EncodeKills() end,
+  enemies = function() return ns.EncodeEnemies() end,
   gathers = function() return ns.EncodeGathers() end,
   heights = function() return ns.EncodeHeights() end,
   xp = function() return ns.EncodeKillXP() end,
@@ -193,6 +197,7 @@ local ENCODERS = {
   rollsNow = function() return ns.EncodeRolls(true) end,
   epic = function() return ns.EncodeEpic() end,
   sides = function() return ns.EncodeSides() end,
+  refused = function() return ns.EncodeRefused() end,
   loopstops = function() return ns.EncodeLoopStops() end,
   director = function() return ns.EncodeDirector() end,
   directortext = function() return ns.EncodeDirectorText() end,
@@ -226,7 +231,7 @@ local elapsed, frameCount = 0, 0
 local PAGES_RUNNING = 3
 local pagesRun = 0
 
-local CHANGED_ORDER = { "status", "director", "directortext", "queue", "quests", "loopstops", "sides", "xp", "watched", "kills", "run",
+local CHANGED_ORDER = { "status", "director", "directortext", "queue", "quests", "loopstops", "sides", "refused", "xp", "watched", "kills", "run",
                         "gathers", "equipped", "taxi", "character", "heights", "legacy", "camps", "bags" }
 local CHANGE_EVENTS = {
   QUEST_LOG_UPDATE = { "quests" }, QUEST_ACCEPTED = { "quests" },
@@ -395,6 +400,10 @@ ns.OnTick(ticker, "the strip", nil, function(_, dt)
     if live and ns.Lfg.QueueDue() then
       local ok, bytes, queuePart = pcall(ENCODERS.queue)
       if not ok then Report("queue", bytes) elseif Sendable("queue", bytes, queuePart) and ns.DrawStrip(bytes) then return end
+    end
+    if live and ns.EnemiesDue and ns.EnemiesDue() then
+      local ok, bytes = pcall(ENCODERS.enemies)
+      if not ok then Report("enemies", bytes) elseif bytes and ns.DrawStrip(bytes) then return end
     end
   end
   if not live then return end

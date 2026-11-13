@@ -35,7 +35,10 @@ AXES_MOST = 15
 AXES_LEAST = 3
 FIGURES = 2
 READ_RULES = 2
+KEEP_RULES = 1
 AMOUNTS = ("a", "ok", "oh", "cr")
+FIGHT_OPEN = 30.0
+FIGHT_FIELDS = ("iu", "io", "aura", "xs", "xsn")
 COMBAT_LOGS, CHAT_LOGS = "WoWCombatLog*.txt", "WoWChatLog*.txt"
 LOG_NAMED = re.compile(r"WoWCombatLog-(\d\d)(\d\d)(\d\d)_(\d\d)(\d\d)(\d\d)\.txt$", re.I)
 LOG_SLACK = 10
@@ -43,6 +46,7 @@ GROUP_CHANNELS = {"to", "whisper", "party", "raid", "guild", "officer"}
 STILL_SPEED = 0.8
 MOUNT_SPEED = 9.5
 PACE_JOIN = 30
+GHOST_BIT, DEAD_BIT = 2, 8
 VENDOR_BIT = 32
 INDOORS_BIT = 64
 SYSTEM_KEPT = re.compile(r"^(Quest accepted: |.+ completed\.$|Congratulations, you have reached |.+ has challenged you to a duel)")
@@ -117,6 +121,7 @@ class DayRecord:
         self.leads = {}
         self.hit = {}
         self.where = {}
+        self.fight = self.no_fight()
         self.carry = {}
         self.read_to = 0.0
         self.caught_up = False
@@ -130,6 +135,7 @@ class DayRecord:
         self.state.pop("began", None)
         if not self.state["files"]:
             self.state.setdefault("read", READ_RULES)
+            self.state.setdefault("kept", KEEP_RULES)
         self.uncovered = set()
         self.reports = None
         self.spell_levels = None
@@ -210,8 +216,8 @@ class DayRecord:
         fl = state.get("flags") or {}
         vendor = bool((state.get("act") or {}).get("vendor"))
         indoors = bool((state.get("minimap") or {}).get("indoors"))
-        bits = (1 if fl.get("combat") else 0) | (2 if fl.get("ghost") else 0) | (4 if fl.get("taxi") else 0) \
-            | (8 if fl.get("dead") else 0) | (16 if fl.get("resting") else 0) | (VENDOR_BIT if vendor else 0) \
+        bits = (1 if fl.get("combat") else 0) | (GHOST_BIT if fl.get("ghost") else 0) | (4 if fl.get("taxi") else 0) \
+            | (DEAD_BIT if fl.get("dead") else 0) | (16 if fl.get("resting") else 0) | (VENDOR_BIT if vendor else 0) \
             | (INDOORS_BIT if indoors else 0)
         pos, m = state.get("pos"), state.get("map")
         speed = state.get("speed")
@@ -316,11 +322,15 @@ class DayRecord:
         text = data[:cut + 1].decode("utf-8", "replace")
         return text.splitlines(), off + cut + 1 >= size
 
+    def by_todays_rules(self):
+        return self.state.get("read") == READ_RULES and self.state.get("kept") == KEEP_RULES
+
     def reread(self, folder):
         self.flush()
         with self.lock:
             files = dict(self.state["files"])
-        found, spans, hits, where = {}, [], {}, {}
+            amounts_kept = self.state.get("read") == READ_RULES
+        found, spans, hits, where, fight = {}, [], {}, {}, self.no_fight()
         for _, path, _ in self._files(folder, COMBAT_LOGS):
             upto = files.get(os.path.basename(path))
             if not upto:
@@ -341,7 +351,7 @@ class DayRecord:
                 if not ev:
                     continue
                 with self.lock:
-                    kept = self._combat_event(t, ev, hits, where, learn=False)
+                    kept = self._combat_event(t, ev, hits, where, fight, learn=False)
                 if kept:
                     found.setdefault((safe(kept[0]), day_of(t)), []).append(kept[1])
             if first is not None:
@@ -357,13 +367,14 @@ class DayRecord:
                 if e.get("k") == "c":
                     if any(a <= e["t"] <= b for a, b in spans):
                         continue
-                    for k in AMOUNTS:
-                        e.pop(k, None)
+                    if not amounts_kept:
+                        for k in AMOUNTS:
+                            e.pop(k, None)
                 evs.append(e)
             evs += found.get((folder_name, day), [])
             self._write_day(folder_name, day, sorted(evs, key=lambda e: e.get("t", 0)))
         with self.lock:
-            self.state["read"] = READ_RULES
+            self.state["read"], self.state["kept"] = READ_RULES, KEEP_RULES
             tail = jsontext.dumps(self.state).encode("utf-8")
         store.write_bytes(self._tail_path(), tail)
 
@@ -409,7 +420,7 @@ class DayRecord:
         folder = self.logs_dir()
         came, ends = False, True
         if folder and os.path.isdir(folder):
-            if self.state.get("read") != READ_RULES:
+            if not self.by_todays_rules():
                 self.reread(folder)
             for pattern, take in ((COMBAT_LOGS, self.combat_line), (CHAT_LOGS, self.chat_line)):
                 for _, path, size in self._files(folder, pattern):
@@ -437,12 +448,31 @@ class DayRecord:
             return False
         with self.lock:
             self.read_to = max(self.read_to, t)
-            got = self._combat_event(t, ev, self.hit, self.where, learn=True)
+            got = self._combat_event(t, ev, self.hit, self.where, self.fight, learn=True)
             if got:
                 self.buffer.append(got)
         return bool(got)
 
-    def _combat_event(self, t, ev, hits, where, learn):
+    @staticmethod
+    def no_fight():
+        return {"until": 0.0, "who": set()}
+
+    @staticmethod
+    def _fight_line(t, ev, fight):
+        if fight["who"] and t > fight["until"]:
+            fight["who"].clear()
+        who = fight["who"]
+        sides = ((ev["sg"], ev["sf"]), (ev["dg"], ev["df"]))
+        theirs = any(gamelogs.hostile_player(fl) for _, fl in sides)
+        mine = any(gamelogs.mine(fl) for _, fl in sides)
+        joined = any(g in who for g, _ in sides)
+        if theirs and (mine or joined):
+            fight["until"] = t + FIGHT_OPEN
+        if joined or theirs and mine:
+            who.update(g for g, fl in sides if g and gamelogs.player_controlled(fl))
+        return theirs or joined
+
+    def _combat_event(self, t, ev, hits, where, fight, learn):
         if learn:
             for name, guid, flags in ((ev["sn"], ev["sg"], ev["sf"]), (ev["dn"], ev["dg"], ev["df"])):
                 if gamelogs.is_me(flags):
@@ -457,13 +487,17 @@ class DayRecord:
                 hits[ev["dg"]] = (t, key)
             elif mine_d and not mine_s and ev["sg"]:
                 hits[ev["sg"]] = (t, key)
+        fought = self._fight_line(t, ev, fight)
+        if ev["e"] in gamelogs.FIGHT_ONLY and not fought:
+            return None
         if ev["e"] == "UNIT_DIED" and not mine_d:
             hit = hits.pop(ev["dg"], None)
-            if not hit or t - hit[0] > KILL_AFTER:
+            if hit and t - hit[0] <= KILL_AFTER:
+                key = hit[1] or key
+                ev["kill"] = 1
+            elif not fought:
                 return None
-            key = hit[1] or key
-            ev["kill"] = 1
-        elif not (mine_s or mine_d):
+        elif not (mine_s or mine_d or fought):
             return None
         if not key:
             return None
@@ -473,6 +507,13 @@ class DayRecord:
             if self.open_map(pos[0]):
                 ev["ig"], ev["w"] = info["guid"], pos
                 where[info["guid"]] = pos
+            if fought and info.get("unit"):
+                ev["ig"], ev["iu"] = info["guid"], info["unit"]
+                if info.get("owner"):
+                    ev["io"] = info["owner"]
+        if not fought:
+            for k in FIGHT_FIELDS:
+                ev.pop(k, None)
         if ev["e"] in ("UNIT_DIED", "PARTY_KILL") and ev["dg"] in where:
             ev["w"] = where.pop(ev["dg"])
         for k in ("sg", "sn", "dg", "dn", "sp", "spn"):
@@ -645,18 +686,22 @@ class DayRecord:
         me = self.me_of(events)
         ax = self.axes(events, me)
         if ax:
-            swap, a, b = ax
             for e in events:
-                w = e.get("w")
-                if e.get("k") != "c" or not w:
-                    continue
-                inst = (self.world(w[0], 0.5, 0.5) or (None,))[0]
-                if inst is None:
-                    continue
-                x, y = w[1], w[2]
-                e["at"] = [inst, round(a * (y if swap else x), 1), round(b * (x if swap else y), 1), w[3]]
+                at = self.placed(e.get("w"), ax) if e.get("k") == "c" else None
+                if at:
+                    e["at"] = at
         self.paces(events)
         return {"events": events, "me": me, "placed": bool(ax)}
+
+    def placed(self, w, axes):
+        if not w or not axes:
+            return None
+        inst = (self.world(w[0], 0.5, 0.5) or (None,))[0]
+        if inst is None:
+            return None
+        swap, a, b = axes
+        x, y = w[1], w[2]
+        return [inst, round(a * (y if swap else x), 1), round(b * (x if swap else y), 1), w[3]]
 
     def paces(self, events):
         prev, prev_w = None, None
@@ -777,7 +822,7 @@ class DayRecord:
                 if (key, level, since, until) not in self.uncovered}
 
     def fill_reports(self, now=None):
-        if not self.reports or self.state.get("read") != READ_RULES:
+        if not self.reports or not self.by_todays_rules():
             return 0
         now, done = now or self.now(), 0
         with self.lock:

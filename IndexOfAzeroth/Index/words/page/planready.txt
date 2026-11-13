@@ -1,0 +1,18 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: kind
+
+kind.zone = Zone epic
+kind.camp = Camping
+kind.class = Class quest epic
+kind.epic = Quest epic
+complete = {kind} planning complete.
+reload = Press Reload on the add-on button to load the plan.
+reload.or = Or press Reload on the add-on button to load the plan.
+paste.copied = The plan is in your clipboard, so paste it into your chat in game.
+paste.refused = The browser wouldn't let the page copy the plan, so the plan isn't in your clipboard. Press Copy, then paste the plan into your chat in game.
+paste.copy = Press Copy, then paste the plan into your chat in game.
+close = Close
+where = The add-on button in game, with its little reload arrow clicked
+copy = Copy
+copied = Copied
+ok = OK

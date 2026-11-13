@@ -29,6 +29,8 @@ const OPTIONS = [
       choices: [{ value: "paper", name: optionWords.word("page.options.map.maps-shown.paper") },
         { value: "both", name: optionWords.word("page.options.map.maps-shown.both") },
         { value: "detailed", name: optionWords.word("page.options.map.maps-shown.detailed") }] },
+    { id: "contours", kind: "toggle", name: optionWords.word("page.contours.label"), key: "cc.contours", start: false,
+      text: optionWords.word("page.contours.tip"), none: optionWords.word("page.contours.none") },
     { id: "hotspots", kind: "slider", name: optionWords.word("page.options.map.hotspots"), key: "cc.hotspots", start: 100, min: 0, max: 100, step: 5, unit: "%",
       text: optionWords.word("page.options.map.hotspots.text") },
   ] },
@@ -210,9 +212,10 @@ class OptionsWindow {
       + `<img src="/icon/${e(c.icon)}.jpg" alt="">${e(c.name)}</button>`).join("");
     const body = cat.panel ? `<div class="opt-panel">${this.hooks[cat.id]?.panel?.() ?? ""}</div>`
       : cat.settings.filter((s) => this.shown(s)).map((s) => this.row(s)).join("");
-    this.put(this.box, `<div class="rd-bar opt-bar"><span class="rd-title">Options</span><span class="rd-keys">`
-      + `<button class="key small square x-mark" data-opt-close="1" title="Close (Escape)">&times;</button></span></div>`
-      + `<div class="opt-main"><nav class="opt-cats" aria-label="Categories">${cats}</nav>`
+    const say = optionWords.word;
+    this.put(this.box, `<div class="rd-bar opt-bar"><span class="rd-title">${e(say("page.options.window.title"))}</span><span class="rd-keys">`
+      + `<button class="key small square x-mark" data-opt-close="1" title="${e(say("page.options.window.close.tip"))}">&times;</button></span></div>`
+      + `<div class="opt-main"><nav class="opt-cats" aria-label="${e(say("page.options.window.pages"))}">${cats}</nav>`
       + `<div class="opt-page"><h3 class="opt-head">${e(cat.name)}</h3>${body}</div></div>`);
     this.box.hidden = false;
     this.key.setAttribute("aria-pressed", "true");
@@ -224,8 +227,8 @@ class OptionsWindow {
     let control;
     if (s.kind === "toggle") {
       const on = this.get(s.id);
-      control = `<span class="opt-pair"><button class="key small" data-opt-set="${e(s.id)}" data-opt-to="1" aria-pressed="${on}"${off}${why}>On</button>`
-        + `<button class="key small" data-opt-set="${e(s.id)}" data-opt-to="0" aria-pressed="${!on}"${off}${why}>Off</button></span>`;
+      control = `<span class="opt-pair"><button class="key small" data-opt-set="${e(s.id)}" data-opt-to="1" aria-pressed="${on}"${off}${why}>${e(optionWords.word("page.options.window.on"))}</button>`
+        + `<button class="key small" data-opt-set="${e(s.id)}" data-opt-to="0" aria-pressed="${!on}"${off}${why}>${e(optionWords.word("page.options.window.off"))}</button></span>`;
     } else if (s.kind === "choice") {
       const v = this.get(s.id);
       control = `<span class="opt-pair">${s.choices.map((c) => `<button class="key small" data-opt-set="${e(s.id)}" data-opt-to="${e(c.value)}"`

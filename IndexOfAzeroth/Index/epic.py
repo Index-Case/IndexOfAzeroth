@@ -8,6 +8,7 @@ import datafiles
 from geo import reach_yards
 from layers import CAMP_WALK, COVER_STOPS, KILL_REACH, camp_loop, camp_stops, fights_from, loop_tour, polished
 import plansteps
+import stepwords
 from plurals import plural
 
 CLOSE_WALK = 100.0
@@ -16,8 +17,6 @@ SPAWNS_NEAR = 800.0
 SPAWNS_MOST = 400
 SAFE_SHARE = 0.5
 GAME_SHARE = 0.5
-VERBS = {"kill": "Kill", "loot": "Collect", "use": "Use", "explore": "", "talk": "Talk to"}
-QUEST_WORDS = ("interact", "event")
 TALKS = ("talk", "interact")
 EACH_KINDS = ("talk", "interact", "event", "use")
 SPAWN_SPARE = 2
@@ -56,6 +55,8 @@ def placed(t, q):
 
 PLACES = datafiles.data_path("quest_places.json")
 PLACE_REACH = 60.0
+MARKED_NEAR = 300.0
+MARKED_PLACE = 2500.0
 NEAR_WORDS = re.compile(r"\b(?:near|next to|beside)\b", re.I)
 
 
@@ -111,6 +112,10 @@ def spread_spawns(here, seed, want):
     if len(taken) < 2 or max(reach_yards(p[1:3], mid) for p in taken) <= KILL_REACH:
         return None
     return taken, mid
+
+
+def quest_progress(qid, done, log):
+    return "done" if qid in done else "ready" if log.get(qid) else "log" if qid in log else "todo"
 
 
 def walks_alone(st):
@@ -173,6 +178,25 @@ def quest_sentence(q, name):
     said = [s.strip() for s in SENTENCE.split((q.get("objective") or "").strip()) if s.strip()]
     return next((s for s in said if name in s), said[0] if said else name)
 GROUP_TYPES = {1}
+ELITE_RANKS = {1, 2, 3}
+ALONE_KINDS = {"loot", "kill", "talk", "interact", "use"}
+
+
+def group_work(q, mob_rank=None, guards_near=None):
+    if q.get("type") not in GROUP_TYPES:
+        return False
+    targets = q.get("targets") or []
+    if not (mob_rank and guards_near) or not targets or q.get("unplaced"):
+        return True
+    for t in targets:
+        if t.get("kind") not in ALONE_KINDS or not t.get("spots"):
+            return True
+        ranks = [mob_rank(m) for m in t.get("mobs") or ()]
+        if any(r is None or r in ELITE_RANKS for r in ranks):
+            return True
+        if t["kind"] in ("kill", "loot") and not ranks and not t.get("objects"):
+            return True
+    return 0 in guards_near([s for t in targets for s in t["spots"]])
 
 
 MISSING = "is new in Forever and no source says yet what opens it"
@@ -409,7 +433,7 @@ def opened(q, offered):
 class Epic:
     def __init__(self, dungeon, chain, to_world, level, side, class_id, done, log, anchor, door=None, parked=(),
                  faces=None, close=False, spawns_of=None, danger_of=None, mob_level=None, counts=None, offered=(),
-                 with_gets=None, objectives=None, book=None, heights_of=None, levels=None):
+                 with_gets=None, objectives=None, book=None, heights_of=None, levels=None, zone_side=None):
         counts, offered, said, levels = counts or {}, set(offered), objectives or {}, levels or {}
         gets = with_gets or (lambda q: q)
         mine = [gets(worded(opened(logged(counted(merged(leveled(for_side(rated(q, book), side, class_id), levels.get(q["id"])),
@@ -422,6 +446,7 @@ class Epic:
                                                                   said.get(k)), counts.get(k)), said.get(k)), offered)))
                       for k, q in chain.items()}
         self.spawns_of, self.danger_of, self.mob_level, self.heights_of = spawns_of, danger_of, mob_level, heights_of
+        self.zone_side = zone_side
         self.level, self.side, self.class_id = level, side, class_id
         self.done, self.log, self.anchor, self.door = set(done), dict(log), anchor, door
         self.parked = set(parked)
@@ -485,6 +510,10 @@ class Epic:
         on_map = (g for g in givers or [] if g.get("map") is not None and self.to_world(g["map"], g["x"], g["y"]))
         return next(on_map, (givers or [None])[0])
 
+    def thing(self, givers):
+        g = self.giver(givers) or {}
+        return bool(g.get("object")) and not g.get("npc")
+
     def giver_ids(self, givers):
         g = self.giver(givers) or {}
         return {"npcId": g["npc"]} if g.get("npc") else {"objectId": g["object"]} if g.get("object") else {}
@@ -507,12 +536,13 @@ class Epic:
                     "dis": q.get("disabledBy"), "until": q.get("until"), "limit": q.get("limit"),
                     "req": q.get("req"), **more}
         line = blurbs.line(q["id"])
-        return {"kind": kind, "quest": q["id"], "questName": q["name"], "text": text,
-                **({"blurb": line} if line else {}),
-                "inst": at[0] if at else None, "at": [round(v, 1) for v in at[1:]] if at else None,
-                **({"zone": zone} if zone else {}),
-                **({"group": True} if q.get("type") in GROUP_TYPES else {}),
-                **{k: v for k, v in more.items() if v is not None}}
+        return stepwords.said({
+            "kind": kind, "quest": q["id"], "questName": q["name"], "text": text,
+            **({"blurb": line} if line else {}),
+            "inst": at[0] if at else None, "at": [round(v, 1) for v in at[1:]] if at else None,
+            **({"zone": zone} if zone else {}),
+            **({"group": True} if q.get("type") in GROUP_TYPES else {}),
+            **{k: v for k, v in more.items() if v is not None}}, text)
 
     def mapped(self, step, givers=None, spots=None):
         if not step or not step.get("at"):
@@ -536,11 +566,21 @@ class Epic:
         every = [(*p[:3], ("npc", m), p[3]) for m in t.get("mobs") or () for p in self.spawns_of("npc", m)] + \
                 [(*p[:3], ("object", o), p[3]) for o in t.get("objects") or () for p in self.spawns_of("object", o)]
         pool = [p for p in every if q.get("zone") and p[4] == q["zone"]] or every
+        if self.zone_side and self.side:
+            pool = [p for p in pool if self.zone_side(p[4]) in (None, self.side)] or pool
         if t["kind"] == "loot" and self.mob_level:
             pool = [p for p in pool if p[3][0] != "npc" or fights_from(self.mob_level(p[3][1]) or 0) <= level] or pool
         return [p[:4] for p in pool]
 
-    def objective(self, q, t, near, level=None, loop=True, areas=None):
+    @staticmethod
+    def marked_place(spots, marks):
+        for m in reversed(marks or ()):
+            by = lambda p, reach: p[0] == m[0] and math.hypot(p[1] - m[1], p[2] - m[2]) <= reach
+            if any(by(p, MARKED_NEAR) for p in spots):
+                return [p for p in spots if by(p, MARKED_PLACE)]
+        return []
+
+    def objective(self, q, t, near, level=None, loop=True, areas=None, marks=None):
         level = level or self.level
         if placed(t, q):
             return self.in_place(q, t, near)
@@ -555,6 +595,9 @@ class Epic:
                 return self.at_owner(q, t, named)
         if not spots:
             return None
+        at_mark = self.marked_place(spots, marks)
+        if at_mark:
+            spots, near = at_mark, near if near and near[0] == at_mark[0][0] else at_mark[0][:3]
         sources = there or [p for p in (self.to_world(m, x, y) for m, x, y in t["spots"]) if p]
         if self.close:
             near = self.place(q.get("start"))[0] or self.place(q.get("end"))[0] or near
@@ -566,11 +609,8 @@ class Epic:
             close_by = [p for p in here if math.hypot(p[1] - near[1], p[2] - near[2]) <= CLOSE_RADIUS]
             if len(close_by) >= 2:
                 here, least = close_by, 2
-        verb = VERBS.get(t["kind"], "")
-        count = f"{t['count']} " if t.get("count", 1) > 1 else ""
         title = t.get("title") or t["name"]
-        text = t.get("text") or (quest_sentence(q, t["name"]) if t["kind"] in QUEST_WORDS
-                                 else f"{verb} {count}{title}".strip() if verb else title)
+        text = stepwords.objective(q, t, quest_sentence)
         camp, at, stops, each, taken, area = None, None, None, False, [], False
         start = near[1:3] if near and near[0] == inst else None
         here, game = self.in_game_areas(here, areas, start, least, CLOSE_WALK if self.close else CAMP_WALK)
@@ -664,17 +704,14 @@ class Epic:
         at = near or self.place(q.get("start"))[0] or self.place(q.get("end"))[0]
         if not at:
             return None
-        count = f"{t['count']} " if t.get("count", 1) > 1 else ""
-        text = t.get("text") or f"{VERBS.get(t['kind'], '')} {count}{t['name']}".strip()
+        text = stepwords.objective(q, t, quest_sentence)
         return self.step("objective", q, text, at[:3], target=t["name"], count=t.get("count", 1), objective=t["kind"],
                          inPlace=True)
 
     def at_owner(self, q, t, at):
-        count = f"{t['count']} " if t.get("count", 1) > 1 else ""
         title = t.get("title") or t["name"]
-        text = t.get("text") or f"{VERBS.get(t['kind'], '')} {count}{title}".strip()
-        step = self.step("objective", q, text, at[:3], target=title, count=t.get("count", 1), objective=t["kind"],
-                         owner=True)
+        step = self.step("objective", q, stepwords.objective(q, t, quest_sentence), at[:3], target=title,
+                         count=t.get("count", 1), objective=t["kind"], owner=True)
         step["map"] = t["place"][0]
         return step
 
@@ -688,6 +725,6 @@ class Epic:
         return not own or not all(self.left_out(q["id"], t) for t in own)
 
     def state(self, qid):
-        return "done" if qid in self.done else "ready" if self.log.get(qid) else "log" if qid in self.log else "todo"
+        return quest_progress(qid, self.done, self.log)
 
     gap = staticmethod(plansteps.gap)

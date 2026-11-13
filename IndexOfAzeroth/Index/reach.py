@@ -15,6 +15,7 @@ TAKEN = "taken:"
 BY_KEY = "READ_BY_KEY"
 KEY = "key:"
 STORE = "store:"
+LIVE = "LIVE_ONLY"
 MUTATORS = frozenset({"append", "extend", "insert", "update", "setdefault", "add", "pop", "popitem", "remove", "discard",
                       "clear", "sort", "reverse", "appendleft", "extendleft", "difference_update",
                       "intersection_update", "symmetric_difference_update", "__setitem__", "__delitem__"})
@@ -53,6 +54,16 @@ def by_key(tree):
                     isinstance(e, ast.Constant) and isinstance(e.value, str) and e.value for e in v.elts):
                 return tuple(e.value for e in v.elts)
     return None
+
+
+def live(tree):
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and [getattr(t, "id", None) for t in node.targets] == [LIVE]:
+            v = node.value
+            if isinstance(v, (ast.Tuple, ast.List, ast.Set)) and v.elts and all(
+                    isinstance(e, ast.Constant) and isinstance(e.value, str) and e.value.isidentifier() for e in v.elts):
+                return frozenset(e.value for e in v.elts)
+    return frozenset()
 
 
 def counts(marked, kind, own=False):
@@ -291,11 +302,33 @@ def load_reading(tree, text):
 
 
 def own_classes(tree):
-    return frozenset(n.name for n in tree.body if isinstance(n, ast.ClassDef))
+    bindings, star = {}, False
+    for node in tree.body:
+        if isinstance(node, ast.ImportFrom) and node.module and not node.level:
+            for a in node.names:
+                star = star or a.name == "*"
+                bindings.setdefault(a.asname or a.name, []).append(f"{node.module}:{a.name}")
+            continue
+        bare_class = isinstance(node, ast.ClassDef) and not node.decorator_list
+        names = {node.name} if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) \
+            else _bound_inside(node)
+        for n in names:
+            bindings.setdefault(n, []).append(node if bare_class else None)
+    out = {} if star else {n: frozenset(b) for n, b in bindings.items() if len(b) == 1 and isinstance(b[0], str)}
+    classes = {n: b[0] for n, b in bindings.items() if len(b) == 1 and isinstance(b[0], ast.ClassDef)}
+    grown = True
+    while grown:
+        grown = False
+        for n, node in classes.items():
+            if n not in out and not node.keywords and all(
+                    isinstance(b, ast.Name) and (b.id == "object" or b.id in out) for b in node.bases):
+                out[n] = frozenset().union(*(out[b.id] for b in node.bases if b.id != "object"))
+                grown = True
+    return out
 
 
 def class_methods(node, ours):
-    if node.keywords or not all(isinstance(b, ast.Name) and (b.id == "object" or b.id in ours) for b in node.bases):
+    if node.name not in ours or not isinstance(node, ast.ClassDef):
         return []
     return [n for n in node.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
             and not (n.name.startswith("__") and n.name.endswith("__"))

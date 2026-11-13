@@ -249,8 +249,9 @@ function showToast(text) {
   toastTimer = setTimeout(() => { t.hidden = true; }, TOAST_MS);
 }
 function askFailed(what, e) {
-  showToast(`${what}, because ${e?.status === 404 ? "the Index is older than the page and has no answer for this ask yet. Restart the Index and try again"
-    : e?.status ? `the Index answered with error ${e.status}` : "the Index isn't answering. Check that the Index is running"}`);
+  showToast(e?.status === 404 ? word("page.ask.failed.old", { what })
+    : e?.status ? word("page.ask.failed.error", { what, status: e.status })
+    : word("page.ask.failed.away", { what }));
 }
 
 

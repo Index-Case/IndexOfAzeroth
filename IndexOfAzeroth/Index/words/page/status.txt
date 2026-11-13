@@ -1,0 +1,79 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: n, time, pct, name, rank, have, slots, of, xp, id
+
+warn.rank = {name} Rank {rank} isn't on your bars
+warn.rank.detail = Your bars have Rank {have}. Drag the new rank from your spellbook, or cast the spell by name in the macro.
+warn.ammo = Ammo low: {n} left
+warn.ammo.out = OUT OF AMMO
+warn.ammo.out.detail = Buy arrows or bullets
+warn.pet = Pet is unhappy
+warn.pet.detail = Your pet does 75% damage and may run away. Feed your pet.
+warn.shards = Soul shards low: {n} left
+warn.shards.detail = Use Drain Soul on a few kills
+warn.shards.out = OUT OF SOUL SHARDS
+warn.shards.out.detail = Drain Soul to get more
+warn.mh-poison = Main hand poison running out
+warn.mh-poison.out = NO POISON ON MAIN HAND
+warn.oh-poison = Off hand poison running out
+warn.oh-poison.out = NO POISON ON OFF HAND
+warn.poisons = Poisons low: {n} left in bags
+warn.poisons.out = NO POISONS LEFT IN BAGS
+warn.poisons.out.detail = Buy or craft more
+warn.water = Water low: {n} left
+warn.water.out = OUT OF WATER
+warn.ankh = Ankhs low: {n} left
+warn.ankh.out = NO ANKH
+warn.ankh.out.detail = Reincarnation won't work
+warn.earth-totem = EARTH TOTEM MISSING
+warn.earth-totem.detail = Earth totems won't cast
+warn.fire-totem = FIRE TOTEM MISSING
+warn.fire-totem.detail = Fire totems won't cast
+warn.water-totem = WATER TOTEM MISSING
+warn.water-totem.detail = Water totems won't cast
+warn.air-totem = AIR TOTEM MISSING
+warn.air-totem.detail = Air totems won't cast
+warn.durability = Gear durability at {n}%
+warn.durability.detail = Repair soon
+warn.durability.out = BROKEN GEAR
+warn.durability.out.detail = Repair now
+
+shooting = about {time} of shooting
+shooting.row = {time} of shooting
+
+warn.move = Click to move this warning to the To do list. The game keeps the warning quiet from the next /reload
+warn.sound = Click anywhere on the page once to turn on warning sounds
+
+ammo = Ammo
+pet.damage = {pct}% damage
+pet.none = Not out
+poison.none = None
+poison.charges = {n} charges
+reincarnation.ready = Ready
+totem.in-bags = In bags
+totem.missing = Missing
+of = of {of}
+xp.measuring = measuring
+kills.at = at {xp} XP
+rested = {n} kills
+hearth.ready = ready
+quests.done = {n} done
+
+bags.none = Your bags show here after the addon next reads them
+bags.pin = Click to keep this list open
+bags.backpack = Backpack
+bags.bag = A bag
+bags.quiver = quiver
+bags.pouch = ammo pouch
+bags.special = special
+bags.free = free of {slots}
+bags.head = Bags
+bags.in = In them
+bags.nothing = Nothing
+bags.more = and {n} more
+bags.item = Item {id}
+ammo.head = Ammo
+ammo.holder = Quiver or pouch
+ammo.stacks = in {n} stacks
+ammo.stacks.one = in {n} stack
+ammo.none = No ammo
+ammo.missing = {name} isn't in your bags

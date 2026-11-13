@@ -1,6 +1,8 @@
 # The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
 import math
 
+import stepwords
+
 CAST = 20.0
 COOLDOWN = 3600.0
 LEAST = 30.0
@@ -166,6 +168,7 @@ def plan(steps, start, walk, inns, bind, left, cooldown=COOLDOWN, keepers=None, 
     fixed = {id(s) for s in steps if (s.get("hearth") or {}).get("core")}
     for s in steps:
         s.pop("hearth", None)
+        stepwords.drop(s, ("bind", "hearth"))
     if bind and left is not None:
         first, gone = bound_inn(inns, bind), set(gone)
         k_from = 0
@@ -202,6 +205,26 @@ def plan(steps, start, walk, inns, bind, left, cooldown=COOLDOWN, keepers=None, 
             steps[k]["hearth"] = {"to": inn["names"][0], "bind": list(inn["binds"]), "spot": list(inn_spot(inn)),
                                   "saves": int(round(saving)), "p": k in picked, "cd": int(round(cooldown)),
                                   **({"core": True} if k in fixed_at else {})}
+        reasons(steps, inns, first, [cands[c] for c in chosen])
     for s in steps:
         s.pop("_busy", None)
     return steps
+
+
+def reasons(steps, inns, first, picked):
+    binds, near = bind_timeline(steps, inns, first), towns(inns)
+    place_of = lambda p: stepwords.place(p, near)
+    for k, saving, inn in picked:
+        if round(saving / 60) >= 1:
+            was = next((place_of(p) for p in reversed(steps[:k]) if place_of(p)), None)
+            stepwords.give(steps[k], "hearth", min=int(round(saving / 60)),
+                           **({"stops": [was, inn["names"][0]], "at": 2} if was else {}))
+    for b, s in enumerate(steps):
+        if s.get("kind") != "errand" or s.get("what") != "bind":
+            continue
+        inn = binds[b + 1]
+        use = next((k for k, _, at in picked if k > b and at is inn), None)
+        before = next((place_of(p) for p in reversed(steps[b + 1:use]) if place_of(p)), None) if use else None
+        if before and inn:
+            town = inn["names"][0]
+            stepwords.give(s, "bind", town=town, place=before, stops=[town, before, town], at=1)

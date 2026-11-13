@@ -569,6 +569,20 @@
     "area": true
    }
   ],
+  "614": [
+   {
+    "phrase": "Captain's Chest",
+    "how": "whose",
+    "name": "Captain",
+    "thing": "Chest",
+    "target": "Smotts' Chest",
+    "from": "log",
+    "words": "And one of the giants, Gorlash, stole my Captain's Chest.",
+    "npc": null,
+    "object": null,
+    "at": null
+   }
+  ],
   "650": [
    {
     "phrase": "Gilveradin's camp",
@@ -1089,6 +1103,20 @@
     ]
    }
   ],
+  "1454": [
+   {
+    "phrase": "Find Karnitol's Chest",
+    "how": "whose",
+    "name": "Find Karnitol",
+    "thing": "Chest",
+    "target": null,
+    "from": "objective",
+    "words": "Find Karnitol's Chest in Desolace.",
+    "npc": null,
+    "object": null,
+    "at": null
+   }
+  ],
   "1456": [
    {
     "phrase": "near Ranazjar Isle",
@@ -1421,6 +1449,24 @@
     "area": true
    }
   ],
+  "3361": [
+   {
+    "phrase": "Felix's Chest",
+    "how": "whose",
+    "name": "Felix",
+    "thing": "Chest",
+    "target": "Felix's Bucket of Bolts",
+    "from": "objective",
+    "words": "Bring Felix's Box, Felix's Chest and Felix's Bucket of Bolts to Felix Whindlebolt in Anvilmar.",
+    "npc": 8416,
+    "object": null,
+    "at": [
+     1426,
+     28.6,
+     67.6
+    ]
+   }
+  ],
   "3421": [
    {
     "phrase": "Sanath's camp",
@@ -1730,6 +1776,20 @@
     ]
    }
   ],
+  "5942": [
+   {
+    "phrase": "Joseph's Chest",
+    "how": "whose",
+    "name": "Joseph",
+    "thing": "Chest",
+    "target": null,
+    "from": "objective",
+    "words": "Bring Joseph's Key to Joseph's Chest.",
+    "npc": null,
+    "object": null,
+    "at": null
+   }
+  ],
   "5943": [
    {
     "phrase": "Scrabblescrew's Camp",
@@ -1790,6 +1850,20 @@
     "object": null,
     "at": null,
     "area": true
+   }
+  ],
+  "6161": [
+   {
+    "phrase": "Rackmore's Chest",
+    "how": "whose",
+    "name": "Rackmore",
+    "thing": "Chest",
+    "target": null,
+    "from": "objective",
+    "words": "Find and open Rackmore's Chest.",
+    "npc": null,
+    "object": null,
+    "at": null
    }
   ],
   "6162": [
@@ -2225,6 +2299,24 @@
     "area": true
    }
   ],
+  "8551": [
+   {
+    "phrase": "Captain's Chest",
+    "how": "whose",
+    "name": "Captain",
+    "thing": "Chest",
+    "target": "Smotts' Chest",
+    "from": "log",
+    "words": "And one of the giants, Gorlash, stole my Captain's Chest.",
+    "npc": 2500,
+    "object": null,
+    "at": [
+     1434,
+     26.7,
+     73.6
+    ]
+   }
+  ],
   "8778": [
    {
     "phrase": "near Hive'Zora",
@@ -2580,6 +2672,21 @@
     "area": true
    }
   ],
+  "84330": [
+   {
+    "phrase": "near the Undercroft",
+    "how": "near",
+    "name": "Undercroft",
+    "thing": null,
+    "target": null,
+    "from": "objective",
+    "words": "Obtain a Necrotic Runestone from Maleki the Pallid in Stratholme, then find the Rotting Dwarf Corpse near the Undercroft in southwestern Eastern Plaguelands.",
+    "npc": null,
+    "object": null,
+    "at": null,
+    "area": true
+   }
+  ],
   "88757": [
    {
     "phrase": "Essene's Spellbook",
@@ -2596,6 +2703,36 @@
      51.4,
      9
     ]
+   }
+  ],
+  "88812": [
+   {
+    "phrase": "near Ravencrest Monument",
+    "how": "near",
+    "name": "Ravencrest Monument",
+    "thing": null,
+    "target": null,
+    "from": "objective",
+    "words": "Kill 5 Spitelash Battlemasters, 5 Spitelash Enchantresses, and nullify the 3 Naga Power Stones near Ravencrest Monument for Commander Truesong in Azshara.",
+    "npc": null,
+    "object": null,
+    "at": null,
+    "area": true
+   }
+  ],
+  "89037": [
+   {
+    "phrase": "near the Tower of Eldara",
+    "how": "near",
+    "name": "Tower of Eldara",
+    "thing": null,
+    "target": "Memory Crystal",
+    "from": "objective",
+    "words": "Take the Memory Crystal from Razorgill near the Tower of Eldara, and bring it to Saria Fairmoon in Azshara.",
+    "npc": null,
+    "object": null,
+    "at": null,
+    "area": true
    }
   ],
   "91724": [
@@ -2769,7 +2906,7 @@
     "how": "near",
     "name": "Valley of Bones",
     "thing": null,
-    "target": null,
+    "target": "Uthek's Staff",
     "from": "objective",
     "words": "Once successful, report back to Nerlokh near the Valley of Bones.",
     "npc": null,
@@ -2835,6 +2972,70 @@
     "at": null
    }
   ],
+  "94829": [
+   {
+    "phrase": "Elbrim's Farm",
+    "how": "whose",
+    "name": "Elbrim",
+    "thing": "Farm",
+    "target": null,
+    "from": "objective",
+    "words": "Collect 5 Farmers' Mementos from Twilight Raiders and place them on the graves west of Elbrim's Farm.",
+    "npc": 258697,
+    "object": null,
+    "at": [
+     2548,
+     52.8,
+     42.4
+    ]
+   }
+  ],
+  "95162": [
+   {
+    "phrase": "near Bolder'ok",
+    "how": "near",
+    "name": "Bolder'ok",
+    "thing": null,
+    "target": "Chunk of Boar Meat",
+    "from": "objective",
+    "words": "Gather 10 Chunks of Boar Meat for Na'zok near Bolder'ok.",
+    "npc": null,
+    "object": null,
+    "at": null,
+    "area": true
+   }
+  ],
+  "95163": [
+   {
+    "phrase": "Na'zok's farm",
+    "how": "whose",
+    "name": "Na'zok",
+    "thing": "farm",
+    "target": "Young Paletusk",
+    "from": "objective",
+    "words": "Return 10 Young Paletusks to Na'zok's farm near Bolder'ok.",
+    "npc": 256728,
+    "object": null,
+    "at": [
+     2548,
+     70.4,
+     28
+    ]
+   },
+   {
+    "phrase": "near Bolder'ok",
+    "how": "near",
+    "name": "Bolder'ok",
+    "thing": null,
+    "target": "Young Paletusk",
+    "from": "objective",
+    "words": "Return 10 Young Paletusks to Na'zok's farm near Bolder'ok.",
+    "npc": null,
+    "object": null,
+    "at": null,
+    "area": true
+   }
+  ],
   "95697": [
    {
     "phrase": "Borstan's Firepit",
@@ -2876,6 +3077,34 @@
     "target": "Goldthorn",
     "from": "objective",
     "words": "Bring the requested materials to Rotgath Stonebeard near the Great Forge in Ironforge.",
+    "npc": null,
+    "object": null,
+    "at": null
+   }
+  ],
+  "95912": [
+   {
+    "phrase": "Bring the Blademaster's Banner",
+    "how": "whose",
+    "name": "Bring the Blademaster",
+    "thing": "Banner",
+    "target": "Blademaster's Banner",
+    "from": "objective",
+    "words": "Bring the Blademaster's Banner to Ember Bladewhisper in Farholde Keep.",
+    "npc": null,
+    "object": null,
+    "at": null
+   }
+  ],
+  "95926": [
+   {
+    "phrase": "near the Achromatic Crystal",
+    "how": "near",
+    "name": "Achromatic Crystal",
+    "thing": null,
+    "target": null,
+    "from": "objective",
+    "words": "Gather a colorless Drained Crystal Fragment near the Achromatic Crystal in the Shaper's Terrace.",
     "npc": null,
     "object": null,
     "at": null
@@ -3127,16 +3356,46 @@
     "area": true
    }
   ],
+  "97001": [
+   {
+    "phrase": "Undercity's War Quarter",
+    "how": "whose",
+    "name": "Undercity",
+    "thing": "War Quarter",
+    "target": null,
+    "from": "objective",
+    "words": "Take the Sawyer Family Ledger to Abigail Sawyer in Undercity's War Quarter.",
+    "npc": null,
+    "object": null,
+    "at": null,
+    "area": true
+   }
+  ],
+  "97006": [
+   {
+    "phrase": "Undercity's Trade Quarter",
+    "how": "whose",
+    "name": "Undercity",
+    "thing": "Trade Quarter",
+    "target": null,
+    "from": "objective",
+    "words": "Take the Sawyer Family Ledger to Royal Overseer Bauhaus in Undercity's Trade Quarter.",
+    "npc": null,
+    "object": null,
+    "at": null,
+    "area": true
+   }
+  ],
   "97047": [
    {
     "phrase": "Wendel's cage",
     "how": "whose",
     "name": "Wendel",
     "thing": "cage",
-    "target": "Compound Cage Key",
+    "target": null,
     "from": "objective",
     "words": "Find a key to Wendel's cage, and a disguise for him to sneak out, within the Kurzen compound.",
-    "npc": null,
+    "npc": 218230,
     "object": null,
     "at": [
      1434,
@@ -3240,6 +3499,20 @@
     "at": null
    }
   ],
+  "97530": [
+   {
+    "phrase": "near the Dunemaul",
+    "how": "near",
+    "name": "Dunemaul",
+    "thing": null,
+    "target": "Brilliantly Polished Bangle",
+    "from": "objective",
+    "words": "Security Chief Bilgewhizzle of Steamwheedle Port in Tanaris wants you to recover a particularly shiny bangle bracelet lost near the Dunemaul ogre compound.",
+    "npc": null,
+    "object": null,
+    "at": null
+   }
+  ],
   "97904": [
    {
     "phrase": "near Sen'jin Village",
@@ -3313,8 +3586,8 @@
     "object": null,
     "at": [
      1437,
-     37.72,
-     51.57
+     38.11,
+     51.15
     ]
    }
   ],
@@ -3346,8 +3619,8 @@
     "object": null,
     "at": [
      1437,
-     75.1,
-     48.25
+     70.59,
+     47.95
     ]
    }
   ],
@@ -3364,8 +3637,8 @@
     "object": null,
     "at": [
      1438,
-     51.4,
-     45.5
+     49.36,
+     51.8
     ]
    }
   ],
@@ -3446,10 +3719,10 @@
   ]
  },
  "counts": {
-  "found": 224,
-  "resolved": 46,
-  "areas": 138,
-  "unresolved": 40
+  "found": 242,
+  "resolved": 50,
+  "areas": 145,
+  "unresolved": 47
  },
- "built": "2026-11-07"
+ "built": "2026-11-13"
 }

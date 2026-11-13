@@ -1,22 +1,12 @@
 // The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
 "use strict";
 
-const ASK_LINES = [
-  "A dwarf of the Explorers' League went down to the archives for this. The archives are deep",
-  "A goblin courier is bringing the ledgers. He is paid by the mile, so he took the long way round",
-  "The librarian of Stormwind climbed the ladder for the top shelf and is still climbing",
-  "A Forsaken scribe is copying out the pages. He stops now and then to put a finger back on",
-  "Three magi of the Kirin Tor are looking for the right tome. They disagree about which tome",
-  "A gryphon rider from Aerie Peak is bringing the dispatch. The gryphon has its own views on the route",
-  "A kobold was sent down to the record room. He has found a candle and seems happy with that",
-  "An orc of Orgrimmar is reading out the list to you. He is on the second letter",
-  "The quartermaster of Ironforge is dusting off his books. Most of the dust is a family heirloom",
-  "A night elf archivist is fetching the scrolls. She does not believe in hurrying"];
+const ASK_LINES = Object.values(wordsOf("page.ask.wait"));
 const ASK_LINE_MS = 4000;
 
 function askWhy(e) {
-  if (e?.status === 0) return "the Index didn't answer";
-  return e?.status ? `the Index answered with error ${e.status}` : "the Index's answer couldn't be read";
+  if (e?.status === 0) return word("page.ask.why.away");
+  return e?.status ? word("page.ask.why.error", { status: e.status }) : word("page.ask.why.unread");
 }
 
 const askAgains = new Map();
@@ -35,7 +25,7 @@ function askNote(keys, { have = false, none = "", what, again, why = null }) {
     return html`<span class="ask-wait" role="status"><span>${line}</span><i></i><i></i><i></i></span>`;
   }
   askAgains.set(id, { keys: list, again });
-  return html`<span class="ask-failed">The page couldn't get ${what} because ${why || askWhy(failed.error)}. <button class="src-link" data-ask-again="${id}">Ask again</button></span>`;
+  return html`<span class="ask-failed">${raw(word("page.ask.note.failed", { what: esc(what), why: esc(why || askWhy(failed.error)) }))} <button class="src-link" data-ask-again="${id}">${word("page.ask.note.again")}</button></span>`;
 }
 
 function askAgain(e) {

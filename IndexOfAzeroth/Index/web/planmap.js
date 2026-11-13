@@ -351,7 +351,7 @@ function planLineTipAt(mx, my) {
 }
 
 const planMarkOrder = () => [...new Set([PLAN_ICON.P, ...Object.values(PLAN_OBJECTIVE), PLAN_ICON.D, PLAN_ICON.T,
-  ...Object.values(PLAN_ERRAND).map(([icon]) => icon)])];
+  ...Object.values(PLAN_ERRAND)])];
 function planLegendHtml(icons) {
   const line = (colour, words, dashed = false) =>
     html`<span class="pl-item"><i class="pl-line${dashed ? " dashed" : ""}" style="--c:var(--${colour})"></i>${words}</span>`;

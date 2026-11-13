@@ -93,8 +93,7 @@ def trips(spots, vs, ready, kinds, gap, runs=None):
             stay += 1
         there = [j for v in vs[k:stay + 1] for j in v if spots[j]]
         away = [j for v in vs[came + 1:k] for j in v if spots[j]]
-        left_over = [ready[j] <= left and kinds[j] != "errand" for j in there] \
-            if not finishing(spots, vs, ready, came, k) else []
+        left_over = could_before(there, ready, kinds, left) if not finishing(spots, vs, ready, came, k) else []
         if there and left_over and all(left_over):
             prev = next((spots[j] for j in reversed(range(first[k])) if spots[j]), None)
             out.append(("far", came, k, gap(prev, b) if prev else 0.0))
@@ -241,6 +240,16 @@ def walked_past(spots, ready, givers, runs=None, start=None, gap=None, ridden=No
 def behind(places, off):
     hop = director_rules.RUN["hop"].value
     return any(off(q) <= hop for q in places if q)
+
+
+def could_before(there, ready, kinds, left):
+    could, out = set(), []
+    for j in there:
+        ok = kinds[j] != "errand" and (ready[j] <= left or ready[j] in could)
+        if ok:
+            could.add(j)
+        out.append(ok)
+    return out
 
 
 def finishing(spots, vs, ready, came, k):

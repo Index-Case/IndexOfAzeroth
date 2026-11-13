@@ -1,4 +1,154 @@
 # The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
-# placeholders: n
+# placeholders: n, level, where, on, when, day, time, money, stat, was, now, spent, link, name, teacher, spell, icon, talent, rank, ranks, dungeon, item, id, quests, zone, list, last
 
 countdown = Minimizing in {n}
+
+title = Congratulations on level {level}
+reached.day = You reached level {level}{where} {on}.
+where = in {zone}
+on = on {when}
+when = {day} at {time}
+
+section.stats = Your new stats
+section.skills = New skills and talents
+section.new = New at level {level}
+section.time = Your time at level {level}
+
+stat.from = Your {stat} went up from {was} to {now}.
+stat.by = Your {stat} went up by {n}.
+stat.health = health
+stat.mana = mana
+talent-points = You have {n} new talent points.
+talent-points.one = You have {n} new talent point.
+
+spell.class = {spell} is at your class trainer now.
+spell.pet = {spell} is at a {link} now.
+spell.pet.link = pet trainer
+teaches = Your {link} teaches these spells.
+teaches.one = Your {link} teaches this spell.
+teaches.cost = Your {link} teaches these spells for {money}.
+teaches.cost.one = Your {link} teaches this spell for {money}.
+teaches.link = class trainer
+tier = You can now pick {link} that ask for {spent} points spent.
+tier.link = talents
+points = You can now spend {link}.
+points.link = talent points
+milestone = This level gives you a {link}.
+milestone.link = milestone talent point
+learn = You can now learn {name}.
+learn.from = You can now learn {name} from {teacher}.
+teacher.riding = a riding trainer
+teacher.weapon = a weapon master
+teacher.class = your trainer
+talent = Take {icon}{talent} with this point.
+talent.rank = Take {icon}{talent} (rank {rank} of {ranks}) with this point.
+
+scribes = The scribes are still writing down what level {level} opened for you.
+dungeon.door = {dungeon} lets you in now.
+at-level = {name} is at your level now.
+gear = You can now wear {item}, which is in your bags.
+gear.item = Item {id}
+nothing = Level {level} opens nothing new for you.
+upgrades = Your {link} show the dungeon gear for your new level.
+upgrades.link = Next upgrades
+quests.zone = {zone} has {n} new quests for you: {quests}.
+quests.zone.one = {zone} has {n} new quest for you: {quests}.
+quests.more = {n} more quests
+quests.more.one = {n} more quest
+quests.loose = You can also take {quests}.
+quests.rest = Other zones have {n} more new quests for you.
+quests.rest.one = Other zones have {n} more new quest for you.
+and = {list} and {last}
+giver = a quest giver
+
+played = You spent {time} at level {level}.
+gold.made = You made {money} at level {level}.
+gold.lost = You spent {money} more than you made at level {level}.
+gold.same = Your gold stayed the same at level {level}.
+gold.hour = You made {money} an hour at level {level}.
+pace = You earned {n} experience an hour at level {level}.
+counting = Your kills and favourite spell at level {level} are still being counted.
+kills = You killed {n} enemies at level {level}.
+kills.one = You killed {n} enemy at level {level}.
+favourite = Your favourite spell at level {level} was {spell}.
+died.none = You didn't die once at level {level}.
+died = You died {n} times at level {level}.
+died.one = You died once at level {level}.
+dealt = You dealt {n} damage at level {level}.
+taken = You took {n} damage at level {level}.
+fighting = You spent {time} in fights at level {level}.
+
+missing-title.played = Time spent at level {level}
+missing-title.gold = Gold made at level {level}
+missing-title.gold-hour = Gold an hour
+missing-title.pace = Experience an hour
+missing-title.kills = Kills at level {level}
+missing-title.spell = Favourite spell at level {level}
+missing-title.stats = Your new stats
+
+missing.played.1 = A dwarf of the Explorers' League started counting your hours at this level, then found a dig site and forgot.
+missing.played.2 = The bronze dragons keep the hours of every level, and they aren't telling anyone how long this one took.
+missing.played.3 = Two Tauren elders argued over how long this level took you. They agreed that it was a while.
+missing.played.4 = The goblin who sells hourglasses in Booty Bay wants a deposit before he says how long you spent here.
+missing.played.5 = Brann Bronzebeard wrote down how long you spent at this level, and then he lost the notebook.
+missing.played.6 = A night elf sentinel kept time for this level, but she counts in moons and she is still waiting for one.
+
+missing.gold.1 = A Venture Company accountant took your ledger for this level and has not come back.
+missing.gold.2 = The bankers of Ironforge were closed for a holiday that nobody else has heard of.
+missing.gold.3 = The goblins of Gadgetzan counted your gold for this level and kept the total as their fee.
+missing.gold.4 = A Defias bookkeeper had your gold count for this level. Nobody has seen him since the Deadmines.
+missing.gold.5 = A kobold was put in charge of your gold count. He only wanted the candle.
+missing.gold.6 = The Steamwheedle Cartel will tell you what you made at this level, for a small consideration.
+
+missing.gold-hour.1 = The goblins of the Gadgetzan auction house tried to count your gold per hour and are still arguing about the decimal.
+missing.gold-hour.2 = A gnome in Tinker Town is building a machine to work out your gold per hour. He has been building it for some time.
+missing.gold-hour.3 = The apothecaries of the Undercity were asked for your gold per hour. They sent back a vial, which helped nobody.
+missing.gold-hour.4 = A Booty Bay pirate offered to work out your gold per hour, but he only counts in doubloons.
+missing.gold-hour.5 = An ogre in Dire Maul was given your gold per hour to count. He got as far as two.
+missing.gold-hour.6 = The dwarves of the Ironforge mint weighed your gold, but nobody gave them the hours to weigh it against.
+
+missing.pace.1 = A gnome engineer was timing your level with a stopwatch. The stopwatch exploded.
+missing.pace.2 = The night elves measured your pace in centuries and found this level too short to write down.
+missing.pace.3 = A Darkspear troll watched you level and says you were quick. He gave no number.
+missing.pace.4 = The Kirin Tor have a spell for your levelling speed, and the apprentice who knew it is a sheep this week.
+missing.pace.5 = A goblin bookmaker took bets on how fast you would level and left town before paying out.
+missing.pace.6 = A kodo herder from Mulgore timed your level against his slowest kodo. The kodo has not finished yet.
+
+missing.kills.1 = The Argent Dawn sent a clerk to count your kills at this level. He is still counting the boars.
+missing.kills.2 = A murloc kept the count of your kills at this level. Nobody can read what he wrote.
+missing.kills.3 = The Scourge claim some of your kills as their own and are disputing the count.
+missing.kills.4 = A Forsaken apothecary says your kills will be counted once they stop getting back up.
+missing.kills.5 = The spirit healers keep a list of everyone you sent their way, and they don't share it.
+missing.kills.6 = A Kodo herder offered to tally your kills, but he only counts in kodos.
+
+missing.spell.1 = The Kirin Tor asked all over Dalaran about your favourite spell. Nobody would say.
+missing.spell.2 = A gnome counted every spell you cast at this level and then turned himself into a sheep by mistake.
+missing.spell.3 = Your class trainer has a guess at your favourite spell and keeps it to themselves.
+missing.spell.4 = The Shen'dralar keep a book of everyone's favourite spells, and the page with yours is missing.
+missing.spell.5 = A murloc watched every spell you cast at this level and liked all of them the same.
+missing.spell.6 = The shamans of the Earthen Ring asked the elementals about your favourite spell and got four different answers.
+
+missing.stats.1 = A dwarf of Ironforge measured your new strength with a hammer and wrote nothing down.
+missing.stats.2 = The druids of the Cenarion Circle say you grew this level, but they measure growth in tree rings.
+missing.stats.3 = A goblin offered to weigh your new stats on his scales, for a fee that he hasn't named yet.
+missing.stats.4 = The scribes of Stormwind write down a level's new stats when you next log out or reload, and not a moment before.
+missing.stats.5 = An Orgrimmar grunt sized you up after this level and said you look about the same.
+missing.stats.6 = The gnomes built a machine to read your new stats. The machine is in Gnomeregan, which is a problem.
+
+missing.when.1 = You reached level {level}{where} at some point in the last few days. The goblin keeping the calendar was paid by the hour and saw no reason to rush.
+missing.when.2 = You reached level {level}{where}, sometime. A gnome had a clock on it, and the clock is now a small fire.
+missing.when.3 = You reached level {level}{where} while nobody was looking. The bronze dragons know when, and they're not saying.
+missing.when.4 = You reached level {level}{where} on a day the scribes of Stormwind took off. They have written it down as 'recently'.
+missing.when.5 = You reached level {level}{where}. A Tauren elder says it was a few moons ago. A night elf says it was a moment ago. Both are sure.
+missing.when.6 = You reached level {level}{where} at an hour the Undercity's clocks don't keep, since nobody there needs to know when lunch is.
+
+photo.open = This opens the picture large
+photo.alt = Where you were at level {level}
+photo.big.alt = Where you were when you levelled up
+
+small.label = Level report
+small.step = The level {level} report
+small.first = There is no earlier level report
+small.last = There is no later level report
+small.open = This opens the level {level} report
+small.none = The first level report comes with the next level up

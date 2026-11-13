@@ -1,0 +1,17 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: zone, n, level, quest, word
+
+title = Abandon quests in {zone}
+help = Every ticked quest in this list is abandoned when you click Abandon. Untick a quest to keep it. Hover over a reward to see its tooltip.
+
+quest = [{level}] {quest}
+no-reward = No money or items
+
+abandon = Abandon
+
+word = ABANDON
+type = Type {word} in the box and click Abandon to abandon the {n} ticked quests.
+type.one = Type {word} in the box and click Abandon to abandon the ticked quest.
+
+left = {n} ticked quests are left. Click Abandon to abandon the next one.
+left.one = One ticked quest is left. Click Abandon to abandon it.

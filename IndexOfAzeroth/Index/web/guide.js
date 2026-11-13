@@ -181,7 +181,7 @@ function guideRise(g, leg, d) {
   if (!path || !me) return null;
   return heightWords(walkable(path).points, leg.wz, [me.n, me.w], d, path.rising ??= {});
 }
-const RISE_ARROW = { "Above you": "M5 1.5L9 8.5H1z", "Below you": "M5 8.5L9 1.5H1z" };
+const RISE_ARROW = { [word("both.rise.above")]: "M5 1.5L9 8.5H1z", [word("both.rise.below")]: "M5 8.5L9 1.5H1z" };
 const riseHtml = (rise) => (rise ? ` <span class="guide-rise"><svg viewBox="0 0 10 10" width="9" height="9" aria-hidden="true"><path d="${
   RISE_ARROW[rise]}" fill="currentColor"/></svg> ${rise}</span>` : "");
 let arriving = null;

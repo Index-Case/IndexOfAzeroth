@@ -5,11 +5,18 @@ import re
 TABLES = ("Spell", "SpellName", "SpellEffect", "SpellMisc", "SpellLevels", "SpellAuraOptions", "SpellTargetRestrictions",
           "SpellCooldowns", "SpellPower", "SpellDuration", "SpellRadius", "SpellRange", "SpellCastTimes",
           "SpellDescriptionVariables", "SpellXDescriptionVariables", "Talent", "SpellReagents", "SpellTotems",
-          "TotemCategory", "SpellEquippedItems", "SpellShapeshift", "SpellShapeshiftForm")
+          "TotemCategory", "SpellEquippedItems", "SpellShapeshift", "SpellShapeshiftForm", "TraitDefinition",
+          "TraitDefinitionEffectPoints", "TraitNodeEntry", "CurvePoint")
+SUM_OPEN, SUM_CLOSE = "\x02", "\x03"
+SET_POINTS, MULTIPLY_POINTS = 0, 1
 COLOUR = re.compile(r"\|[cC][0-9a-fA-F]{8}|\|[rR]")
-STAT_WORDS = {"SPI": "Spirit", "AP": "Attack Power", "RAP": "Ranged Attack Power", "rap": "Ranged Attack Power",
-              "SP": "Spell Power", "SPS": "Spell Power", "SPH": "Healing", "bh": "Healing", "PL": "60", "pl": "60"}
+STAT_WORDS = {"SPI": "Spirit", "AP": "Attack Power", "apm": "Attack Power", "RAP": "Ranged Attack Power",
+              "rap": "Ranged Attack Power", "SP": "Spell Power", "SPS": "Spell Power", "sps": "Spell Power",
+              "SPFI": "Fire Spell Power", "spfi": "Fire Spell Power", "SPFR": "Frost Spell Power",
+              "SPA": "Arcane Spell Power", "SPH": "Healing", "bh": "Healing", "mcrit": "Critical Strike",
+              "PL": "60", "pl": "60"}
 STAT_TERM = re.compile(r"\$(?:" + "|".join(STAT_WORDS) + r")(?![A-Za-z\d])")
+LONG_CODES = {"bc": "c"}
 VALUE = "smMSotdDaArRhHnuUxiveEfbqwcCgGkKp"
 REGEN_AURAS, REGEN_PERIOD = {84, 85}, 5200
 FUNCS = {"cond": 3, "gte": 2, "gt": 2, "lte": 2, "lt": 2, "eq": 2, "max": 2, "min": 2, "floor": 1, "ceil": 1,
@@ -95,6 +102,20 @@ class Spells:
         self.casts = {int(r["ID"]): int(r["Base"]) for r in rows("SpellCastTimes")}
         self.talents = {int(r[k]) for r in rows("Talent") for k in r if (k == "SpellID" or k.startswith("SpellRank_"))
                         and int(r[k] or 0)}
+        traits = {int(r["ID"]): int(r["SpellID"]) for r in rows("TraitDefinition")}
+        curves = {}
+        for r in rows("CurvePoint"):
+            curves.setdefault(int(r["CurveID"]), []).append((number(r["Pos_0"]), number(r["Pos_1"])))
+        self.rank_points = {}
+        for r in rows("TraitDefinitionEffectPoints"):
+            sid, points = traits.get(int(r["TraitDefinitionID"])), sorted(curves.get(int(r["CurveID"]), ()))
+            if sid and points:
+                self.rank_points[(sid, int(r["EffectIndex"]))] = (int(r["OperationType"]), points)
+        self.ranks = {}
+        for r in rows("TraitNodeEntry"):
+            sid = traits.get(int(r["TraitDefinitionID"]))
+            if sid:
+                self.ranks[sid] = max(self.ranks.get(sid, 0), int(r["MaxRanks"]))
         variables = {int(r["ID"]): r["Variables"] for r in rows("SpellDescriptionVariables")}
         self.variables = {}
         for r in rows("SpellXDescriptionVariables"):
@@ -108,6 +129,26 @@ class Spells:
     def duration_ms(self, sid):
         misc = self.misc.get(sid)
         return self.durations.get(int(misc["DurationIndex"])) if misc else None
+
+    def ranked(self, sid):
+        return self.ranks.get(sid, 0) > 1 and any(s == sid for s, _ in self.rank_points)
+
+    def at_rank(self, sid, index, rank, points):
+        held = self.rank_points.get((sid, index))
+        if not held:
+            return points
+        op, curve = held
+        v = on_curve(curve, rank)
+        return v if op == SET_POINTS else points * v if op == MULTIPLY_POINTS else points
+
+
+def on_curve(curve, x):
+    if x <= curve[0][0]:
+        return curve[0][1]
+    for (x0, y0), (x1, y1) in zip(curve, curve[1:]):
+        if x <= x1:
+            return y0 + (y1 - y0) * (x - x0) / (x1 - x0)
+    return curve[-1][1]
 
 
 def parse_variables(text):
@@ -123,6 +164,8 @@ class Filler:
         self.spells = spells
         self.gaps = {}
         self.plain = 0
+        self.rank = None
+        self.sums = None
 
 
     def value(self, sid, code, index):
@@ -222,6 +265,8 @@ class Filler:
         lv = self.spells.levels.get(sid)
         if per and lv and int(lv["MaxLevel"]) > int(lv["BaseLevel"]):
             base += per * (int(lv["MaxLevel"]) - int(lv["BaseLevel"]))
+        if self.rank and self.rank[0] == sid:
+            base = self.spells.at_rank(sid, int(e["EffectIndex"]), self.rank[1], base)
         return base
 
     def proc_cooldown(self, sid):
@@ -231,12 +276,16 @@ class Filler:
         return number(a["ProcCategoryRecovery"]) / 1000
 
 
-    def fill(self, sid, text=None, depth=0):
+    def fill(self, sid, text=None, depth=0, rank=1, sums=None):
         row = self.spells.text.get(sid)
         if text is None:
             text = (row or {}).get("Description_lang") or ""
         gaps = []
-        out = COLOUR.sub("", self._text(sid, text, gaps, depth))
+        self.rank, self.sums = (sid, rank), sums
+        try:
+            out = COLOUR.sub("", self._text(sid, text, gaps, depth))
+        finally:
+            self.rank = self.sums = None
         for g in gaps:
             self.gaps[g] = self.gaps.get(g, 0) + 1
         return out, gaps
@@ -274,7 +323,7 @@ class Filler:
             if dec:
                 j += 2
             if "$<" in expr or self.scaled(sid, expr) or STAT_TERM.search(expr):
-                return self.spelled(sid, expr, depth), j
+                return self.spelled(sid, expr, depth, int(dec[1]) if dec else None), j
             v = self.evaluate(sid, expr, depth)
             last[0] = v
             return fmt(v, int(dec[1]) if dec else None) if dec else expr_number(v), j
@@ -303,7 +352,7 @@ class Filler:
             k = float(m[2])
             v = tuple(x / k if m[1] == "/" else x * k for x in v) if isinstance(v, tuple) else (v / k if m[1] == "/" else v * k)
             last[0] = v
-            return self.show(v), i + m.end()
+            return (self.show(v) if isinstance(v, tuple) else fmt(abs(v))), i + m.end()
         if rest.startswith("<"):
             m = re.match(r"<(\w+)>", rest)
             if not m:
@@ -376,12 +425,17 @@ class Filler:
                 return True
         return False
 
-    def spelled(self, sid, expr, depth):
+    def spelled(self, sid, expr, depth, decimals=None):
         stats = []
         text = self._spelled_text(sid, expr, depth, stats)
-        return f"[{text}]" if stats else f"({text})"
+        if not stats:
+            return f"({text})"
+        if self.sums is None or self.plain:
+            return f"[{text}]"
+        self.sums.append({"expr": self._spelled_text(sid, expr, depth, [], codes=True), "decimals": decimals})
+        return f"{SUM_OPEN}[{text}]{SUM_CLOSE}"
 
-    def _spelled_text(self, sid, expr, depth, stats):
+    def _spelled_text(self, sid, expr, depth, stats, codes=False):
         if depth > 6:
             raise Gap("${} (too deep)")
 
@@ -393,14 +447,15 @@ class Filler:
                     return "1"
                 if STAT_TERM.search(held):
                     inner = held[2:-1] if held.startswith("${") and held.endswith("}") else held
-                    return "(" + self._spelled_text(sid, inner, depth + 1, stats) + ")"
+                    return "(" + self._spelled_text(sid, inner, depth + 1, stats, codes) + ")"
                 return expr_number(self.variable(sid, name, depth))
             if m[2] in STAT_WORDS and not m[1] and not m[3]:
                 stats.append(m[2])
-                return STAT_WORDS[m[2]]
-            if len(m[2]) > 1:
+                return m[2] if codes else STAT_WORDS[m[2]]
+            code = LONG_CODES.get(m[2], m[2])
+            if len(code) > 1:
                 raise Gap(f"${m[2]}")
-            v = self.value(int(m[1]) if m[1] else sid, m[2], int(m[3]) if m[3] else None)
+            v = self.value(int(m[1]) if m[1] else sid, code, int(m[3]) if m[3] else None)
             if isinstance(v, tuple) and v and v[0] == "duration":
                 v = v[1] / 1000
             elif isinstance(v, tuple):
@@ -440,7 +495,7 @@ class Filler:
         def sub(m):
             if m[0].startswith("$<"):
                 return repr(float(self.variable(sid, m[0][2:-1], depth)))
-            spell, letters, idx = m[1], m[2], m[3]
+            spell, letters, idx = m[1], LONG_CODES.get(m[2], m[2]), m[3]
             if len(letters) > 1:
                 if m.end() < len(m.string) and m.string[m.end()] == "(" and letters in FUNCS and not idx:
                     return f"_{letters}"

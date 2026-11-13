@@ -8,6 +8,7 @@ NAME_KEYS = ("ClientFileString", "ClientPrefix", "Name_lang", "Name_female_lang"
 WORD = 0xFFFFFFFF
 CLASSIC = 0xFF
 _kept = {}
+_racials = {}
 
 
 def table():
@@ -128,3 +129,29 @@ def forever_joined(mask, other, sides, rows=None):
 
 def id_bits(rows=None):
     return {r["id"]: r["bit"] for r in playable(rows)}
+
+
+def racial_spells(abilities=None, names=None, rows=None):
+    if abilities is None or names is None:
+        try:
+            installed = client.installed_version()
+            if installed not in _racials:
+                built = [client.stored_build(t, installed) for t in ("SkillLineAbility", "SpellName")]
+                if None in built:
+                    return {}
+                _racials[installed] = racial_spells(
+                    client.rows("SkillLineAbility", built[0], stored=True),
+                    {number(r.get("ID")): r.get("Name_lang") for r in client.rows("SpellName", built[1], stored=True)},
+                    rows)
+            return _racials[installed]
+        except (OSError, ValueError, KeyError, game.GameNotFound, storedonly.NotStored):
+            return {}
+    files = {r["bit"]: r["file"] for r in playable(rows) if r["file"]}
+    found = {}
+    for r in abilities:
+        mask = spell_mask(r.get("RaceMasks_0"), r.get("RaceMasks_1"))
+        name = names.get(number(r.get("Spell")))
+        kinds = {f for bit, f in files.items() if mask & bit}
+        if name and len(kinds) == 1:
+            found.setdefault(name, set()).update(kinds)
+    return {name: kinds.pop() for name, kinds in found.items() if len(kinds) == 1}

@@ -63,35 +63,31 @@ function treeHtml(tree, i, plan) {
 function buildMenu(plan) {
   if (!plan) return "";
   const list = talents.menu ? `<div class="tw-menu" role="menu">${(plan.builds || []).map((b) => `<button class="tw-build${b.key === plan.build.key ? " on" : ""}" role="menuitem" data-tw-build="${esc(b.key)}">${esc(b.name)}${b.note ? `<small>${esc(b.note)}</small>` : ""}</button>`).join("")}</div>` : "";
-  return `<div class="tw-pick"><button class="key small" data-tw="menu" aria-haspopup="true" aria-expanded="${talents.menu}" title="Pick the build the talent planner follows">Build: ${esc(plan.build.name)} &#9662;</button>${
-    plan.picked ? `<button class="key small" data-tw="reset" title="Let your pick go: the build for the tree you spend the most in comes back">Reset</button>` : ""}${list}</div>`;
+  return `<div class="tw-pick"><button class="key small" data-tw="menu" aria-haspopup="true" aria-expanded="${talents.menu}" title="${word("page.talents.build.tip")}">${word("page.talents.build", { name: esc(plan.build.name) })} &#9662;</button>${
+    plan.picked ? `<button class="key small" data-tw="reset" title="${word("page.talents.reset.tip")}">${word("page.talents.reset")}</button>` : ""}${list}</div>`;
 }
 
 function renderTalents() {
   const d = player.data, box = $("talents"), plan = d?.talentPlan;
   const bar = `<div class="rd-bar"><span class="rd-keys">${buildMenu(plan)}</span>
-    <span class="rd-title">Talents<small>${d ? `${esc(playerName())}, ${esc(d.name)}. ` : ""}Your build's talents are lit, each with the level its ranks are taken at</small></span>
-    <span class="rd-keys"><button class="key small square x-mark" data-tw="close" title="Close (Escape)">&times;</button></span></div>`;
-  const body = !d ? `<p class="muted">${spellsNote("The talent trees come from the game's own tables once the game has said who's playing.")}</p>`
-    : !(d.trees || []).length ? `<p class="muted">The game's tables have no talent trees for ${esc(d.name)}.</p>`
-    : `${plan && !plan.known ? `<p class="muted tw-note">Your talents reach the Index with the addon's next /reload.</p>` : ""}
+    <span class="rd-title">${word("page.talents.title")}<small>${(d && word("page.talents.lit.who", { who: esc(playerName()), name: esc(d.name) }))
+      ?? word("page.talents.lit")}</small></span>
+    <span class="rd-keys"><button class="key small square x-mark" data-tw="close" title="${word("page.talents.close.tip")}">&times;</button></span></div>`;
+  const body = !d ? `<p class="muted">${spellsNote(word("page.talents.none"))}</p>`
+    : !(d.trees || []).length ? `<p class="muted">${word("page.talents.none.class", { name: esc(d.name) })}</p>`
+    : `${plan && !plan.known ? `<p class="muted tw-note">${word("page.talents.reload")}</p>` : ""}
       <div class="tw-trees">${d.trees.map((t, i) => treeHtml(t, i, plan)).join("")}</div>`;
   setHtml(box, `${bar}<div class="rd-scroll tw-scroll">${body}</div>`);
   box.hidden = false;
 }
 
 function talentHoverHtml(name) {
-  const node = name.slice("talent:".length), d = player.data;
-  const t = (d?.trees || []).flatMap((tr) => tr.talents).find((x) => String(x.node) === node);
+  const node = name.slice("talent:".length), d = player.data, { t, tip } = talentTip(node);
   if (!t) return "";
-  const tip = keptTip(spellTips, t.id);
-  if (tip === undefined && !player.tipAsking.has(t.id)) {
-    player.tipAsking.add(t.id);
-    loadSpellTip(t.id).then((got) => { player.tipAsking.delete(t.id); if (got) refreshHover(); });
-  }
   const levels = d.talentPlan?.levels?.[node] || [];
   const ranks = levels.map((lv, i) => `<div class="sp-line">${rankLine(lv, i + 1, t.ranks)}</div>`).join("");
-  return `<div class="sp-tip">${tip?.html || `<b class="q">${esc(t.name)}</b>`}${ranks ? `<div class="sp-line sp-first">Your build</div>${ranks}` : ""}</div>`;
+  const have = d.talentPlan?.ranks?.[node] || 0;
+  return `<div class="sp-tip">${spellTipHtml(tip, have, t.ranks) || `<b class="q">${esc(t.name)}</b>`}${ranks ? `<div class="sp-line sp-first">${word("page.talents.hover")}</div>${ranks}` : ""}</div>`;
 }
 HOVERS["talent:"] = (pinned, name) => talentHoverHtml(name);
 
@@ -102,7 +98,7 @@ function talentsClicked(e) {
   if (key === "reset" || pick) {
     talents.menu = false;
     postJson("/api/talentbuild", { build: pick ? pick.dataset.twBuild : null })
-      .then(() => askPlayer(true), (err) => askFailed("your talent build", err));
+      .then(() => askPlayer(true), (err) => askFailed(word("page.talents.failed"), err));
     renderTalents();
   }
 }

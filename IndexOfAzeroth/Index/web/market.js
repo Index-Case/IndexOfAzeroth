@@ -454,7 +454,18 @@ function questForIt(find) {
   startEpic({ key: `item:${find.item}`, name: find.name });
 }
 function startCraftEpic(item, name) {
-  startEpic({ key: `craft:${item}`, name, label: word("page.craft.label", { item: name }) });
+  const label = word("page.craft.label", { item: name });
+  const mine = craftEpicOf(item);
+  if (mine) return startEpic({ key: mine, name, label });
+  const way = (w) => ({ label: LEVEL_WAYS[w].label(), tip: LEVEL_WAYS[w].tip(), on: () => startEpic({ key: `craft:${item}:${w}`, name, label }) });
+  const [cheap, ...rest] = Object.keys(LEVEL_WAYS).map(way);
+  return ask({ title: word("page.craft.way.title", { item: name }), text: word("page.craft.way.ask", { item: name }),
+               yes: cheap.label, yesTip: cheap.tip, onYes: cheap.on, also: rest, no: word("page.craft.way.no") });
+}
+function craftEpicOf(item) {
+  const its = (key) => key === `craft:${item}` || (key || "").startsWith(`craft:${item}:`);
+  const kept = app.plan && its(app.plan.key) && planIsMine(app.plan) ? app.plan.key : null;
+  return [app.tracks.epic?.key, kept, ...myProfs().map((p) => p.key)].find(its) || null;
 }
 function craftIt(find) {
   market.toggle(false);

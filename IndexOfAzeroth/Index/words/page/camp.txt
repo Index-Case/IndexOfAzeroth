@@ -1,0 +1,48 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: n, name, prof, skill, item, who, level, chance, span, sit, items, lines
+
+title = Camping
+fold.close = Collapse Camping
+fold.open = Show the campfires and the character's camp features
+what = the camping data
+
+hours = {n} hours
+hours.one = {n} hour
+min = {n} min
+sec = {n} s
+
+ready = You can place {name} now
+place = You have learnt {name}. You need {prof} {skill} to place it
+learn.blueprint = Learn {name} from {item} in your bags
+learn = Learn {name} at a {prof} trainer
+skill = You need {prof} {skill} to learn {name}
+who.level = {who} (level {level})
+find = Find {item}. {who} drops the blueprint
+find.chance = Find {item}. {who} drops the blueprint {chance}% of the time
+find.none = Find {item}. We have no information yet on where the blueprint drops
+need = You need {prof} for {name}
+
+now.benefits.left = You have Camp Benefits with {span} left
+now.benefits = You have Camp Benefits
+now.cooldown = Your camp features are on cooldown for {span} more
+now.ready = Your camp features are ready
+now.none = You have no Camp Benefits
+sit = Sitting or crafting by a campfire for {sit} gives Camp Benefits for {span}
+sit.buff = Camp Benefits gives the buff of every feature placed round the campfire
+fire = A campfire and its features stand for {span}
+cooldown = All camp features share a {span} cooldown
+upgrade = An upgraded feature may be placed over the one it builds on to replace it.
+
+campfires = Campfires
+campfire.needs = This campfire needs Cooking {skill}.
+campfire.holds = The campfire holds {n} features.
+campfire.holds.cooking = The campfire holds {n} features and comes with Cooking.
+campfire.cooking = The campfire comes with Cooking.
+campfire.takes = Placing the campfire takes {items}
+and = and
+feature.needs = This feature needs {prof} {skill}.
+every = Every camp feature: {lines}
+none = None of your professions can place a camp feature yet. Every profession gets camp features from skill 20.
+others = {n} other professions have camp features too.
+others.one = {n} other profession has camp features too.
+known = The known recipes show here after the addon's next /reload.

@@ -7,6 +7,8 @@ START = "Start the Index.bat"
 UNINSTALL = "Uninstall the Index.bat"
 STEPS = "README.txt"
 TOP = (START, UNINSTALL, STEPS)
+PYTHON = "python"
+SITE = "Lib/site-packages"
 SERVER_WRITTEN = ("Pending.lua", "Shared.lua")
 
 

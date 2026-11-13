@@ -148,6 +148,28 @@ function more.NewGlow()
            words = Text(compass, "GameFontNormalSmall", C.ivory, "CENTER") }
 end
 more.glow, more.campGlow = more.NewGlow(), more.NewGlow()
+more.epicMarks = { step = stepMark, stepWords = stepWords, ride = rideMark, rideWords = rideWords, camp = more.campGlow }
+more.sideMarks, more.NONE = {}, {}
+function more.SideMarks(slot)
+  local m = more.sideMarks[slot]
+  if not m then
+    m = { camp = more.NewGlow() }
+    m.step, m.stepWords = Mark(C.blue, true, "GameFontNormal")
+    m.ride, m.rideWords = Mark(C.cyan, true, "GameFontNormalSmall")
+    more.HideGlow(m.camp)
+    more.sideMarks[slot] = m
+  end
+  return m
+end
+ns.GuideCompassSide = function(slot)
+  local m = more.sideMarks[slot]
+  if m then return m.step, m.stepWords end
+end
+function more.HideEpic(set)
+  set.step:Hide(); set.stepWords:Hide(); set.ride:Hide(); set.rideWords:Hide()
+  more.MarkWith(set.step, false); more.MarkWith(set.ride, false)
+  more.HideGlow(set.camp)
+end
 more.lostLines = {
   "A night elf scout says your beacons are behind you. Turn round to see them again.",
   "A dwarf rifleman lost sight of your beacons too. Turn round and they show again.",
@@ -265,7 +287,41 @@ function more.Place(mark, label, px, py, mid, wx, wy, words)
   return x, seen
 end
 
-more.RIDERS = { "e", "g", "h", "k" }
+function more.EpicMarks(set, s, t, look, continent, px, py, mid)
+  local out = set.drawn or {}
+  set.drawn = out
+  for k in pairs(out) do out[k] = nil end
+  local camp = ns.GuideAtLoop and ns.GuideAtLoop(nil, s)
+  out.atCamp = camp
+  local arrow = t and (t.guided or t.pasted) and t
+  if s and s.wx and continent == s.inst and not camp and not (ns.GuideInArea and ns.GuideInArea(s)) then
+    local here = arrow and not arrow.route and arrow.along or ns.Geo.Dist(s.wx, s.wy, px, py)
+    out.step, out.stepSeen = more.Place(set.step, set.stepWords, px, py, mid, s.wx, s.wy, here)
+  else
+    set.step:Hide(); set.stepWords:Hide()
+  end
+  local word = ns.RideWord(arrow and arrow.route and arrow.route:NextRide())
+  if word and t.continent == continent then
+    out.ride, out.rideSeen = more.Place(set.ride, set.rideWords, px, py, mid, t.wx, t.wy, word)
+    out.rideWord = word
+  else
+    set.ride:Hide(); set.rideWords:Hide()
+  end
+  if look then
+    UI.Mark(set.step, look, more.MARK_SIZE, compass)
+    UI.Mark(set.ride, look, more.MARK_SIZE, compass)
+  end
+  more.MarkWith(set.step, out.step ~= nil)
+  more.MarkWith(set.ride, out.ride ~= nil)
+  if s and s.loop and #s.loop > 1 and continent == s.inst then
+    out.camp = more.LoopBand(set.camp, s, C.blue, px, py, mid, camp, look)
+  else
+    more.HideGlow(set.camp)
+  end
+  return out
+end
+
+more.RIDERS = { "e", "g", "h", "k", "p1", "p2" }
 function more.RideOn(continent, px, py)
   if ns.Ghost() then return nil end
   local g = ns.GuideTarget and ns.GuideTarget()
@@ -360,6 +416,7 @@ function more.Riding(ride, route, continent, px, py, lost)
   for _, m in ipairs(more.MARKS) do m:Hide() end
   more.MarkWith(more.navMark, false); more.MarkWith(more.loopRideMark, false)
   more.HideGlow(more.glow); more.HideGlow(more.campGlow)
+  for _, m in pairs(more.sideMarks) do more.HideEpic(m) end
   more.HidePlaces()
   local name, zone, yards = route:Destination(continent, px, py)
   local whole = yards and math.floor(yards)
@@ -381,16 +438,19 @@ function ui.Compass()
   local loopKind = (ns.TrackTarget("g") and "g") or (ns.TrackTarget("h") and "h") or (ns.TrackTarget("k") and "k") or nil
   local loop = loopKind and ns.TrackTarget(loopKind)
   local t = ns.TrackTarget("e")
-  if ns.Ghost() then s, loop, t, nav = nil, nil, nil, ns.CorpseRun() end
+  local sides, anySide = ns.SideGuides and ns.SideGuides() or more.NONE, false
+  for _, sg in ipairs(sides) do anySide = anySide or (sg.cur ~= nil and sg.steps[sg.cur] ~= nil) end
+  if ns.Ghost() then s, loop, t, nav, sides, anySide = nil, nil, nil, ns.CorpseRun(), more.NONE, false end
   local lost = more.Lost()
   local riding, route = more.RideOn(continent, px, py)
   if riding and ns.NavOn("compass") then return more.Riding(riding, route, continent, px, py, lost) end
   more.rideName:Hide(); more.rideLine:Hide()
   local places = continent and not ns.Ghost() and more.ZonePlaces(continent, px, py)
-  if not (s or (nav and nav.wx) or (loop and loop.loop) or places) or not continent or not facing
+  if not (s or (nav and nav.wx) or (loop and loop.loop) or places or anySide) or not continent or not facing
       or not ns.NavOn("compass") then
     compass:Hide()
     more.MarkWith(more.navMark, false); more.MarkWith(more.loopRideMark, false)
+    for _, m in pairs(more.sideMarks) do more.HideEpic(m) end
     more.HidePlaces()
     return nil
   end
@@ -420,22 +480,18 @@ function ui.Compass()
     w:SetTextColor(unpack(facingIt and C.gold or C.ivory))
     if facingIt then out.word = COMPASS_WORDS[k] end
   end
-  local camp = ns.GuideAtLoop and ns.GuideAtLoop()
-  out.atCamp = camp
-  local arrow = t and (t.guided or t.pasted) and t
-  if s and s.wx and continent == s.inst and not camp and not (ns.GuideInArea and ns.GuideInArea()) then
-    local here = arrow and not arrow.route and arrow.along or ns.Geo.Dist(s.wx, s.wy, px, py)
-    out.step, out.stepSeen = more.Place(stepMark, stepWords, px, py, mid, s.wx, s.wy, here)
-  else
-    stepMark:Hide(); stepWords:Hide()
+  local e = more.EpicMarks(more.epicMarks, s, t, nil, continent, px, py, mid)
+  out.atCamp, out.step, out.stepSeen, out.ride, out.rideSeen, out.rideWord, out.camp =
+    e.atCamp, e.step, e.stepSeen, e.ride, e.rideSeen, e.rideWord, e.camp
+  out.sides = {}
+  for _, sg in ipairs(sides) do
+    local st = sg.cur and sg.steps[sg.cur]
+    if st then
+      out.sides[sg.slot] = more.EpicMarks(more.SideMarks(sg.slot), st, ns.TrackTarget(sg.slot), sg.look, continent, px, py, mid)
+    end
   end
-  local ride = arrow and arrow.route and arrow.route:NextRide()
-  local word = ns.RideWord(ride)
-  if word and t.continent == continent then
-    out.ride, out.rideSeen = more.Place(rideMark, rideWords, px, py, mid, t.wx, t.wy, word)
-    out.rideWord = word
-  else
-    rideMark:Hide(); rideWords:Hide()
+  for slot, m in pairs(more.sideMarks) do
+    if not out.sides[slot] then more.HideEpic(m) end
   end
   if nav and nav.wx and not nav.wait and nav.continent == continent then
     out.navLook = more.NavMarkLook(ns.NavLook(nav))
@@ -467,14 +523,10 @@ function ui.Compass()
     more.loopRideMark:Hide(); more.loopRideWords:Hide()
     more.MarkWith(more.loopRideMark, false)
   end
-  if s and s.loop and #s.loop > 1 and continent == s.inst then
-    out.camp = more.LoopBand(more.campGlow, s, C.blue, px, py, mid, camp)
-  else
-    more.HideGlow(more.campGlow)
-  end
   if places then
     local xs = more.markXs
     xs[1], xs[2], xs[3], xs[4] = out.step, out.ride, out.nav, out.loopRide
+    xs[5], xs[6] = out.sides.p1 and out.sides.p1.step, out.sides.p2 and out.sides.p2.step
     out.places = more.Places(places, px, py, mid, xs)
   else
     more.HidePlaces()
@@ -706,11 +758,18 @@ function more.Declutter(dt)
     local owner = o.declutter and o.prefer ~= "arrows" and ns.BeaconInCone and ns.BeaconInCone()
       and ns.BeaconOwnerSlot and ns.BeaconOwnerSlot() or nil
     more.giveOwner = owner and not more.FarOff(owner, o.arrowPast) and owner or nil
-    more.giveCamp = ns.GuideAtLoop and (ns.GuideAtLoop(more.CAMP_REACH) or ns.GuideInArea())
+    local camp = more.giveCamp or {}
+    more.giveCamp = camp
+    for k in pairs(camp) do camp[k] = nil end
+    camp.e = ns.GuideAtLoop and (ns.GuideAtLoop(more.CAMP_REACH) or ns.GuideInArea()) or nil
+    for _, g in ipairs(ns.SideGuides and ns.SideGuides() or {}) do
+      local st = g.cur and g.steps[g.cur]
+      camp[g.slot] = st and ns.GuideAtLoop and (ns.GuideAtLoop(more.CAMP_REACH, st) or ns.GuideInArea(st)) or nil
+    end
   end
   local owner, camp = more.giveOwner, more.giveCamp
   for k, s in pairs(ns.guideSlots or {}) do
-    local want, a = (k == owner or (camp and k == "e")) and 0 or 1, s.declutter or 1
+    local want, a = (k == owner or camp[k]) and 0 or 1, s.declutter or 1
     if a ~= want then
       a = want < a and math.max(want, a - dt / more.DECLUTTER_OUT) or math.min(want, a + dt / more.DECLUTTER_IN)
       s.declutter = a

@@ -1,7 +1,7 @@
 // The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
 "use strict";
 
-const todo = { silenced: {}, dismissed: loadDismissed(), loaded: false, inDrawer: null, drawerItems: [], pulsedAt: 0, html: "" };
+const todo = { silenced: {}, tracks: {}, dismissed: loadDismissed(), loaded: false, inDrawer: null, drawerItems: [], pulsedAt: 0, html: "" };
 const NOTICE_SOURCES = [];
 
 function loadTodo() {
@@ -20,6 +20,7 @@ function refreshTodo(snap) {
 }
 function takeTodo(t) {
   todo.silenced = t.silenced || {};
+  todo.tracks = t.tracks || {};
   dismissed = t.dismissed || {};
 }
 
@@ -50,15 +51,11 @@ function postTodo(body, after = null) {
 }
 
 function isSilencedWarning(w) {
-  return !!(w.spell && todo.silenced[`bars:${w.spell.name}`]);
+  const id = todoIdOf(w.key);
+  return !!(id && todo.silenced[id]);
 }
 
-const WARNING_TODO = { ammo: "restock:ammo", petUnhappy: "character:feedPet", shards: "restock:shards",
-  mhPoison: "restock:mhPoison", ohPoison: "restock:ohPoison", poisons: "restock:poisons", water: "restock:water",
-  ankh: "restock:ankhs", earthTotem: "restock:earthTotem", fireTotem: "restock:fireTotem", waterTotem: "restock:waterTotem",
-  airTotem: "restock:airTotem", durability: "character:repair" };
-
-const todoIdOf = (key) => (key.startsWith("rank:") ? `bars:${key.slice(5)}` : WARNING_TODO[key]);
+const todoIdOf = (key) => (key.startsWith("rank:") ? `bars:${key.slice(5)}` : todo.tracks[key]);
 
 function todoForWarning(w) {
   const id = todoIdOf(w.key);

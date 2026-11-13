@@ -3,8 +3,9 @@ import re
 import time
 
 MINE = 0x1
+FRIENDLY, HOSTILE = 0x10, 0x40
+CONTROL_PLAYER = 0x100
 PLAYER, NPC, PET, GUARDIAN = 0x400, 0x800, 0x1000, 0x2000
-HOSTILE = 0x40
 
 DAMAGE = {"SWING_DAMAGE", "RANGE_DAMAGE", "SPELL_DAMAGE", "SPELL_PERIODIC_DAMAGE", "ENVIRONMENTAL_DAMAGE",
           "DAMAGE_SHIELD", "SPELL_BUILDING_DAMAGE"}
@@ -12,14 +13,19 @@ MISSED = {"SWING_MISSED", "RANGE_MISSED", "SPELL_MISSED", "SPELL_PERIODIC_MISSED
 HEAL = {"SPELL_HEAL", "SPELL_PERIODIC_HEAL"}
 OTHER = {"SPELL_CAST_START", "SPELL_CAST_SUCCESS", "SPELL_AURA_APPLIED", "SPELL_AURA_REMOVED", "SPELL_INTERRUPT",
          "SPELL_DISPEL", "SPELL_SUMMON", "SPELL_INSTAKILL", "SPELL_DRAIN", "SPELL_LEECH", "PARTY_KILL", "UNIT_DIED"}
-KEPT = DAMAGE | MISSED | HEAL | OTHER
+FIGHT_ONLY = {"SWING_DAMAGE_LANDED", "SPELL_ABSORBED", "SPELL_AURA_BROKEN", "SPELL_AURA_BROKEN_SPELL"}
+KEPT = DAMAGE | MISSED | HEAL | OTHER | FIGHT_ONLY
 SPELL_PREFIX = ("SPELL_PERIODIC_", "SPELL_BUILDING_", "SPELL_", "RANGE_", "DAMAGE_SHIELD")
+AURA_KINDS = {"BUFF", "DEBUFF"}
+EXTRA_SPELL = {"SPELL_INTERRUPT", "SPELL_DISPEL", "SPELL_AURA_BROKEN_SPELL"}
 
 STAMP = re.compile(r"^(\d{1,2})/(\d{1,2})(?:/(\d{2,4}))? (\d{1,2}):(\d{2}):(\d{2})(?:\.(\d{1,4}))?(?:[+-]\d{1,2})?\s\s(.*)$")
 GUID = re.compile(r"^(?:Player|Creature|Pet|Vehicle|GameObject|Vignette|Item|Corpse|BattlePet)-[0-9A-Za-z-]+$|^0+$")
 NUMBER = re.compile(r"^-?\d+(?:\.\d+)?$")
 INTEGER = re.compile(r"^-?\d+$")
+POWERS = re.compile(r"^-?\d+(?:\|-?\d+)+$")
 MISS_KIND = re.compile(r"^[A-Z]+$")
+NO_GUID = "0000000000000000"
 
 
 def stamp(line, now=None):
@@ -91,21 +97,37 @@ def advanced(f, at):
     if len(f) < at + 2 or not (GUID.match(f[at]) and GUID.match(f[at + 1])):
         return 0, None
     k = at + 2
-    while k < len(f) and INTEGER.match(f[k]):
+    while k < len(f) and (INTEGER.match(f[k]) or POWERS.match(f[k])):
         k += 1
     if k == at + 2 or len(f) < k + 5:
         return 0, None
     x, y, m, facing, level = _num(f[k]), _num(f[k + 1]), _int(f[k + 2]), _num(f[k + 3]), _int(f[k + 4])
     if None in (x, y, m, facing, level) or "." not in f[k + 1]:
         return 0, None
-    return k + 5 - at, {"guid": f[at], "pos": [m, x, y, round(facing, 3)]}
+    info = {"guid": f[at], "pos": [m, x, y, round(facing, 3)]}
+    if f[at + 1] != NO_GUID and not INTEGER.match(f[at + 1]):
+        info["owner"] = f[at + 1]
+    unit = unit_numbers([int(v.split("|", 1)[0]) for v in f[at + 2:k]], level)
+    if unit:
+        info["unit"] = unit
+    return k + 5 - at, info
+
+
+def unit_numbers(nums, last):
+    if len(nums) < 9:
+        return None
+    out = {"h": nums[0], "mh": nums[1], "ap": nums[2], "sp": nums[3], "ar": nums[4],
+           "pt": nums[-4], "p": nums[-3], "mp": nums[-2], "lv": last}
+    if len(nums) >= 10:
+        out["ab"] = nums[-5]
+    return out
 
 
 def _flag(v):
     return {"1": True, "nil": False}.get(v)
 
 
-def _suffix(s, numbers, extra):
+def _suffix(s, numbers, extra, least):
     newer = len(s) > numbers and all(INTEGER.match(v) for v in s[:numbers]) and _flag(s[numbers]) is not None
     older = len(s) > numbers - 1 and all(INTEGER.match(v) for v in s[:numbers - 1]) \
         and _flag(s[numbers - 1]) is not None
@@ -115,19 +137,26 @@ def _suffix(s, numbers, extra):
     if newer != older:
         place = 2 if newer else 1
         more, cr = _int(s[place]), _flag(s[numbers if newer else numbers - 1])
-        if more > 0:
+        if more >= least:
             out[extra] = more
         if cr:
             out["cr"] = 1
     return out
 
 
-def damage_suffix(s):
-    return _suffix(s, 7, "ok")
+def damage_suffix(s, least=0):
+    return _suffix(s, 7, "ok", least)
 
 
 def heal_suffix(s):
-    return _suffix(s, 4, "oh")
+    return _suffix(s, 4, "oh", 1)
+
+
+def absorbed(f):
+    at = 9 if GUID.match(f[9] if len(f) > 9 else "") else 12
+    if len(f) < at + 8 or not GUID.match(f[at]) or not INTEGER.match(f[at + 4]) or not INTEGER.match(f[at + 7]):
+        return {}
+    return {"xs": int(f[at + 4]), "xsn": f[at + 5], "a": int(f[at + 7])}
 
 
 def combat(rest):
@@ -139,6 +168,11 @@ def combat(rest):
         return None
     e = f[0]
     ev = {"e": e, "sg": f[1], "sn": f[2], "sf": _flags(f[3]), "dg": f[5], "dn": f[6], "df": _flags(f[7])}
+    if e == "SPELL_ABSORBED":
+        if not GUID.match(f[9] if len(f) > 9 else "") and len(f) >= 12:
+            ev["sp"], ev["spn"] = _int(f[9]), f[10]
+        ev.update(absorbed(f))
+        return ev
     p = prefix_size(e)
     if p == 3 and len(f) >= 12:
         ev["sp"], ev["spn"] = _int(f[9]), f[10]
@@ -151,13 +185,19 @@ def combat(rest):
     suffix = f[at + size:]
     if p == 1 and suffix:
         ev["spn"], suffix = suffix[0], suffix[1:]
-    got = damage_suffix(suffix) if e in DAMAGE else heal_suffix(suffix) if e in HEAL else None
+    got = damage_suffix(suffix, 1 if p == 1 else 0) if e in DAMAGE else heal_suffix(suffix) if e in HEAL else None
     if got:
         ev.update(got)
     elif e in MISSED and suffix and MISS_KIND.match(suffix[0]):
         ev["m"] = suffix[0]
     elif e in ("SPELL_DRAIN", "SPELL_LEECH") and suffix and INTEGER.match(suffix[0]) and _int(suffix[0]) >= 0:
         ev["a"] = _int(suffix[0])
+    if e in EXTRA_SPELL and len(suffix) >= 2 and INTEGER.match(suffix[0]):
+        ev["xs"], ev["xsn"] = int(suffix[0]), suffix[1]
+        suffix = suffix[3:]
+    if e.startswith("SPELL_AURA_") or e == "SPELL_DISPEL":
+        if suffix and suffix[0] in AURA_KINDS:
+            ev["aura"] = suffix[0]
     return ev
 
 
@@ -167,6 +207,14 @@ def mine(flags):
 
 def is_me(flags):
     return bool(flags & MINE) and bool(flags & PLAYER)
+
+
+def player_controlled(flags):
+    return bool(flags & CONTROL_PLAYER)
+
+
+def hostile_player(flags):
+    return bool(flags & CONTROL_PLAYER) and bool(flags & HOSTILE) and not flags & MINE
 
 
 def npc_of(guid):

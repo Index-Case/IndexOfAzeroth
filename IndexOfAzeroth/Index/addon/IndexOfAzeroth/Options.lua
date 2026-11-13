@@ -92,6 +92,7 @@ local TREE = {
     { key = "world", name = Word("game.options.window.general.graphics") },
     { key = "polaroid", name = Word("game.options.window.general.level-up-picture") } } },
   { name = Word("game.options.window.quest-epic"), pages = { { key = "card", name = Word("game.options.window.quest-epic.card") } } },
+  { name = Word("game.options.window.quests"), pages = { { key = "declutter", name = Word("game.options.window.quests.declutter") } } },
   { name = Word("game.options.window.navigation"),
     pages = { { key = "navigation", name = Word("game.options.window.navigation.guidance") } } },
   { name = Word("game.options.window.targets"), pages = { { key = "nameplates", name = Word("game.options.window.targets.nameplates") },
@@ -132,20 +133,9 @@ local function Check(p, ui, x, y, label, get, set, words, round)
   local row = CreateFrame("Button", nil, p)
   row:SetPoint("TOPLEFT", x, y)
   row:SetSize(PAGE_W - x, 18)
-  local box = CreateFrame("Frame", nil, row, "BackdropTemplate")
-  box:SetSize(14, 14)
+  local box = ui.TickBox(row, round)
   box:SetPoint("LEFT", 0, 0)
-  ui.Skin(box, C.row, C.edge)
-  local tick = box:CreateTexture(nil, "OVERLAY")
-  if round then
-    tick:SetColorTexture(C.gold[1], C.gold[2], C.gold[3], 1)
-    tick:SetSize(6, 6)
-    tick:SetPoint("CENTER")
-  else
-    tick:SetTexture("Interface\\Buttons\\UI-CheckBox-Check")
-    tick:SetSize(20, 20)
-    tick:SetPoint("CENTER", 1, 0)
-  end
+  box:EnableMouse(false)
   local t = ui.Text(row, "GameFontHighlight", C.ivory)
   t:SetPoint("LEFT", box, "RIGHT", 8, 0)
   t:SetText(label)
@@ -157,10 +147,10 @@ local function Check(p, ui, x, y, label, get, set, words, round)
     help:SetWidth(PAGE_W - x - 22)
     help:SetText(words)
   end
-  local function Show() tick:SetShown(get() and true or false) end
+  local function Show() box:SetTicked(get()) end
   row:SetScript("OnClick", function() set(not get()); Show() end)
-  row:SetScript("OnEnter", function() box:SetBackdropBorderColor(C.gold[1], C.gold[2], C.gold[3], 1) end)
-  row:SetScript("OnLeave", function() box:SetBackdropBorderColor(unpack(C.edge)) end)
+  row:SetScript("OnEnter", function() box:Lit(true) end)
+  row:SetScript("OnLeave", function() box:Lit(false) end)
   row.help = help
   return Show, row
 end
@@ -329,6 +319,79 @@ BUILD.card = function(p, ui)
   Add(-266, "nextZones", Word("game.options.card.next-zones"), Word("game.options.card.next-zones.help"))
   Add(-316, "classQuest", Word("game.options.card.class-quest"), Word("game.options.card.class-quest.help"))
   return function() for _, show in ipairs(shows) do show() end end
+end
+
+BUILD.declutter = function(p, ui)
+  local C, D = ui.C, ns.Declutter
+  Heading(p, ui, Word("game.options.declutter.heading"), Word("game.options.declutter.heading.help"))
+  local TOP, ZONE_W, BOX_W = -78, 210, 60
+  local cols, heads = { "gray", "green" }, { gray = Word("game.options.declutter.gray"), green = Word("game.options.declutter.green") }
+  for i, colour in ipairs(cols) do
+    local h = ui.Text(p, "GameFontNormalSmall", D.Shade(colour))
+    h:SetPoint("TOPLEFT", ZONE_W + 16 + (i - 1) * BOX_W, TOP)
+    h:SetText(heads[colour])
+  end
+  local none = ui.Text(p, "GameFontHighlightSmall", C.muted)
+  none:SetPoint("TOPLEFT", 0, TOP - 22)
+  none:SetWidth(PAGE_W)
+  none:SetText(Word("game.options.declutter.none"))
+  local list = ui.Scroller(p)
+  list:SetPoint("TOPLEFT", 0, TOP - 20)
+  list:SetPoint("BOTTOMRIGHT", 0, 0)
+  local rows = {}
+  local Show
+  local function Row(i)
+    local r = CreateFrame("Frame", nil, list.child)
+    r:SetSize(PAGE_W, ROW_H)
+    r:SetPoint("TOPLEFT", 0, -(i - 1) * (ROW_H + 4))
+    r.key = ui.FlatButton(r, "", ZONE_W, function(self) if not self.off then D.Review(r.zone.name, D.Ticks(r.zone.name)) end end)
+    r.key:SetHeight(ROW_H)
+    r.key:SetPoint("LEFT", 0, 0)
+    r.boxes = {}
+    for c, colour in ipairs(cols) do
+      local box = ui.TickBox(r)
+      box:SetPoint("LEFT", ZONE_W + 16 + (c - 1) * BOX_W + 6, 0)
+      box:SetScript("OnClick", function(self)
+        if self.off then return end
+        local t = D.Ticks(r.zone.name)
+        t[colour] = not t[colour]
+        Show()
+      end)
+      box:SetScript("OnEnter", function(self) if not self.off then self:Lit(true) end end)
+      box:SetScript("OnLeave", function(self) self:Lit(false) end)
+      r.boxes[colour] = box
+    end
+    rows[i] = r
+    return r
+  end
+  Show = function()
+    local zones = D.Zones()
+    for i, z in ipairs(zones) do
+      local r = rows[i] or Row(i)
+      r.zone = z
+      local t, picks = D.Ticks(z.name), 0
+      for _, colour in ipairs(cols) do
+        local box, has = r.boxes[colour], #z[colour] > 0
+        box.off = not has
+        box:SetEnabled(has)
+        box:SetAlpha(has and 1 or 0.4)
+        box:SetTicked(has and t[colour])
+        if has and t[colour] then picks = picks + #z[colour] end
+      end
+      r.key.label:SetText(z.name)
+      r.key.off = picks == 0
+      r.key:SetEnabled(picks > 0)
+      r.key:SetAlpha(picks > 0 and 1 or 0.5)
+      r:Show()
+    end
+    for i = #zones + 1, #rows do rows[i]:Hide() end
+    none:SetShown(#zones == 0)
+    list:Fit(#zones * (ROW_H + 4))
+  end
+  p.rows = rows
+  p:SetScript("OnShow", function() D.Untick(); Show() end)
+  D.OnChange(function() if p:IsVisible() then Show() end end)
+  return Show
 end
 
 BUILD.navigation = function(p, ui)

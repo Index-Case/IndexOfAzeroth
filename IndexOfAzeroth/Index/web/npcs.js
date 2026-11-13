@@ -1,10 +1,7 @@
 // The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
 "use strict";
 
-const HUNT_LINES = ["A dwarf is reading the bounty board", "SI:7 is asking around for a name", "A hunter is casting Track Humanoids",
-  "A guard is pinning up a Wanted poster", "A Ravenholdt informant wants paying", "A tracker is following prints in the mud",
-  "A hunter is placing Hunter's Mark", "The guards are asking who passed by", "The innkeeper will gossip for an ale",
-  "Your pet has gone ahead on the scent"];
+const HUNT_LINES = Object.values(wordsOf("page.npcs.hunt"));
 const HUNT_TYPE_MS = 45;
 const HUNT_HOLD_MS = 1100;
 const FIND_WAIT_MS = 80;
@@ -21,17 +18,18 @@ const keepNpcFind = () => keepIn("cc.npcFind", { text: finder.text, full: finder
 
 
 const finderHtml = () => html`<div class="npc-find"><div class="npc-box"><form class="npc-form" id="npc-form">${raw(searchBox("npc-find",
-  "Find an NPC or mob by name", finder.text))}</form></div><div class="npc-hunt" aria-live="polite"><img
-  class="npc-glass" id="npc-glass" src="/icon/${GLASS_ICON}.jpg" alt="" title="This is the full search. It allows more letters off and also searches the titles and zones"
+  word("page.npcs.box"), finder.text))}</form></div><div class="npc-hunt" aria-live="polite"><img
+  class="npc-glass" id="npc-glass" src="/icon/${GLASS_ICON}.jpg" alt="" title="${word("page.npcs.full.tip")}"
   hidden><span class="npc-line" id="npc-line"></span></div></div>`;
 
 function huntText() {
   const h = finder.hunt;
   if (h.line >= 0) return HUNT_LINES[h.line].slice(0, h.shown);
   if (!finder.text.trim() || finder.busy) return "";
-  if (finder.failed) return "The trail went cold. The search didn't go through";
-  const n = finder.found.length, further = finder.done?.more ? ". Press Enter to search further" : "";
-  return n ? `${num(n)} found, with the nearest at the top${further}` : `No one goes by that name${further}`;
+  if (finder.failed) return word("page.npcs.failed");
+  const n = finder.found.length, more = !!finder.done?.more;
+  if (n) return more ? word("page.npcs.found.more", { n: num(n) }) : word("page.npcs.found", { n: num(n) });
+  return more ? word("page.npcs.none.more") : word("page.npcs.none");
 }
 function paintHunt() {
   const line = $("npc-line");
@@ -124,7 +122,7 @@ function askNpcs(full) {
     if (!mine()) return;
     Object.assign(finder, { ask: null, busy: false, failed: true });
     paintHunt();
-    askFailed("No search", e);
+    askFailed(word("page.npcs.search.failed"), e);
   });
 }
 
@@ -135,21 +133,21 @@ function detailHtml(n) {
   return html`${mobLevelHtml(n.levels, { id: n.id, name: n.name, where: "npcs" })}${n.rank ? `, ${n.rank}` : ""}`;
 }
 function zonesTitle(n) {
-  if (n.dungeon) return `${n.name} is inside ${n.zone}. Guide me leads to the entrance of ${n.zone}`;
-  if (!n.zone) return `We have no information yet on where ${n.name} stands`;
-  return n.zones.length ? `${n.name} is also in ${andList(n.zones)}` : "";
+  if (n.dungeon) return word("page.npcs.inside", { name: n.name, zone: n.zone });
+  if (!n.zone) return word("page.npcs.nowhere", { name: n.name });
+  return n.zones.length ? word("page.npcs.also", { name: n.name, zones: andList(n.zones) }) : "";
 }
 function npcRow(n, i) {
   const off = n.at || n.dungeon ? null : raw(" disabled");
   if (off) noteGap("npc-place", n.id, "npcs", n.name);
-  const to = n.dungeon ? `the entrance of ${n.zone}` : n.kind === "mob" ? `the nearest spawn of ${n.name}` : n.name;
-  const nowhere = `We have no information yet on where ${n.name} stands`;
+  const to = n.dungeon ? word("page.npcs.to.entrance", { zone: n.zone }) : n.kind === "mob" ? word("page.npcs.to.spawn", { name: n.name }) : n.name;
+  const nowhere = word("page.npcs.nowhere", { name: n.name });
   const show = off ? "" : html` title="${word("page.search.show", { name: n.name })}"`;
   return html`<div class="npc-row" data-npc="${i}"${show}><span class="mob-name">${n.name}<small>${detailHtml(n)}</small></span>
-    <span class="npc-zone" title="${zonesTitle(n)}">${n.zone || "Unknown"}<small>${n.yards != null ? `${num(n.yards)} yd` : ""}</small></span>
-    <button class="mob-go" data-npc-go="${i}"${off} title="${off ? nowhere : `This starts the Navigation Guide to ${to} and copies the line for the in-game arrow`}">Guide me</button>
-    <button class="mob-go" data-npc-target="${i}" title="This puts the Target key for ${n.name} in the game. The key shows beside the add-on button after the next /reload, and its line is copied too">Target</button>
-    <button class="mob-go" data-npc-both="${i}"${off} title="${off ? nowhere : `This does both. It starts the Navigation Guide to ${to} and puts the Target key for ${n.name} beside the add-on button`}">Both</button></div>`;
+    <span class="npc-zone" title="${zonesTitle(n)}">${n.zone || word("page.npcs.zone.unknown")}<small>${n.yards != null ? `${num(n.yards)} yd` : ""}</small></span>
+    <button class="mob-go" data-npc-go="${i}"${off} title="${off ? nowhere : word("page.npcs.go.tip", { to })}">${word("page.npcs.go")}</button>
+    <button class="mob-go" data-npc-target="${i}" title="${word("page.npcs.target.tip", { name: n.name })}">${word("page.npcs.target")}</button>
+    <button class="mob-go" data-npc-both="${i}"${off} title="${off ? nowhere : word("page.npcs.both.tip", { to, name: n.name })}">${word("page.npcs.both")}</button></div>`;
 }
 const foundHtml = () => html`${finder.found.map(npcRow)}`;
 const renderFound = () => setHtml($("npc-found"), foundHtml());
@@ -192,12 +190,12 @@ const targetLine = (n) => `/ioa target ${n.kind === "mob" ? "!" : "@"}${n.name}`
 function targetNpc(n) {
   const line = targetLine(n);
   leaveForLogin(line, "target", n.name);
-  copyText(line, `The Target key for ${n.name} shows beside the add-on button after your next /reload. Its line is copied for a paste too`, false,
-           { kind: "Target key", from: "reload-panel", reason: "target", reload: true });
+  copyText(line, word("page.npcs.target.copied", { name: n.name }), false,
+           { kind: word("page.npcs.target.kind"), from: "reload-panel", reason: "target", reload: true });
 }
 function bothNpc(n) {
   leaveForLogin(targetLine(n), "target", n.name);
-  guideToNpc(n, { lead: `The guide to ${n.name} is copied. The Target key for ${n.name} shows after your next /reload` });
+  guideToNpc(n, { lead: word("page.npcs.both.copied", { name: n.name }) });
 }
 
 

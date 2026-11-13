@@ -1,5 +1,5 @@
 # The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
-# placeholders: quest
+# placeholders: quest, done, all, n, boss, dungeon, quests
 
 quest = Quest: {quest}
 
@@ -7,4 +7,32 @@ in-area = In the area
 
 side-done = Every step of this profession epic is done.
 
+next-steps = Next steps
+
 side-hint = Click to open this profession epic's window. Right-click or click the x to close the profession epic.
+
+steps = {done} of {all} steps
+prep-left = Before you go in: {n} steps left
+prep-left.one = Before you go in: one step left
+
+stage.prep = Get ready
+stage.travel = Go there
+stage.inside = Inside
+stage.turnin = Hand in
+
+for-quest = for {quest}
+run-quests = {n} quests inside
+run-quests.one = 1 quest inside
+
+kill-boss = Kill {boss}
+leave = Leave {dungeon}
+
+door-ready = All {n} quests for {dungeon} are in your log.
+door-ready.one = The quest for {dungeon} is in your log.
+door-missing = {quests} are not in your log yet.
+door-missing.one = {quests} is not in your log yet.
+door-parked = {quest} (parked)
+door-refused = {quest} (not offered)
+
+here = While you're here
+then = Then

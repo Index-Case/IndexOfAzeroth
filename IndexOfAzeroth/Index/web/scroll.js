@@ -120,21 +120,23 @@ const streamColour = (q) => STREAM_COLOURS[q] || "forever-cream";
 
 
 function scrollLine(a) {
-  const name = esc(a.name || `Item ${a.item}`), stack = a.count > 1 ? `${num(a.count)} ` : "";
-  const price = a.unit > 0 ? `${money(a.unit)}${a.count > 1 ? " each" : ""}` : a.bid > 0 ? `${money(a.bid)} bid` : "";
+  const name = esc(a.name || word("page.auction-scroll.item", { id: a.item })), stack = a.count > 1 ? `${num(a.count)} ` : "";
+  const price = a.unit > 0 ? (a.count > 1 ? word("page.auction-scroll.each", { price: money(a.unit) }) : money(a.unit))
+    : a.bid > 0 ? word("page.auction-scroll.bid", { price: money(a.bid) }) : "";
   return `<div class="ah-line"><span class="ah-name">${stack}${name}</span><span class="ah-price">${price}</span></div>`;
 }
 function scrollCaption(b) {
-  if (b.waiting) return "Waiting for the strip";
-  if (b.state === "asking") return "Asking the auction house";
-  return b.total ? `Scanning the auction house, ${num(b.received || 0)} of ${num(b.total)}` : "Scanning the auction house";
+  if (b.waiting) return word("page.auction-scroll.caption.waiting");
+  if (b.state === "asking") return word("page.auction-scroll.caption.asking");
+  return b.total ? word("page.auction-scroll.caption.count", { n: num(b.received || 0), total: num(b.total) })
+    : word("page.auction-scroll.caption.scanning");
 }
 function scrollEnded(b) {
   const n = num(b.received || 0);
-  if (b.state === "done" && b.complete) return `The auction house scan is done, with ${n} auctions`;
-  if (b.state === "failed") return "The auction house sent nothing back";
-  if (b.state === "interrupted") return `The auction house scan was cut off. The Index kept ${n} auctions`;
-  return `The auction house scan stopped. The Index kept ${n} auctions`;
+  if (b.state === "done" && b.complete) return word("page.auction-scroll.ended.done", { n });
+  if (b.state === "failed") return word("page.auction-scroll.ended.failed");
+  if (b.state === "interrupted") return word("page.auction-scroll.ended.cut", { n });
+  return word("page.auction-scroll.ended.stopped", { n });
 }
 
 const SCROLL_LEAVE_MS = 600;
@@ -246,7 +248,7 @@ class ScanScroll {
     const items = (answer?.items || []).filter((a) => a.seq > this.seq);
     this.seq = Math.max(this.seq, answer?.seq || 0, ...items.map((a) => a.seq));
     for (const a of items) {
-      const text = a.name || `Item ${a.item}`;
+      const text = a.name || word("page.auction-scroll.item", { id: a.item });
       this.waiting.push({ text, q: a.q });
       this.waitingChars += text.length;
     }
@@ -279,7 +281,7 @@ class ScanScroll {
 
   writePage() {
     const n = this.at.lines, shown = n ? this.recent.slice(-n) : [];
-    this.page.innerHTML = shown.length ? shown.map(scrollLine).join("") : `<div class="ah-line ah-none">Nothing is scanned yet</div>`;
+    this.page.innerHTML = shown.length ? shown.map(scrollLine).join("") : `<div class="ah-line ah-none">${esc(word("page.auction-scroll.none"))}</div>`;
   }
 
   show(k) {

@@ -4,17 +4,7 @@
 
 const QUIP_MS = QuipLines.ms;
 const QUIP_RESUME = QuipLines.resume;
-const COMPOSE_WAITING = [
-  "The bard has finished your epic. /reload to hear it",
-  "A gnome sealed your orders in wax and burnt his thumb. /reload to open them",
-  "Your epic is written and the scribe wants his lunch. /reload to begin",
-  "The goblin has finished your epic and sent the bill. /reload to start",
-  "The dwarf put down his quill and called for an ale. Your epic is ready. /reload to begin",
-  "The innkeeper has your epic behind the bar. /reload to pick it up",
-  "A night elf scribe finished your epic in a single moon. /reload to read it",
-  "The Tauren elder has finished your epic. /reload and ride out",
-  "Brann has written your epic and has started on a sequel. /reload to begin",
-  "Your epic is ready, and the orc who wrote it is standing over you. /reload now"];
+const COMPOSE_WAITING = Object.values(wordsOf("page.compose.ready"));
 const QUILL = { w: 230, h: 140, yaw: 25, pitch: 28 };
 const compose = { since: 0, mode: null, view: null, loading: false, raf: 0, stream: 0, held: false, shown: new Set(), last: null,
   nowLast: false, t: null, found: [], el: null };

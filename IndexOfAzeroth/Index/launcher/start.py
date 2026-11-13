@@ -133,6 +133,8 @@ class Launch:
             if self.phase == "page.launcher.updated":
                 out.update(size=words.say("page.launcher.update-size", self.values), update=words.say("page.launcher.update"),
                            later=words.say("page.launcher.later"), changes=self.values.get("changes", ""))
+            elif self.phase == "page.launcher.new-installer":
+                out.update(link=updater.INSTALLER_URL, download=words.say("page.launcher.download"))
             elif self.news:
                 out.update(news=words.say("page.launcher.updated", self.news), changes=self.news["changes"])
                 self.news_seen = True
@@ -222,6 +224,12 @@ class Launch:
             installed = updater.installed_manifest(self.install, self.public_key)
             if not manifest or (installed and installed.version == manifest.version):
                 return False
+            if updater.too_old(self.install, manifest):
+                if installed:
+                    return False
+                self.say("page.launcher.new-installer")
+                self.wait(RETRY)
+                continue
             alone = False
             if installed:
                 size = self.size(manifest)
@@ -366,6 +374,9 @@ class Launch:
         installed = updater.installed_manifest(self.install, self.public_key)
         waiting = self.ready[0].version if self.ready else None
         if not installed or manifest.version in (installed.version, self.declined, waiting):
+            return
+        if updater.too_old(self.install, manifest):
+            updatenews.tell(self.install, {"step": "installer", "version": manifest.version, "link": updater.INSTALLER_URL})
             return
         size = self.size(manifest)
         if by_itself(size):

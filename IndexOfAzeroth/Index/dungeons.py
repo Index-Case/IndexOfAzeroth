@@ -13,8 +13,10 @@ from serverlog import log_error
 import mainstores
 import moblevels
 import opendungeons
+from questplan import offered_at
 import store
 import storewriter
+import words
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(ROOT, "data", "dungeons.json")
@@ -30,17 +32,27 @@ MAX_STARS = 40
 load_json = store.load_json
 
 
-EPIC_ABOVE = 2
 DETAIL_LISTS = ("quests", "bosses", "trash", "floors", "chain", "entrances")
-SUMMED = ("key", "name", "kind", "instance", "levels", "zone", "location", "card", "floors", "gameLevel", "opens", "later",
+SUMMED = ("key", "name", "kind", "instance", "levels", "zone", "location", "card", "floors", "opens", "later",
           "wayIn", "coming", "where", "players", "levelsElsewhere", "brackets",
-          "entrances")
+          "entrances", "levelsLine")
 KINDS = {"dungeon": "Dungeon", "raid": "Raid", "battleground": "Battleground"}
 
 
 def place_key(name):
     name = re.sub(r"^(lower|upper) ", "", (name or "").lower().split(":")[0])
     return re.sub(r"[^a-z0-9]", "", name.replace("the ", ""))
+
+
+def level_line(levels):
+    if not levels:
+        return None
+    start, low, high = levels
+    if low == high:
+        return words.say("page.journal.dungeon.levels.from", {"level": start or "?"})
+    if start and start < low:
+        return words.say("page.journal.dungeon.levels.open", {"lo": low, "hi": high, "level": start})
+    return words.say("page.journal.dungeon.levels.range", {"lo": low, "hi": high})
 
 
 def opened(run):
@@ -60,6 +72,8 @@ class Dungeons:
         self.list = data["dungeons"]
         self.coming, self.battlegrounds = data.get("coming", []), data.get("battlegrounds", [])
         self.more_by_key = {d["key"]: d for d in self.coming + self.battlegrounds}
+        for d in self.list + self.coming + self.battlegrounds:
+            d["levelsLine"] = level_line(d.get("levels"))
         self.floors = data["floors"]
         self.items = data["items"]
         self.chain = {int(k): v for k, v in data.get("chainQuests", {}).items()}
@@ -141,11 +155,8 @@ class Dungeons:
         word = KINDS.get(kind, kind.title())
         if not places:
             return f"{word}, not in Forever's first raid release" if kind == "raid" else word
-        low, high = min(d["levels"][1] for d in places), max(d["levels"][2] for d in places)
-        words = f"{word}, " + (f"levels {low}-{high}" if low != high else f"level {low}")
-        game = sorted({d["gameLevel"] for d in places if d.get("gameLevel")})
-        if game:
-            words += f" (Forever's own data gives level {' or '.join(str(g) for g in game)})"
+        words = f"{word}, " + level_line([min(d["levels"][0] for d in places), min(d["levels"][1] for d in places),
+                                          max(d["levels"][2] for d in places)])
         opens = next((w for w in (opening(d.get("opens"), today) for d in places) if w), "")
         if all(self.open_words(d["key"]).get("notOpen") for d in places):
             words += ", not open yet"
@@ -191,8 +202,7 @@ class Dungeons:
                 continue
             seen.add(q["id"])
             if not q.get("classes"):
-                opens = max(q.get("req") or 1, (q.get("level") or 0) - EPIC_ABOVE)
-                low = opens if low is None else min(low, opens)
+                low = offered_at(q) if low is None else min(low, offered_at(q))
             todo += [by_id[p] for p in q.get("preAll", []) + q.get("preAny", []) if p in by_id]
         return low
 

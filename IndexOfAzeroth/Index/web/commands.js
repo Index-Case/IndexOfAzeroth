@@ -58,7 +58,7 @@ function walkCommand(g, guide) {
     const pts = linePoints(path, remainingPath(walkable(path)));
     if (!pts.length) return null;
     const notes = carefulPick(wayNotes(path, walkable(path).points.length - pts.length));
-    const name = reach ? `as close as it goes to ${g.name}` : `${goalMark(g)}${g.name}`;
+    const name = reach ? word("page.commands.close-to", { name: g.name }) : `${goalMark(g)}${g.name}`;
     const top = g.wz;
     const under = endsUnder(path), height = g === guide && learnsHeight(g) ? top ?? pts[pts.length - 1][2] ?? null : null;
     const head = `/ioa go ${cont.id} `;
@@ -92,7 +92,7 @@ function goalAt(inst, wx, wy) {
   return gc ? `${gc.id}.${packPoint(...onMap(gc, [wx, wy]))}` : gz ? `${gz.id}.${packPoint(gz.x / 100, gz.y / 100)}` : "0.AAAAA";
 }
 
-const NO_WAY_YET = "(no route worked out yet)";
+const NO_WAY_YET = word("page.commands.no-way");
 function legParts(g, legs, from, mode, ends) {
   const last = legs.length - 1;
   const inWords = (leg, k, why) => (k < last ? { text: `w${leg.name}${why ? ` ${why}` : ""}` } : ends.stop ? { stop: ends.stop, why }
@@ -203,12 +203,11 @@ function bendShift(a, b, c) {
   const u = len ? Math.max(0, Math.min(1, ((b[0] - a[0]) * d[0] + (b[1] - a[1]) * d[1] + (b[2] - a[2]) * d[2]) / len)) : 0;
   return Math.hypot(b[0] - a[0] - u * d[0], b[1] - a[1] - u * d[1], b[2] - a[2] - u * d[2]);
 }
-const stopsCutWords = (kept, of) => (kept > 1 ? `A chat line holds only the first ${kept} of the guide's ${of} stops. Copy the guide again at stop ${kept} for the rest`
-  : `A chat line holds only the first of the guide's ${of} stops. Copy the guide again at that stop for the rest`);
-const routeCutWords = (upTo) => `A chat line holds the route only as far as ${upTo}. Copy the guide again at ${upTo} for the rest`;
+const stopsCutWords = (kept, of) => (kept > 1 ? word("page.commands.cut.stops", { kept, of }) : word("page.commands.cut.stop", { of }));
+const routeCutWords = (upTo) => word("page.commands.cut.route", { upto: upTo });
 
 
-const PASTE_HOW = "Paste the line into the game's chat box. Press Enter, Ctrl+V and Enter again";
+const PASTE_HOW = word("page.commands.paste");
 const LINE_FORMAT = 19;
 const BACKGROUND_FORMAT = 19;
 const PUTBACK_FORMAT = 18;
@@ -216,14 +215,14 @@ const COVER_FORMAT = 17;
 const HEIGHT_FORMAT = 13;
 const PARK_FORMAT = 8;
 const UNPARK_FORMAT = 10;
-function copyText(text, lead = "Copied", leave = true, plan = null) {
-  if (!text) return showToast("There's nothing to copy, because the in-game arrow has no route on foot from here");
+function copyText(text, lead = word("page.commands.copied"), leave = true, plan = null) {
+  if (!text) return showToast(word("page.commands.nothing"));
   if (leave) leaveForLogin(text);
   const older = lineTooNew(), cut = goCut?.line === text ? ` ${goCut.said}.` : "";
   const ready = (copied) => plan && showPlanReady({ reload: leave, ...plan, text, copied });
   const done = () => {
-    showToast(`${lead}.${cut} ${older ? "The addon in game is older than this line. Type /reload in game first, then paste the line into the chat box"
-      : PASTE_HOW}${shownGuide()?.fromGame ? ". The game's own guide stays on the map until you paste the line" : ""}`);
+    showToast(`${lead}.${cut} ${older ? word("page.commands.older") : PASTE_HOW}${
+      shownGuide()?.fromGame ? `. ${word("page.commands.game-guide")}` : ""}`);
     ready(true);
   };
   const refused = () => ready(false);
@@ -240,7 +239,7 @@ function fallbackCopy(text, done, refused = () => {}) {
   let ok;
   try { ok = document.execCommand("copy") !== false; } catch (e) { ok = false; }
   if (ok) done();
-  else { showToast("The page couldn't copy the line, because the browser wouldn't let the page use the clipboard"); refused(); }
+  else { showToast(word("page.commands.refused")); refused(); }
   box.remove();
 }
 
@@ -348,7 +347,7 @@ function trackCommand(t) {
   const forms = carefulForms(seen ? carefulPick(seen.flat()) : []);
   let said = 0;
   const careText = () => carefulToken(forms[said]);
-  const named = () => (reach ? `as close as it goes to ${name}` : name);
+  const named = () => (reach ? word("page.commands.close-to", { name }) : name);
   const kindText = loopToken(t);
   const line = () => loop.length && t.kind !== "epic" ? `/ioa ${style.verb} ${cont.id}${kindText} ${walk(lead)}${rideText()}${around()}${mobText()}${careText()} ${named()}`
     : lead.length > 1 || head || rides.length || loop.length ? `/ioa ${style.verb} ${cont.id}${kindText} ${head}${walk(lead)}${rideText()}${around()}${tail()}${takes}${mobText()} ${named()}`

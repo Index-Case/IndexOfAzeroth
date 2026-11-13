@@ -1,6 +1,63 @@
 <!-- The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md. -->
 # Changelog
 
+## 0.1.8-alpha
+
+### The guide
+- Every epic now leads with what to do next as one plain sentence, such as "Pick up Rig Wars from Nogg" or "Speak to Jandia".
+- A step that would surprise you says why in one short line: a quest that opens another, a hearth set for the trip back, a quest done inside the dungeon.
+- A hearth step draws its trip: where you set it, where you go and where you come back.
+- At a dungeon's door the guide says which of its quests are in your log and which are not.
+- The next two steps show where they take you.
+- Many clarity and readability improvements to the guide in game and on the page.
+
+### PvP
+- The new PvP window (B) lists every fight you've had with another player, with your wins and losses, filters and stats. Click a fight to see it in order: every spell from both sides, the damage, the crowd control and the killing blow.
+- Hovering a zone on the map shows whether it's safe, contested or open to attack for your faction.
+
+### Quests
+- Zone epics let you pick which quest colours to plan, from Trivial to Impossible, all ticked at first.
+- A quest taken only to unlock one you picked says which quest it leads to.
+- The add-on's Options have a Declutter key that abandons the gray and green quests you tick, zone by zone.
+- Quests in the newer zones show the experience they give.
+- A timed quest is planned as one run: picked up, done and handed in with nothing in between.
+- Quests that start from an item you find are planned.
+
+### Professions
+- Profession epics can be closed and reopened as they were, with two running at once and any number kept closed.
+- Craft it asks how to plan the item: Cheapest, Fastest or Best of both.
+- A crafting epic counts the materials in your bank and adds a step to take them out.
+- A crafting epic sells the items you crafted only for skill at a vendor on your way and counts that money.
+- Selling an item a later craft needs shows a warning, and buying it back clears the warning.
+- Every step of a profession epic shows a progress bar with how many are left.
+- Auction house steps go to your own faction's auction house.
+
+### Dungeons
+- Each dungeon shows its level range and the level it opens from.
+- More dungeon quests show what starts them.
+
+### Player
+- Spell and talent tooltips work out the numbers that depend on your stats.
+
+### Map
+- Contour lines on the detailed map, with a Contours key.
+- At night, light spills out of doorways and windows.
+- The way into the Drowned City.
+
+### Fixes
+- A turn-in next to where you finish is handed in before a trip to town.
+- Zone epics leave out quests far above the zone and quests with nowhere to hand them in.
+- A group quest inside an enemy town waits until you reach its level, and a step that waits says why.
+- Profession epics no longer send you to a trainer who won't teach you.
+- After the Index restarts, your epic's step and way show on the page at once.
+- A quest item both factions collect is planned at your own faction's spot.
+- Druids fly out of Moonglade instead of walking.
+- A profession lesson is planned at the trainer quickest to reach.
+- A dungeon's quest epic opens at the level its first quest is offered.
+- A PvP fight you died in no longer reads as one you got away from.
+- A profession epic beside your quest epic no longer repeats its chores.
+- A warning set to Never show stays silent.
+
 ## 0.1.7-alpha
 
 ### Professions

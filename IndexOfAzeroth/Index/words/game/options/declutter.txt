@@ -1,0 +1,10 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+heading = Declutter
+heading.help = Declutter lists every zone with gray or green quests in your quest log. Tick Gray, Green or both on a zone's row, then click the zone's name to see the quests you would abandon.
+
+gray = Gray
+green = Green
+
+none = Your quest log has no gray or green quests. The quest log's scribe has nothing to tidy and is pretending to be busy.

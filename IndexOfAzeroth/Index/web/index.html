@@ -26,6 +26,7 @@
     <button class="key" id="btn-player" data-drawer="player" aria-pressed="false" title="Your road to 60 shows what each level opens and what it costs (Y)" style="--icon:url(/icon/inv_misc_questionmark.jpg)"><span class="hotkey">Y</span>Player</button>
     <button class="key" data-drawer="alts" aria-pressed="false" title="The Alts board shows the experience, gold, bags, professions and rested experience of the playing character and of every alt (A)" style="--icon:url(/icon/inv_misc_groupneedmore.jpg)"><span class="hotkey">A</span>Alts</button>
     <button class="key" id="btn-journal" aria-pressed="false" title="The Dungeons window shows every dungeon and raid with its bosses, loot, quests and the next upgrades (J)" style="--icon:url(/icon/inv_misc_book_09.jpg)"><span class="hotkey">J</span>Dungeons</button>
+    <button class="key" id="btn-pvp" aria-pressed="false"><span class="hotkey">B</span><span class="key-word"></span></button>
     <div class="layer-pick">
       <button class="key" id="btn-quests" aria-haspopup="true" aria-expanded="false" title="Quests and Professions holds the quest log and the epics, the guides that plan quests and professions into one route (Q)" style="--icon:url(/icon/inv_scroll_08.jpg)"><span class="hotkey">Q</span><span class="key-tick" aria-label="Quests and Professions"><span class="key-tick-run" aria-hidden="true"><span style="--i:0;--n:2">Quests</span><span style="--i:1;--n:2">Professions</span></span></span></button>
       <div class="layer-menu quest-menu" id="quest-menu" role="menu" hidden><div class="j-bar" id="quest-bar"></div><div class="menu-body" id="quest-list"></div></div>
@@ -164,11 +165,13 @@
       </svg>
       <span id="orient-label">North up</span>
     </button>
+    <button class="key small" id="btn-contours" aria-pressed="false"><svg class="contour-ic" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M4.5 13.5C3 9 6.5 3.5 12.5 3.5S21.5 8 20.5 13S15 21 10.5 20.5S5.5 17 4.5 13.5Z"/><path d="M8.5 13C8 10 10 7.5 13 7.8S17.4 10.5 16.6 13.3S13 17 11 16.6S8.8 14.8 8.5 13Z"/><path class="contour-ic-top" d="M11.8 12.2C11.7 11.3 12.5 10.8 13.3 11.1S14 12.6 13.3 13S12 13 11.8 12.2Z"/></svg><span id="contours-label"></span></button>
     <button class="key small square" id="btn-zoomout" title="Zoom out (-)">&minus;</button>
     <button class="key small square" id="btn-zoomin" title="Zoom in (+)">+</button>
   </div>
 
   <section class="journal" id="journal" aria-label="Dungeons" hidden></section>
+  <section class="journal pvp" id="pvp" aria-label="PvP" hidden></section>
   <section class="reader" id="reader" aria-label="Patch notes" hidden></section>
   <section class="reader timeline" id="timeline" aria-label="Your road to 60" hidden></section>
   <section class="reader talents" id="talents" aria-label="Talents" hidden></section>
@@ -240,6 +243,7 @@
 <script src="fade.js"></script>
 <script src="light.js"></script>
 <script src="relief.js"></script>
+<script src="contours.js"></script>
 <script src="sea.js"></script>
 <script src="seagiants.js"></script>
 <script src="storm.js"></script>
@@ -271,6 +275,9 @@
 <script src="dungeon.js"></script>
 <script src="hidden.js"></script>
 <script src="journal.js"></script>
+<script src="pvpstats.js"></script>
+<script src="pvp.js"></script>
+<script src="pvpfight.js"></script>
 <script src="tracks.js"></script>
 <script src="epic.js"></script>
 <script src="director.js"></script>

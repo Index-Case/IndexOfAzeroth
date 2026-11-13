@@ -1,6 +1,34 @@
 # The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
-# placeholders: none
+# placeholders: n, id, il, item, gain, who, others, spec, class, why, kind, worth, role, name, level
 
 call.need = Need: a clear upgrade for you
 call.greed = Greed: not for you
 call.maybe = Your call: maybe an upgrade
+
+head = Rolling on {n} items
+head.one = Rolling on
+foot = Hover over an item for its tooltip, and hold Ctrl to compare it with what's worn
+
+item = Item {id}
+item-level = item level {il}
+never = your class can't use it
+no-better = not better than what you wear
+over = Over {item}
+over.gain = Over {item}: {gain}
+over.level = Over {item} (item level {il})
+over.level.gain = Over {item} (item level {il}): {gain}
+nothing = You wear nothing in that slot
+
+only = Only {who} can use this item here
+clearly = Clearly for {who}, then {others}
+best = Best for {who}, then {others}
+you = you
+kind.clear = a clear upgrade
+kind.weak = a weak upgrade
+kind.debatable = a debatable upgrade
+why.you = by your talents
+why.role = as the group's {role}
+why.spec = the spec of theirs the item suits best
+tip = {spec} {class} ({why}). For this spec the item is {kind} on its own, worth {worth} by the spec's stat weights
+tip.later = {name} can wear the item from level {level}
+tip.later.you = You can wear the item from level {level}

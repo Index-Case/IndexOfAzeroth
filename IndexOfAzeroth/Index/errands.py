@@ -2,13 +2,17 @@
 import math
 
 import director_rules as rules
-from layers import sells, serving
+import legacynodes
+from gamedata import WARNING_TODO
+from layers import npc_side, sells, serving
 from plansteps import FAR, cheapest, gap, spot
 from ticks import need_met
+import stepwords
 import words
 
 SOON = 6
 HERE = 120.0
+TRIPS_MOST = 24
 TRAIN_CLOSE = 150.0
 TRAIN_HORIZON = 20
 TRAIN_WITHIN = 8
@@ -17,14 +21,15 @@ DURABILITY_LOW = 25
 FLIGHT_NEAR = 150.0
 HUB_NEAR = 250.0
 MERCHANT = {"general", "food", "ammo", "reagents", "poisons", "trade", "bags", "weaponvendor", "armor", "repair"}
+AUCTION = {"auction"}
 RESTOCK = {"water": ("water", {"food"}, 10), "ammo": ("ammo", {"ammo"}, 400), "ankh": ("Ankhs", {"reagents"}, 1),
            "camp": ("wood for campfire kits", MERCHANT, rules.plain(rules.RESTOCK)["camp_stock"])}
 GRADED = ("ammo", "water")
 COUNTED = {"camp"}
 CAMP = rules.plain(rules.RESTOCK)
 KEEP = ("train:", "bind:", "flightpath:")
-TODO_LINES = {"restock:water": "restock:water", "restock:ammo": "restock:ammo", "restock:ankh": "restock:ankhs",
-              "restock:camp": "restock:camp", "repair": "character:repair"}
+TODO_LINES = {**{f"restock:{w}": WARNING_TODO[w] for w in RESTOCK if w not in COUNTED},
+              **{f"restock:{w}": f"restock:{w}" for w in COUNTED}, "repair": WARNING_TODO["durability"]}
 HIDDEN_NAMES = {"restock:water": "Buy water", "restock:ammo": "Buy ammo", "restock:ankh": "Buy Ankhs",
                 "restock:camp": rules.line("heads", "camp_restock"), "repair": "Repair your gear"}
 MADE_BY = {"water": "Conjure Water"}
@@ -32,6 +37,8 @@ ANY_NPC = ("sell", "repair", "restock", "train", "supplies")
 LAND_NEAR = 150.0
 ADDON_CHORES = {"train": 1, "sell": 2, "repair": 4, "restock": 8}
 KINDS = ("repair", "sell", "restock", "train", "bind", "flightpath")
+BARTERING, BARTERING_PRICE = 1225459, 0
+REAGENT_ECONOMY = 1225503
 
 
 def addon_chores(mask):
@@ -40,6 +47,12 @@ def addon_chores(mask):
 
 def restock_words(thing, item, npc):
     return words.say("both.restock.buy", {"item": item or RESTOCK[thing][0], "npc": npc})
+
+
+def vendor_words(npc, sell=False, repair=False, train=False):
+    fill = {"npc": npc}
+    return (words.say("both.chore.sell-train", fill) if train else words.say("both.chore.sell-repair", fill) if sell and repair
+            else words.say("both.chore.sell", fill) if sell else words.say("both.chore.repair", fill))
 
 
 def chore_buy(sv, thing, me):
@@ -56,10 +69,9 @@ def own_chore_step(c, name, buy=None, item=None):
         text = rules.line("heads", "camp_buy", {"buy": buy["words"], "npc": who})
     elif what == "restock":
         text = restock_words(c["thing"], item, who) if c.get("thing") in RESTOCK else f"Buy supplies at {who}"
-    elif c.get("junk"):
-        text = f"Sell your junk at {who}, then train"
     else:
-        text = f"{'Sell and repair' if c.get('both') else 'Sell' if what == 'sell' else 'Repair'} at {who}"
+        text = vendor_words(who, sell=what == "sell" or c.get("both"), repair=what == "repair" or c.get("both"),
+                            train=c.get("junk"))
     return {"k": "S", "ids": [], "what": what, "text": text, "name": text, "npc": name, "inst": c.get("inst"),
             "at": list(c.get("at") or ()), **({"cost": c["cost"]} if c.get("cost") else {}),
             **({"min": c["level"]} if c.get("level") else {}), "own": True}
@@ -186,7 +198,7 @@ def camp_buy(me, camp):
     n = (CAMP["camp_stock"] - camps) * fire[3]
     have = ((me.get("game") or {}).get("items") or {}).get(wood, 0)
     name = lambda i: info[i][1] if i in info else f"item {i}"
-    price = lambda i: info[i][2] if i in info else 0
+    price = lambda i: vendor_price(info[i][2], me) if i in info else 0
     words = (rules.line("heads", "camp_wood_tool", {"n": n, "wood": name(wood), "tool": name(tool)}) if tool
              else rules.line("heads", "camp_wood", {"n": n, "wood": name(wood)}))
     return {"wood": wood, "n": n, "tool": tool, "items": [wood] + ([tool] if tool else []),
@@ -261,6 +273,24 @@ def pays(money, cost):
     return None if money is None else money >= cost
 
 
+def bartering(char):
+    return legacynodes.value(char, BARTERING, BARTERING_PRICE)
+
+
+def vendor_price(copper, me):
+    if copper is None:
+        return None
+    return copper * (100 + ((me or {}).get("bartering") or 0)) / 100
+
+
+def legacy_terms(char):
+    if not legacynodes.known(char):
+        return None
+    share = bartering(char)
+    return {**({"bartering": share} if share else {}),
+            **({"reagentEconomy": True} if legacynodes.has(char, REAGENT_ECONOMY) else {})}
+
+
 def money_note(what, why, doing, cost, have, brief):
     if why == "unknown":
         return {"what": what, "text": f"{doing} waits for the game to say your money", "brief": f"{brief}, your money not read yet"}
@@ -293,11 +323,12 @@ def coins(copper):
 
 class Errands:
     def __init__(self, services, geo, inns=(), flights=(), trainer_levels=None, trainer_costs=None, teaches=None,
-                 game_prices=None, walkers=(), sellers=None, camp=None, item_name=None, walled=None):
+                 game_prices=None, walkers=(), sellers=None, camp=None, item_name=None, walled=None, reach=None):
         self.services, self.geo, self.inns, self.flights = services, geo, list(inns), list(flights)
         self.sellers, self.camp = sellers, camp or (lambda: None)
         self.item_name = item_name or (lambda item: None)
         self.walled = walled or (lambda side: frozenset())
+        self.reach = reach or gap
         self.trainer_levels, self.trainer_costs = trainer_levels or {}, trainer_costs or {}
         self.teaches = teaches if teaches is not None else {}
         self.game_prices = game_prices if game_prices is not None else {}
@@ -318,6 +349,12 @@ class Errands:
             self.places_cache[key] = out
         return out
 
+    def auctioneers(self, faction):
+        key = ("auctioneers", faction, self.walled(faction))
+        if key not in self.places_cache:
+            self.places_cache[key] = self.places(AUCTION, faction, ids=True, keep=lambda sv, kind: npc_side(sv) == faction)
+        return self.places_cache[key]
+
     def vendors_of(self, items, faction, sold, stocked=None):
         places = self.places(MERCHANT, faction, ids=True)
         stocked = stocked or {}
@@ -330,28 +367,31 @@ class Errands:
         return [by[n] for n in sorted(by, reverse=True)]
 
     @staticmethod
-    def near_route(places, spots, most=12):
+    def near_route(places, spots, most=12, reach=gap):
         spots = [s for s in spots if s]
         if not spots:
             return places[:most]
-        return sorted(places, key=lambda p: min(gap(s, p[1]) for s in spots))[:most]
+        return sorted(places, key=lambda p: min(reach(s, p[1]) for s in spots))[:most]
 
     def fit(self, steps, lo, hi, places, anchor, make, ok=None):
+        reach = self.reach
         if lo <= 0 and anchor:
             here = [p for p in places if gap(anchor, p[1]) <= HERE and (not ok or ok(0, p))]
             if here:
                 steps.insert(0, make(*min(here, key=lambda p: gap(anchor, p[1]))))
                 return 0
         window = [anchor] + [spot(s) for s in steps[max(0, lo - 1):min(hi, len(steps)) + 1]]
-        places = self.near_route(places, window)
-        best = cheapest(steps, [p[1] for p in places], max(0, lo), min(hi, len(steps)), anchor,
+        if len(places) > TRIPS_MOST:
+            places = self.near_route(places, window, most=TRIPS_MOST)
+        places = self.near_route(places, window, reach=reach)
+        best = cheapest(steps, [p[1] for p in places], max(0, lo), min(hi, len(steps)), anchor, gap=reach,
                         ok=ok and (lambda i, k: ok(i, places[k])))
         if best is None or best[0] >= FAR / 2:
             return None
         steps.insert(best[1], make(*places[best[2]]))
         return best[1]
 
-    def fit_paid(self, steps, lo, hi, places, anchor, make, cost, have, fit=None):
+    def fit_paid(self, steps, lo, hi, places, anchor, make, cost, have, fit=None, upkeep=False):
         fit = fit or self.fit
         price = cost if callable(cost) else (lambda i, p: cost)
         at = fit(steps, lo, hi, places, anchor, make, ok=lambda i, p: pays(money_before(steps, i, have), price(i, p)) is True)
@@ -359,7 +399,13 @@ class Errands:
             return at, None
         if fit(list(steps), lo, hi, places, anchor, lambda *_: {}, ok=None) is None:
             return None, "far"
-        return None, "unknown" if have is None else "short"
+        if upkeep:
+            return None, "unknown" if have is None else "short"
+
+        def waiting(*place):
+            step = make(*place)
+            return {**step, "need": {**(step.get("need") or {}), "pay": step["cost"]}} if step.get("cost") else step
+        return fit(steps, lo, hi, places, anchor, waiting, ok=None), None
 
     def spell_price(self, schedule, cid):
         game = self.game_prices.get(cid) or {}
@@ -439,7 +485,7 @@ class Errands:
         unplaced = False
         sold = None if junk > 0 and not any(s.get("what") == "sell" and s.get("gain") for s in steps) else False
         named = False
-        sell = lambda n, p, *_: {**self.step("sell", "sell", f"Sell your junk at {n}", n, p, {"junk": True}), "gain": junk}
+        sell = lambda n, p, *_: {**self.step("sell", "sell", vendor_words(n, sell=True), n, p, {"junk": True}), "gain": junk}
         i = 0
         while i <= len(steps):
             if not can_pay(i):
@@ -480,7 +526,7 @@ class Errands:
                         **({"cost": round(total)} if total else {}))
             step["questName"] = step["text"]
             if sold and not named and any(x is sold for x in steps[:at]):
-                sold.update(text=f"Sell your junk at {sold['npc']}, then train: {what}")
+                sold.update(text=f"{vendor_words(sold['npc'], train=True)}: {what}")
                 sold["questName"] = sold["text"]
                 named = True
             if have is not None and have < total:
@@ -558,9 +604,10 @@ class Errands:
             return
         sellers = self.places(RESTOCK["camp"][1], faction, keep=lambda sv, _: sells(sv, buy["items"]))
         _, why = self.fit_paid(steps, 0, SOON, sellers, anchor,
-                               lambda n, p, _: self.step("restock", "restock:camp", rules.line("heads", "camp_buy", {"buy": buy["words"], "npc": n}),
-                                                         n, p, buy["need"], buy["cost"]),
-                               buy["cost"], me.get("money"))
+                               lambda n, p, _: stepwords.give(
+                                   self.step("restock", "restock:camp", rules.line("heads", "camp_buy", {"buy": buy["words"], "npc": n}),
+                                             n, p, buy["need"], buy["cost"]), "low", item=RESTOCK["camp"][0]),
+                               buy["cost"], me.get("money"), upkeep=True)
         if why == "short" and sellers:
             notes.append({"what": "restock", "text": rules.line("heads", "camp_short", {
                 "buy": buy["words"], "cost": coins(buy["cost"]), "have": coins(me["money"])})})
@@ -570,9 +617,9 @@ class Errands:
     @staticmethod
     def restock_buy(prices, thing, level, me):
         if thing == "ankh":
-            return (None, prices["ankh"]) if prices.get("ankh") is not None else None
+            return (None, vendor_price(prices["ankh"], me)) if prices.get("ankh") is not None else None
         best = Errands.restock_row(prices, thing, level, me)
-        return (best[2], best[1]) if best else None
+        return (best[2], vendor_price(best[1], me)) if best else None
 
     @staticmethod
     def restock_row(prices, thing, level, me):
@@ -624,11 +671,10 @@ class Errands:
             repair = False
         if repair or sell:
             what = "repair" if repair else "sell"
-            said = " and ".join(w for w, on in (("Sell", sell), ("repair", repair)) if on)
             need = {k: v for k, v in (("durability", DURABILITY_LOW + 1 if repair else None), ("bags", BAGS_LOW + 1 if sell else None)) if v}
             self.fit(steps, 0, SOON, self.places({"repair"} if repair else MERCHANT, faction), anchor,
-                     lambda n, p, _: {**self.step(what, what, f"{said[0].upper()}{said[1:]} at {n}", n, p, need),
-                                      **({"gain": junk} if sell and junk else {})})
+                     lambda n, p, _: stepwords.give({**self.step(what, what, vendor_words(n, sell, repair), n, p, need),
+                                                     **({"gain": junk} if sell and junk else {})}, "bags" if sell else "worn"))
         for warning in low_on(me):
             if gone(f"restock:{warning}") or not want("restock") or makes(me, warning):
                 continue
@@ -644,10 +690,10 @@ class Errands:
             cost = lambda i, p: (price(p[2], at_level(i)) or 0) * units
             sellers = self.places(cats, faction, keep=lambda sv, _: buy(sv.get("prices") or {}, level) is not None)
             _, why = self.fit_paid(steps, 0, SOON, sellers, anchor,
-                                   lambda n, p, prices, w=warning: self.step(
-                                       "restock", f"restock:{w}", self.restock_text(w, buy(prices, level)[0], n), n, p,
-                                       {"warning": [w]}, buy(prices, level)[1] * units),
-                                   cost, me.get("money"))
+                                   lambda n, p, prices, w=warning: stepwords.give(
+                                       self.step("restock", f"restock:{w}", self.restock_text(w, buy(prices, level)[0], n), n, p,
+                                                 {"warning": [w]}, buy(prices, level)[1] * units), "low", item=RESTOCK[w][0]),
+                                   cost, me.get("money"), upkeep=True)
             if why and sellers:
                 cheapest = min(price(p[2], level) for p in sellers)
                 notes.append(restock_note(warning, why, f"Buying {units} {thing}", cheapest * units, me.get("money")))
@@ -716,8 +762,9 @@ class Errands:
             master = min(masters, key=lambda m: gap(m[1], nspot), default=None)
             if not master or gap(master[1], nspot) > 60:
                 continue
-            steps.insert(k + 1, self.step("flightpath", f"flightpath:{node['id']}", f"Learn the flight path at {node['name']}",
-                                          master[0], master[1], {"node": node["id"], "name": node["name"]}))
+            steps.insert(k + 1, stepwords.give(
+                self.step("flightpath", f"flightpath:{node['id']}", f"Learn the flight path at {node['name']}", master[0],
+                          master[1], {"node": node["id"], "name": node["name"]}), "flightpass", node=node["name"]))
 
         steps = [s for s in steps if s.get("kind") != "errand" or shows_done(s, me) is not True]
         for s in steps:

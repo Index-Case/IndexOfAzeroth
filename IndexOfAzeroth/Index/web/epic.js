@@ -3,18 +3,19 @@
 
 
 const epicWay = (way) => (way === "safe" || way === "fight" ? way : "any");
-const newEpic = (key, anchor, way = "any", close = false, name = "Quest epic") => ({ kind: "epic", key, anchor, way: epicWay(way),
-  close, data: null, step: null, name, stops: [], at: 0, lap: 1 });
+const newEpic = (key, anchor, way = "any", close = false, name = word("page.epic.title.quest.none"), questLevels = null) => ({ kind: "epic", key, anchor,
+  way: epicWay(way), close, questLevels: questLevels?.length ? questLevels : null, data: null, step: null, name, stops: [], at: 0, lap: 1 });
 function epicTitle(t) {
   const kind = (t?.key || "").split(":")[0], name = (t?.name || "").replace(/(\s+(quests?|epic|crafting))+$/i, "");
   const cls = CLASS_ICONS[player.data?.class];
-  if (kind === "zone") return `${name ? `${name} ` : ""}Zone epic`;
-  if (kind === "log") return `${app.who?.name ? `${app.who.name} ` : ""}Quest epic`;
-  if (kind === "class") return `${cls ? cls[0].toUpperCase() + cls.slice(1) : "Class"} Quest epic`;
-  if (kind === "prof") return `${name ? `${name} ` : ""}Profession epic`;
-  if (kind === "camp") return "Camping epic";
+  const quest = (who) => (who ? word("page.epic.title.quest", { name: who }) : word("page.epic.title.quest.none"));
+  if (kind === "zone") return name ? word("page.epic.title.zone", { name }) : word("page.epic.title.zone.none");
+  if (kind === "log") return quest(app.who?.name);
+  if (kind === "class") return cls ? quest(cls[0].toUpperCase() + cls.slice(1)) : word("page.epic.title.class.none");
+  if (kind === "prof") return name ? word("page.epic.title.prof", { name }) : word("page.epic.title.prof.none");
+  if (kind === "camp") return word("page.epic.title.camp");
   if (kind === "craft") return word("page.craft.title", { item: name });
-  return `${name ? `${name} ` : ""}Quest epic`;
+  return quest(name);
 }
 const isCraft = (key) => (key || "").startsWith("craft:");
 const isProfEpic = (key) => /^(craft|prof):/.test(key || "");
@@ -23,7 +24,9 @@ function preferClose() {
 }
 
 function startEpic(d) {
-  const run = app.tracks.epic, label = d.label || `the ${d.name} quest epic`;
+  const run = app.tracks.epic, label = d.label || word("page.epic.label", { name: d.name });
+  const kept = !d.replan && (keptEpic(d.key) || keptSide(d.key));
+  if (kept) return kept === app.plan ? reopenEpic(kept) : reopenSide(kept);
   if (sideRunning(d.key)) return startSide(d, label);
   if (run && run.key !== d.key && isProfEpic(d.key)) {
     const said = { epic: label, running: run.name }, full = sideFull(d.key);
@@ -33,8 +36,8 @@ function startEpic(d) {
                  no: word("page.craft.side.no"), onYes: () => startSide(d, label) });
   }
   if (run && run.key !== d.key) {
-    return ask({ title: "One epic at a time", text: `${run.name} is running. Stop ${run.name} and start ${label}?`,
-                 yes: "Start the new epic", no: "Keep the current epic", onYes: () => beginEpic(d, label) });
+    return ask({ title: word("page.epic.one.title"), text: word("page.epic.one.text", { running: run.name, epic: label }),
+                 yes: word("page.epic.one.yes"), no: word("page.epic.one.no"), onYes: () => beginEpic(d, label) });
   }
   beginEpic(d, label);
 }
@@ -51,7 +54,7 @@ function backEpic() {
   postJson("/api/shared/back", {}).then((r) => {
     if (!r?.back) return refreshShared();
     app.stoppedHere = null;
-    app.tracks.epic = newEpic(a.key, a.anchor || null, a.mode, !!a.close, a.name);
+    app.tracks.epic = newEpic(a.key, a.anchor || null, a.mode, !!a.close, a.name, a.questLevels);
     saveTrack("epic");
     refreshEpic(true);
     setTimeout(refreshShared, 500);
@@ -81,7 +84,8 @@ function materialWay(r) {
 }
 function materialRowHtml(r, i) {
   const need = r.kind === "pattern" ? word("page.craft.row.pattern", { item: r.name })
-    : word("page.craft.row.need", { count: num(r.need), item: r.name, have: num(r.have) });
+    : r.banked ? word("page.craft.row.need.bank", { count: num(r.need), item: r.name, have: num(r.have), bank: num(r.banked) })
+      : word("page.craft.row.need", { count: num(r.need), item: r.name, have: num(r.have) });
   return `<div class="plan-material" style="--depth:${Math.max(0, r.depth - 1)}"><div class="pm-item"><img class="market-ic q${r.q}"
     src="/icon/${r.iconStored ? r.icon : "inv_misc_questionmark"}.jpg" alt=""><span class="market-name q${r.q}">${esc(r.name)}</span></div>
     <div class="guide-line">${esc(need)}</div><div class="guide-line muted">${materialWay(r)}</div>
@@ -98,10 +102,9 @@ function pickMaterial(t, i, key) {
   }, (e) => askFailed(word("page.craft.pick.failed"), e));
 }
 function beginEpic(d, label) {
-  const kept = !d.replan && keptEpic(d.key);
-  if (kept) return reopenEpic(kept);
   const run = app.tracks.epic, me = playerWorld();
-  app.tracks.epic = newEpic(d.key, me ? [me.inst, me.n, me.w] : null, run?.way, preferClose(), d.name);
+  const questLevels = d.replan && run?.key === d.key ? run.questLevels : d.questLevels;
+  app.tracks.epic = newEpic(d.key, me ? [me.inst, me.n, me.w] : null, run?.way, preferClose(), d.name, questLevels);
   app.tracks.epic.planReady = true;
   app.tracks.epic.startedAt = Date.now();
   app.tracks.epic.planBefore = app.plan?.version ?? null;
@@ -110,21 +113,21 @@ function beginEpic(d, label) {
   app.stoppedHere = null;
   saveTrack("epic");
   refreshEpic(true);
-  showToast(d.replan ? `The Index planned ${d.name} afresh from where you are${d.keepParked?.length ? " and kept its parked quests parked" : ""
-  }. The Index is writing the plan for the game now`
-    : `${label[0].toUpperCase()}${label.slice(1)} started. The Index is writing the plan for the game now`);
+  showToast(d.replan ? (d.keepParked?.length ? word("page.epic.started.replan.parked", { name: d.name }) : word("page.epic.started.replan", { name: d.name }))
+    : word("page.epic.started", { epic: `${label[0].toUpperCase()}${label.slice(1)}` }));
 }
 
 let epicSig = "", epicAgain = false;
 function refreshEpic(force) {
   const t = app.tracks.epic;
   if (!t) return;
-  const sig = JSON.stringify([t.key, app.character, app.quests?.log, app.quests?.done, app.state?.level]);
+  const sig = JSON.stringify([t.key, app.character, app.quests?.log, app.quests?.done, app.state?.level, app.plan?.version]);
   const changed = !!force || sig !== epicSig;
   if (!changed && !epicAgain) return;
   const q = new URLSearchParams({ key: t.key });
   if (t.anchor) { q.set("inst", t.anchor[0]); q.set("n", t.anchor[1].toFixed(1)); q.set("w", t.anchor[2].toFixed(1)); }
   if (t.close) q.set("close", "1");
+  if (t.questLevels) q.set("levels", t.questLevels.map(([lo, hi]) => `${lo}-${hi ?? ""}`).join("."));
   if (t.keepParked) q.set("parked", t.keepParked.join("."));
   const asked = askFor("epic", () => getJson(`/api/epic?${q}`, { key: null, accept: [409] }).then((data) => {
     if (data.waiting) throw Object.assign(new Error("waiting for the game"), { waiting: data.waiting });
@@ -164,8 +167,8 @@ function setEpicData(t, data) {
     t.loop = !!cur?.loop?.length;
     t.inst = cur?.inst ?? null;
     t.at = 0; t.lap = 1; t.path = null; t.asked = null; t.route = null; t.routeAsked = null; t.routePending = false;
-    if (was && cur && !back && !fuller && !writtenPlan(t)) showToast(`Quest epic: ${cur.text}`);
-    if (was && !cur && epicAllDone(data)) showToast(`${data.name} is all done`);
+    if (was && cur && !back && !fuller && !writtenPlan(t)) showToast(word("page.epic.moved", { step: cur.text }));
+    if (was && !cur && epicAllDone(data)) showToast(word("page.epic.all-done", { name: data.name }));
   }
   renderTracks();
 }
@@ -211,7 +214,7 @@ function writtenPlan(t) {
   const sh = app.shared;
   return composeMode(t) === "waiting" && sh?.version === app.plan.version && sh.epic?.key === t.key && sh.epic.steps?.length ? sh : null;
 }
-const STEP_WORDS = { noun: "step", first: "the first step" };
+const STEP_WORDS = { noun: word("page.epic.step.noun"), first: word("page.epic.step.first") };
 const writtenKey = (w) => `plan ${w.version}`;
 function planLeg(plan, k) {
   const s = plan.steps[k];
@@ -229,14 +232,17 @@ function shownPlan(t) {
   if (w) return { p: w.epic, g: null, inspect: true };
   return planInGame(t) === "running" && planSteps() ? { p: loadedPlan().epic, g: gameGuide(), inspect: false } : null;
 }
-const stoppedHereOnly = () => !!app.plan?.key && !!app.plan.closed && (app.epicLive?.running || app.status?.nums?.epicStep != null);
+const stoppedHereOnly = () => [
+  ...(app.plan?.key && app.plan.closed && (app.epicLive?.running || app.status?.nums?.epicStep != null) ? [app.plan] : []),
+  ...myProfs().filter((p) => p.closed && sideLive(p))];
 const closedEpic = () => (!app.tracks.epic && !dismissedClose(app.plan) ? keptEpic(app.plan?.key) : null);
 const keptEpic = (key) => (!!key && app.plan?.key === key && app.plan.closed && planIsMine(app.plan) ? app.plan : null);
 function closedEpicHtml(p) {
-  const name = p.name || "The quest epic";
+  const name = p.name || word("page.epic.the-quest-epic.start");
   const dismiss = p.closed.game ? `<button data-epic-dismiss title="${esc(word("page.epic.closed.dismiss.tip"))}">${esc(word("page.epic.closed.dismiss"))}</button>` : "";
-  return panelHead(p.name || "Quest epic", trackStyle("epic", p).help, `${backKey()}<button data-epic-reopen title="This opens the epic again where you were, with its plan and progress">Reopen</button>${dismiss}`,
-    { track: true, glide: true }) + `<div class="guide-line muted">${esc(name)} is closed. Its plan and your progress are kept.</div>`;
+  return panelHead(p.name || word("page.epic.title.quest.none"), trackStyle("epic", p).help,
+    `${backKey()}<button data-epic-reopen title="${word("page.epic.reopen.tip")}">${word("page.epic.reopen")}</button>${dismiss}`,
+    { track: true, glide: true }) + `<div class="guide-line muted">${esc(word("page.epic.closed.line", { name }))}</div>`;
 }
 function reopenEpic(p = closedEpic()) {
   if (!p) return;
@@ -244,12 +250,13 @@ function reopenEpic(p = closedEpic()) {
   postJson("/api/shared/open", { key: p.key }).then((r) => {
     if (!r?.opened) return refreshShared();
     app.stoppedHere = null;
-    app.tracks.epic = newEpic(p.key, p.anchor || null, p.mode, !!p.close);
+    app.tracks.epic = newEpic(p.key, p.anchor || null, p.mode, !!p.close, undefined, p.questLevels);
     saveTrack("epic");
     refreshEpic(true);
     setTimeout(refreshShared, 500);
-    showToast(`${p.name || "The quest epic"} is open again where you were${closedInGame ? ". To pick it up in game, type /ioa guide start or /reload" : ""}`);
-  }, (e) => askFailed("The epic is still closed", e));
+    const name = p.name || word("page.epic.the-quest-epic.start");
+    showToast(closedInGame ? word("page.epic.reopened.game", { name }) : word("page.epic.reopened", { name }));
+  }, (e) => askFailed(word("page.epic.reopen.failed"), e));
 }
 function reopenedHere(t) {
   const p = app.plan, live = app.epicLive;
@@ -258,16 +265,20 @@ function reopenedHere(t) {
 const newerPlan = (t) => {
   const p = app.plan;
   if (producing(t)) return null;
-  if (p?.key !== t?.key || !planIsMine(p) || p.version === loadedVersion()) return null;
-  if (p.fresh && p.start && loadedVersion() < p.start) return { ...p, rating: "start" };
-  const lv = loadedVersion(), a = p.advice?.loaded === lv && p.advice?.version === p.version ? p.advice : null;
-  if (a) return { ...p, rating: a.rating, reasons: a.reasons };
-  return p.rating === "minor" || p.against === lv ? p : { ...p, rating: "minor", reasons: [] };
+  if (p?.key !== t?.key || !planIsMine(p)) return null;
+  return newerOf(p, p.version, loadedVersion(), p.advice);
 };
+function newerOf(p, version, loaded, advice) {
+  if (!p || version === loaded) return null;
+  if (p.fresh && p.start && loaded < p.start) return { ...p, rating: "start" };
+  const a = advice?.loaded === loaded && advice?.version === version ? advice : null;
+  if (a) return { ...p, rating: a.rating, reasons: a.reasons };
+  return p.rating === "minor" || p.against === loaded ? p : { ...p, rating: "minor", reasons: [] };
+}
 function newerPlanHtml(p) {
   if (p.rating !== "minor") return "";
   const why = planReasons(p.reasons || []);
-  return `<div class="guide-line plan-minor">A new plan is ready${why ? `. ${esc(why)}` : ""}. Any /reload loads the new plan</div>`;
+  return `<div class="guide-line plan-minor">${why ? word("page.epic.newer.why", { why: esc(why) }) : word("page.epic.newer")}</div>`;
 }
 const startedHereSince = (t, at) => !!t?.startedAt && t.startedAt > (at || 0) * 1000;
 function syncEpicWithGame() {
@@ -276,15 +287,15 @@ function syncEpicWithGame() {
   if (sh && (sh.version !== loadedVersion() || (app.plan?.opened?.at || 0) * 1000 > (sh.at || 0))) app.stoppedHere = null;
   if (lp && (!t || t.key !== lp.key) && app.plan?.key === lp.key && !app.plan.closed && app.stoppedHere?.key !== lp.key
       && !startedHereSince(t, lp.written)) {
-    app.tracks.epic = newEpic(lp.key, lp.anchor || null, app.plan.mode ?? lp.mode, !!lp.close);
+    app.tracks.epic = newEpic(lp.key, lp.anchor || null, app.plan.mode ?? lp.mode, !!lp.close, undefined, app.plan.questLevels);
     saveTrack("epic");
     refreshEpic(true);
-    return showToast(`The guide for ${lp.name || "the quest epic"} runs in game, so the page shows the epic too`);
+    return showToast(word("page.epic.game.runs", { name: lp.name || word("page.epic.the-quest-epic") }));
   }
   const closed = t && app.plan?.key === t.key ? app.plan.closed : null;
   if (closed && !startedHereSince(t, closed.at)) {
     stopTrack("epic", true);
-    if (closed.by === "game") showToast(`You closed ${t.name || "the quest epic"} in game, so the page closed the epic too. Its plan and your progress are kept, and Reopen picks it up again`);
+    if (closed.by === "game") showToast(word("page.epic.game.closed", { name: t.name || word("page.epic.the-quest-epic") }));
     return;
   }
   const p = app.plan;
@@ -302,15 +313,11 @@ function followLead(t, g = gameGuide()) {
   setEpicData(t, t.data);
   return true;
 }
-const PLAN_KIND = { P: "pickup", O: "objective", T: "turnin", D: "dungeon", S: "errand" };
-const PLAN_VERB = { P: "Pick up", O: "Objective", T: "Turn in", D: "The dungeon", S: "Errand" };
 const PLAN_ICON = { P: "pickup", T: "turnin", O: "objective", D: "dungeon" };
 const PLAN_OBJECTIVE = { kill: "objective", loot: "loot", grab: "grab", use: "use", talk: "talk", heal: "heal", event: "event",
                          explore: "explore", escort: "escort", buy: "vendor", pickpocket: "pickpocket" };
-const PLAN_ERRAND = { train: ["train", "Train"], repair: ["bank", "Repair"], sell: ["bank", "Sell"], restock: ["vendor", "Buy"],
-                      bind: ["inn", "Set your hearth"], flightpath: ["flight", "Flight path"],
-                      learn: ["train", "Learn"], supplies: ["vendor", "Buy"], craft: ["train", "Craft"], camp: ["camp", "Make camp"],
-                      wall: ["warning", "Later"] };
+const PLAN_ERRAND = { train: "train", repair: "bank", sell: "bank", restock: "vendor", bind: "inn", flightpath: "flight",
+                      learn: "train", supplies: "vendor", craft: "train", camp: "camp", wall: "warning" };
 const planIcon = (name, words = "") => `<img class="ui-icon" src="/ui/${name}.png" alt="${esc(words)}">`;
 function stepItemIcon(s) {
   if (s.k !== "O" || !s.it || (s.ic !== "grab" && s.ic !== "loot")) return null;
@@ -318,19 +325,24 @@ function stepItemIcon(s) {
   if (!icon) wantItemInfo([s.it], () => renderTracks());
   return icon ? `<img class="ui-icon" src="/icon/${esc(icon)}.jpg" alt="">` : null;
 }
-const stepIconName = (s) => s.k === "S" ? PLAN_ERRAND[s.what]?.[0] || "vendor"
+const stepIconName = (s) => s.k === "S" ? PLAN_ERRAND[s.what] || "vendor"
   : (s.k === "O" && PLAN_OBJECTIVE[s.ic]) || PLAN_ICON[s.k] || "objective";
 const stepIcon = (s) => stepItemIcon(s) || planIcon(stepIconName(s));
-function planVerb(s) {
-  if (s.k === "S") return PLAN_ERRAND[s.what]?.[1] || "Errand";
-  const first = s.k === "O" && /^(Kill|Collect|Use|Talk to) /.exec(s.text || "");
-  return first ? first[1] : PLAN_VERB[s.k];
+const nextWords = (s) => s.text || s.name || "";
+const REASON_WORDS = wordsOf("both.reason");
+function reasonWords(s) {
+  const [code, args] = Array.isArray(s?.rn) ? s.rn : [];
+  const text = typeof code === "string" ? REASON_WORDS[code] : null, one = REASON_WORDS[`${code}.one`];
+  if (!text) return "";
+  const fill = args && typeof args === "object" ? args : {};
+  const counted = !!one && [...text.matchAll(/\{(\w+)\}/g)].some(([, k]) => fill[k] === 1 && !one.includes(`{${k}}`));
+  return fillWords(counted ? one : text, fill) || "";
 }
-const nextWords = (s) => s.k === "D" ? s.name || "The dungeon" : s.k === "S" || s.k === "O" ? s.text : `${PLAN_VERB[s.k]} ${s.name || s.text}`;
 const OBJECTIVES_MOST = 4;
 const logObjectives = (id) => (app.questlog?.entries || []).find((e) => e.id === id)?.objectives || [];
 function shownObjectives(s) {
   if (!s || s.k === "P") return [];
+  if (s.objs?.length) return s.objs.map((o, k) => ({ id: s.key, k, o }));
   return (s.ids || []).flatMap((id) => logObjectives(id).map((o, k) => ({ id, k, o }))).slice(0, OBJECTIVES_MOST);
 }
 function stepObjective(x, objs) {
@@ -365,7 +377,7 @@ function objCounts(o) {
   const m = /(\d+)\s*\/\s*(\d+)/.exec(o.text || "");
   return { done: o.done ?? (m ? +m[1] : 0), need: o.need ?? (m ? +m[2] : 0) };
 }
-const objLeft = (o, c) => (o.finished ? "" : c.need - c.done > 0 ? `${c.need - c.done} left` : "wanted");
+const objLeft = (o, c) => (o.finished ? "" : c.need - c.done > 0 ? word("page.epic.obj.left", { n: c.need - c.done }) : word("page.epic.obj.wanted"));
 const objTitle = (o, c) => (c.need >= 1 ? `${Math.min(c.done, c.need)}/${c.need} ${objThing(o.text)}`
   : objThing(o.text));
 function objectivesHtml(s, colours, levels = false) {
@@ -389,13 +401,13 @@ function bagSlotsHtml(s, objectives) {
   if (!want) return "";
   const title = DirectorRules.line("heads", want === 1 ? "bag_slot" : "bag_slots", { n: want });
   return `<div class="guide-line plan-obj bag-short" style="--p:${Math.round(free / want * 100)}%;--c:var(--error)"><span class="obj-title">${
-    esc(title)}</span><span class="obj-left">${want - free} left</span></div>`;
+    esc(title)}</span><span class="obj-left">${word("page.epic.obj.left", { n: want - free })}</span></div>`;
 }
 const stepMobLevels = (s, k) => (s.lv?.[k]?.length ? s.lv[k] : null);
 function nextChainsHtml(p) {
   const nx = p?.key?.startsWith("log:") ? p.next || [] : [];
-  return nx.length ? `<div class="guide-line">The next quests in these chains: ${esc(nx.map((q) => q.name).join(", "))}</div>
-    <button class="key small" data-epic-next="${nx.map((q) => q.id).join(".")}">Start these quests as an epic</button>` : "";
+  return nx.length ? `<div class="guide-line">${word("page.epic.chains", { names: esc(nx.map((q) => q.name).join(", ")) })}</div>
+    <button class="key small" data-epic-next="${nx.map((q) => q.id).join(".")}">${word("page.epic.chains.start")}</button>` : "";
 }
 function handInStep(p, steps, g, cur) {
   const id = g?.handIn, at = cur ? steps?.[cur - 1] : null;
@@ -403,12 +415,12 @@ function handInStep(p, steps, g, cur) {
   const you = playerWorld(true);
   const gap = (e) => you && e.i === you.inst ? Math.hypot(e.at[0] - you.n, e.at[1] - you.w) : Infinity;
   const e = (p?.ends || []).filter((x) => x.q === id && x.at).sort((a, b) => gap(a) - gap(b))[0];
-  const name = (app.questlog?.entries || []).find((x) => x.id === id)?.title || `quest ${id}`;
+  const name = (app.questlog?.entries || []).find((x) => x.id === id)?.title || word("page.epic.quest.id", { id });
   return { k: "T", ids: [id], name, npc: e?.npc, inst: e?.i, at: e?.at, extra: true,
-           text: `Turn in ${name}${e?.npc ? ` to ${e.npc}` : ""}` };
+           text: e?.npc ? word("page.epic.turnin.npc", { name, npc: e.npc }) : word("page.epic.turnin", { name }) };
 }
 const stepQuest = (x) => x?.name || x?.text || "";
-function leadLine(g, steps, at, s) {
+function leadLine(g, steps, at, s, plan = null) {
   const r = g?.reason;
   if (!r) {
     if (!s || !g?.handIn) return "";
@@ -418,8 +430,9 @@ function leadLine(g, steps, at, s) {
   if (DirectorRules.quiet(r.key)) return "";
   const k = r.other ? (at || []).indexOf(r.other) : -1;
   const other = k >= 0 ? steps[k] : r.otherQuest ? handInStep(loadedPlan().epic, steps, { handIn: r.otherQuest }, 0) : null;
+  const why = k >= 0 && plan ? stepWhy(other, plan.states[k], plan.live, plan)?.text : undefined;
   return DirectorRules.say(r.key, { won: stepQuest(s), wonNpc: s?.npc, lost: stepQuest(other), lostNpc: other?.npc, n: r.n,
-                                    thing: s?.target, things: s?.things, place: placeName(s), nearer: placeName(other) })
+                                    thing: s?.target, things: s?.things, place: placeName(s), nearer: placeName(other), why })
     || "";
 }
 function placeName(x) {
@@ -429,8 +442,8 @@ function placeName(x) {
 function gameStep(t, data) {
   const w = writtenPlan(t);
   if (w) {
-    const ps = w.epic.steps[pickedStep(t, w)];
-    return planPlace(pageStep(data, ps) || planEntryStep(ps), ps, [], null, w.epic.steps);
+    const k = pickedStep(t, w), ps = w.epic.steps[k];
+    return planPlace(pageStep(data, ps) || w.epic.pages?.[k] || null, ps, [], null, w.epic.steps);
   }
   const g = gameGuide(), steps = planSteps();
   const mine = steps && loadedPlan().epic.key === t.key;
@@ -438,10 +451,8 @@ function gameStep(t, data) {
   if (x) return { kind: "turnin", quest: x.ids[0], questName: x.name, text: x.text, inst: x.inst, at: x.at };
   const ps = g?.cur && mine ? steps[g.cur - 1] : null;
   if (!ps) return null;
-  return planPlace(pageStep(data, ps) || planEntryStep(ps), ps, stopsOut(g.cur), g.cur);
+  return planPlace(pageStep(data, ps) || loadedPlan().epic.pages?.[g.cur - 1] || null, ps, stopsOut(g.cur), g.cur);
 }
-const planEntryStep = (ps) => ({ kind: PLAN_KIND[ps.k], quest: ps.ids?.[0], quests: ps.k === "D" ? ps.ids : undefined,
-  questName: ps.name, text: ps.text, inst: ps.inst, at: ps.at, zone: ps.zone });
 function stopsOut(p) {
   const d = app.loopStops;
   return d && d.version === loadedVersion() ? d.steps?.[String(p)] || [] : [];
@@ -475,8 +486,8 @@ function partyLine() {
   if (grp?.of == null || !members.length) return "";
   const chips = members.map((m) => `<b style="color:${CLASS_COLORS[m.className] || tint("class-other")}">${esc(m.name)}</b> ${m.on ?? 0}/${grp.of}`);
   const away = members.filter((m) => m.away).map((m) => m.name);
-  return `<div class="guide-line">Party: ${chips.join(" | ")}</div>${
-    away.length ? `<div class="guide-line plan-door">You're at the door, waiting for ${esc(away.join(", "))}</div>` : ""}`;
+  return `<div class="guide-line">${word("page.epic.party", { chips: chips.join(" | ") })}</div>${
+    away.length ? `<div class="guide-line plan-door">${word("page.epic.door", { names: esc(away.join(", ")) })}</div>` : ""}`;
 }
 
 function grindPoint(steps, states = [], cur = 0, level = app.state?.level || 0, live = null) {
@@ -498,32 +509,32 @@ const WALL = wordsOf("both.wall");
 function grindWords(steps, states, cur, live = null) {
   const g = grindPoint(steps || [], states, cur, undefined, live);
   if (!g) return "";
-  const step = steps[g.at], then = step.text ? ` (then ${step.text})` : "";
+  const step = steps[g.at], then = step.text ? ` ${word("page.epic.then", { step: step.text })}` : "";
   if (g.skill) return `${fillWords(WALL.skill, g.skill) || ""}${then}`;
-  const when = g.before === 0 ? "now, the next quests open there" : `after the next ${g.before} step${g.before === 1 ? "" : "s"}`;
-  return `Grind to level ${g.level} ${when}${then}`;
+  const when = g.before === 0 ? word("page.epic.grind.now") : wordCount("page.epic.grind.after", g.before);
+  return `${word("page.epic.grind", { level: g.level, when })}${then}`;
 }
 const grindLine = (words) => (words ? `<div class="guide-line plan-grind">${esc(words)}</div>` : "");
 
 window.HOVERS = window.HOVERS || {};
 let missingNow = [];
-const errandNotesLine = (notes, hidden) => ((notes?.length || hidden?.length) ? foldHtml("epic:notes", "Left out of the plan", [
-  ...(notes || []).map((n) => `<div class="guide-line muted">Not planned yet: ${esc(n)}</div>`),
-  ...(hidden || []).map((n) => `<div class="guide-line plan-hidden">Hidden by you: ${esc(n)}</div>`)]) : "");
+const errandNotesLine = (notes, hidden) => ((notes?.length || hidden?.length) ? foldHtml("epic:notes", word("page.epic.notes"), [
+  ...(notes || []).map((n) => `<div class="guide-line muted">${word("page.epic.notes.not", { note: esc(n) })}</div>`),
+  ...(hidden || []).map((n) => `<div class="guide-line plan-hidden">${word("page.epic.notes.hidden", { note: esc(n) })}</div>`)]) : "");
 const LATER_OFFERS = {
-  level: [["grind", "Grind here", "Finds the best camp for the character's level in the area in view and a loop round the camp"],
-          ["zones", "Zone epic", "Shows every zone with quests for the character. Click a zone to plan all of its quests as one epic"]],
-  ...Object.fromEntries(["mining", "herbalism", "fishing", "skinning"].map((l) => [l, [[l, "Show on the map",
-    `Shows the ${l} layer on the map. The ${l === "skinning" ? "Skin here" : "Gather here"} key under the zone name starts a loop for the character's skill`]]])),
+  level: [["grind", word("page.layers.key.grind"), word("page.epic.later.grind.tip")],
+          ["zones", word("page.epic.later.zones"), word("page.epic.later.zones.tip")]],
+  ...Object.fromEntries(["mining", "herbalism", "fishing", "skinning"].map((l) => [l, [[l, word("page.epic.later.layer"),
+    word("page.epic.later.layer.tip", { layer: l, key: l === "skinning" ? word("page.layers.key.skin") : word("page.layers.key.gather") })]]])),
 };
 function laterHtml(list) {
   if (!list?.length) return "";
   const rows = list.map((e) => `<div class="guide-line">${esc(e.text)}${(LATER_OFFERS[e.offer] || []).map(([what, words, tip]) =>
     ` <button class="key small" data-epic-offer="${what}" title="${esc(tip)}">${words}</button>`).join("")}${emit("laterLine", e).join("")}</div>`);
-  return foldHtml("epic:later", "Later", rows);
+  return foldHtml("epic:later", word("page.epic.later"), rows);
 }
 const foldsOpen = new Set(keptOr("cc.folds", []));
-const LIST_TIP = "Expands or collapses this list";
+const LIST_TIP = word("page.epic.fold.list.tip");
 const foldHtml = (key, label, rows) => plusFoldHtml(key, "guide-line plan-list", "", `${label}: ${rows.length}`, rows.join(""), LIST_TIP);
 function toggleFold(key, box) {
   const open = !foldsOpen.has(key);
@@ -544,20 +555,20 @@ function laterOffer(what) {
   }
   showGatherLayer(what);
 }
-function plusFoldHtml(key, cls, restAttrs, label, rest, tip = "Expands or collapses the rest of this note") {
+function plusFoldHtml(key, cls, restAttrs, label, rest, tip = word("page.epic.fold.note.tip")) {
   const open = foldsOpen.has(key);
-  return `<div class="${cls} fold plus-fold${open ? " open" : ""}" data-fold="${key}"><button class="fold-plus" data-fold-key="${key}" aria-expanded="${
+  return `<div class="${[cls, "fold", "plus-fold", open && "open"].filter(Boolean).join(" ")}" data-fold="${key}"><button class="fold-plus" data-fold-key="${key}" aria-expanded="${
     open}" title="${tip}">${label}</button><div class="fold-more"${restAttrs}>${rest}</div></div>`;
 }
 function missingLine(list) {
   missingNow = list || [];
   const n = missingNow.length, way = missingNow.filter((x) => x.onWay).length;
   if (!n) return "";
-  const names = missingNow.map((x) => `<li>${esc(x.name)}${x.onWay ? ' <span class="epic-missing-way">(on your way)</span>' : ""}</li>`).join("");
+  const names = missingNow.map((x) => `<li>${esc(x.name)}${x.onWay ? ` <span class="epic-missing-way">${word("page.epic.missing.way")}</span>` : ""}</li>`).join("");
+  const leaves = way ? word("page.epic.missing.leaves.rest") : wordCount("page.epic.missing.leaves", n);
   return plusFoldHtml("epic:missing", "guide-line epic-missing", "",
-    `<span class="data-missing">No data yet</span> Forever added ${n} quest${n === 1 ? "" : "s"}`,
-    `We have no information yet on what opens ${n === 1 ? "the quest" : "these quests"}. ${way ? `The epic picks up ${way} of them on the way if a giver offers ${way === 1 ? "it" : "them"}. ` : ""}The epic leaves ${
-      way ? "the rest" : n === 1 ? "that quest" : "those quests"} out, and takes a quest for you when a giver you talk to offers it.<ul class="epic-missing-list">${names}</ul>`);
+    `<span class="data-missing">${word("page.epic.missing.tag")}</span> ${wordCount("page.epic.missing.count", n)}`,
+    `${wordCount("page.epic.missing.what", n)} ${way ? `${wordCount("page.epic.missing.picks", way)} ` : ""}${leaves}<ul class="epic-missing-list">${names}</ul>`);
 }
 
 const parkedIds = (live) => new Set(live?.parked || []);
@@ -581,6 +592,7 @@ function waitsOn(ps, plan) {
 const STEP_WHY = wordsOf("both.step-why");
 const whySaid = (key, fill) => ({ key, text: fillWords(STEP_WHY[key], fill) || "" });
 const afterWords = (w) => whySaid(w.parked ? "after.parked" : "after", { quest: w.name });
+const leadsLine = (x) => (x?.lt ? whySaid("leads-to", { quest: x.lt }).text : "");
 function holdsBack(id, plan) {
   const held = new Set([id]);
   for (let more = true; more;) {
@@ -606,13 +618,13 @@ function parkedHtml(plan) {
   const parkedNow = parkedQuests(plan);
   if (!parkedNow.length) return "";
   const older = (app.status?.nums?.lineFormat || 0) < UNPARK_FORMAT;
-  const title = older ? "The addon in game reads this line after its next /reload. Until then, click the quest's row in the card's Steps list to put the quest back"
-    : "Copies the line that puts this quest back in the guide in game. The quest goes back in at once, fitted in from the character's spot";
+  const title = older ? word("page.epic.older.unpark.tip") : word("page.epic.unpark.tip");
   const keys = parkedNow.map((q) => `<button class="key small" data-epic-unpark="${q.id}" data-name="${esc(q.name)}"${
-    older ? " disabled" : ""} title="${title}">Unpark ${esc(q.name)}</button>`).join("");
+    older ? " disabled" : ""} title="${title}">${word("page.epic.unpark", { name: esc(q.name) })}</button>`).join("");
   const held = parkedNow.filter((q) => q.holds.length)
-    .map((q) => `<div class="guide-line plan-held-back">The parked quest ${esc(q.name)} holds back ${esc(andList(q.holds))}</div>`).join("");
-  return plusFoldHtml("epic:parked", "guide-line plan-list plan-parked", "", `Parked: ${parkedNow.length}`, `${held}<div class="guide-cmd">${keys}</div>`, LIST_TIP);
+    .map((q) => `<div class="guide-line plan-held-back">${word("page.epic.parked.held", { name: esc(q.name), list: esc(andList(q.holds)) })}</div>`).join("");
+  return plusFoldHtml("epic:parked", "guide-line plan-list plan-parked", "", `${word("page.epic.parked")}: ${parkedNow.length}`,
+    `${held}<div class="guide-cmd">${keys}</div>`, LIST_TIP);
 }
 
 const SKIP_FOR_GOOD = new Set(["train", "bind", "flightpath"]);
@@ -620,7 +632,7 @@ const CHORE_CODES = { train: 1, sell: 4, repair: 5, restock: 6 };
 const putBackLine = (line) => `/ioa guide putback ${line}`;
 const putBackOf = (x, k, at) => (x.own ? (CHORE_CODES[x.what] ? `chore ${CHORE_CODES[x.what]} ${x.npcId || 0}` : "")
   : at[k] ? `step ${at[k]}` : "");
-const bgSkill = (steps, id) => steps.find((t) => t.ids?.[0] === id && t.sk?.[2])?.sk[2] || "skill";
+const bgSkill = (steps, id) => steps.find((t) => t.ids?.[0] === id && t.sk?.[2])?.sk[2] || word("page.epic.skill");
 function putAwayRows(plan, at) {
   const { steps, states } = plan, out = [], gone = (k) => ["done", "skipped"].includes(states[k]);
   const head = (key, fill = {}) => out.push({ head: DirectorRules.line("heads", key, fill) });
@@ -639,7 +651,7 @@ function putAwayRows(plan, at) {
   for (const q of parked) out.push({ text: q.name, back: { kind: "parked", steps: questSteps(q.id), thing: q.name, line: `quest ${q.id}` } });
   if (bg.length) head("drawer_background");
   for (const b of bg) {
-    const name = steps.find((t) => t.ids?.[0] === b.quest && t.k !== "S")?.name || `quest ${b.quest}`;
+    const name = steps.find((t) => t.ids?.[0] === b.quest && t.k !== "S")?.name || word("page.epic.quest.id", { id: b.quest });
     out.push({ text: DirectorRules.line("heads", "drawer_row_background", { quest: name, skill: bgSkill(steps, b.quest), have: b.have, need: b.need }),
                back: { kind: "background", steps: questSteps(b.quest), thing: name, line: `quest ${b.quest}` } });
   }
@@ -648,7 +660,7 @@ function putAwayRows(plan, at) {
     .filter((q) => !bgIds.has(q.id) && inLog(q.id) && q.have < (q.need || 1));
   if (short.length) head("drawer_short");
   for (const q of short) {
-    out.push({ text: DirectorRules.line("heads", "drawer_row_background", { quest: q.name, skill: q.skill || "skill", have: q.have, need: q.need }) });
+    out.push({ text: DirectorRules.line("heads", "drawer_row_background", { quest: q.name, skill: q.skill || word("page.epic.skill"), have: q.have, need: q.need }) });
   }
   const skipped = (good) => steps.map((x, k) => [x, k]).filter(([x, k]) => x.k === "S" && states[k] === "skipped" && SKIP_FOR_GOOD.has(x.what) === good)
     .map(([x, k]) => ({ text: x.text, back: { kind: "skipped", steps: [x], thing: x.text, line: putBackOf(x, k, at) } }));
@@ -688,12 +700,12 @@ function putAwayHtml(plan, at) {
     if (r.head) return `<div class="guide-line putaway-head">${esc(r.head)}</div>`;
     if (!r.back) return `<div class="guide-line putaway-row"><span>${esc(r.text)}</span></div>`;
     const w = putBackHow(r.back, plan, me), off = older || !r.back.line;
-    const tip = older ? "The addon in game reads this key's line after its next /reload"
+    const tip = older ? word("page.epic.older.key.tip")
       : DirectorRules.back("buttons", `putback_${w.how}_tip`, w.where, { thing: r.back.thing });
     return `<div class="guide-line putaway-row"><button class="key small putback" data-epic-putback="${esc(r.back.line)}" data-name="${
       esc(r.back.thing)}" data-how="${w.how}"${off ? " disabled" : ""} title="${esc(tip)}">${PUTBACK_ARROW}</button><span>${esc(r.text)}</span></div>`;
   }).join("");
-  return plusFoldHtml("epic:putaway", "guide-line plan-list", "", `Put away: ${rows.filter((r) => !r.head).length}`,
+  return plusFoldHtml("epic:putaway", "guide-line plan-list", "", `${word("page.epic.putaway")}: ${rows.filter((r) => !r.head).length}`,
     `<div class="plan-putaway">${html}</div>`, LIST_TIP);
 }
 
@@ -722,7 +734,9 @@ function levelInText(steps, cur, states, pace, play) {
     if (steps[k].xp && xp >= s.xpMax - s.xp) {
       if (!DirectorRules.said("reckoned", before, play)) return "";
       const m = Math.round(sec * (pace || 1) / 60);
-      return `Level ${s.level + 1} in ${m < 1 ? "under a minute" : m < 60 ? `about ${m} min` : `about ${Math.floor(m / 60)} h ${m % 60} min`}`;
+      const level = s.level + 1;
+      return m < 1 ? word("page.epic.level.under", { level }) : m < 60 ? word("page.epic.level.min", { level, m })
+        : word("page.epic.level.hours", { level, h: Math.floor(m / 60), m: m % 60 });
     }
     before++;
   }
@@ -771,7 +785,7 @@ function alongHtml(steps, from, states, at) {
       return `<div class="guide-line plan-along">${stepIcon(x)} ${
         left ? itemNamed(left.text, left.item, left.itemName) : esc(x.text)}</div>`;
     });
-  return rows.length ? plusFoldHtml("epic:along", "guide-line plan-list plan-along", "", `Along the way: ${rows.length}`,
+  return rows.length ? plusFoldHtml("epic:along", "guide-line plan-list plan-along", "", `${word("page.epic.along")}: ${rows.length}`,
     `<div class="plan-along-list">${rows.join("")}</div>`, LIST_TIP) : "";
 }
 
@@ -820,20 +834,20 @@ const backgroundLine = (id) => `/ioa guide background ${id}`;
 function backgroundKey(x, st, plan) {
   if ((st !== "todo" && st !== "wait") || !canBackground(x, plan)) return "";
   const older = (app.status?.nums?.lineFormat || 0) < BACKGROUND_FORMAT;
-  const tip = older ? "The addon in game reads this key's line after its next /reload" : DirectorRules.line("buttons", "background_copy_tip");
+  const tip = older ? word("page.epic.older.key.tip") : DirectorRules.line("buttons", "background_copy_tip");
   return `<div class="guide-cmd"><button class="key small" data-epic-background="${x.ids[0]}" data-name="${esc(x.name || x.text)}"${
     older ? " disabled" : ""} title="${esc(tip)}">${esc(DirectorRules.line("buttons", "background"))}</button></div>`;
 }
-const GROUP_TAG = ` <span class="plan-group">(group quest)</span>`;
+const GROUP_TAG = ` <span class="plan-group">${word("page.epic.group.tag")}</span>`;
 const parkLine = (id) => `/ioa guide park ${id}`;
 function groupHtml(s, state) {
-  if (app.group?.members?.length || state === "parked") return `<div class="guide-line plan-group">Group quest</div>`;
+  if (app.group?.members?.length || state === "parked") return `<div class="guide-line plan-group">${word("page.epic.group")}</div>`;
   if ((app.status?.nums?.lineFormat || 0) < PARK_FORMAT) {
-    return `<div class="guide-line plan-group">This is a group quest. Park it on the card if you're on your own</div>`;
+    return `<div class="guide-line plan-group">${word("page.epic.group.solo.card")}</div>`;
   }
-  return `<div class="guide-line plan-group">This is a group quest. Park it if you're on your own</div>
+  return `<div class="guide-line plan-group">${word("page.epic.group.solo")}</div>
     <button class="key small" data-epic-park="${s.ids[0]}" data-name="${esc(s.name || s.text)}"
-      title="Copies the line that parks this quest in game, as Park on the card does. The guide comes back to the quest once the rest is done">Park it</button>`;
+      title="${word("page.epic.group.park.tip")}">${word("page.epic.group.park")}</button>`;
 }
 function takesFrom(s, t) {
   if (s.k !== "S" || t.k !== "S" || !s.takes || typeof s.takes !== "object" || !t.need || typeof t.need !== "object") return false;
@@ -849,6 +863,7 @@ function stepWhy(ps, state, live, plan = null) {
   }
   if (state === "skipped") return whySaid("skipped");
   if (state === "blocked") {
+    if (ps.k === "S") return whySaid("sold");
     return ps.k !== "P" ? whySaid("failed") : ps.npc ? whySaid("not-offered", { npc: ps.npc }) : whySaid("not-offered.giver");
   }
   if (plan?.putOff?.has(ps)) return { key: null, text: DirectorRules.back("words", "put_off", putOffWhere(ps)) || "" };
@@ -863,6 +878,8 @@ function stepWhy(ps, state, live, plan = null) {
     if (from) return whySaid("takes", { step: from.text });
     const pay = ps.need?.pay;
     if (ps.min && !(pay && (app.state?.level || 0) >= ps.min)) return whySaid("level", { level: ps.min });
+    const [skill, rank] = ps.need?.taught || [];
+    if (skill && (yourSkills().find((s) => s.name === skill)?.rank || 0) < rank) return whySaid("skill", { skill, rank });
     return pay ? whySaid("money", { money: moneyText(pay) }) : null;
   }
   const held = (app.quests?.log || []).some((q) => q.id === ps.ids[0]);
@@ -880,46 +897,48 @@ function whyLine(s, state, cur, live, plan = null) {
 }
 const onHold = (x, st) => st === "blocked" || st === "parked" || (st === "wait" && (x.min || 0) > (app.state?.level || 0));
 function stepTag(x, st) {
-  if (st === "blocked") return "Blocked";
-  if (st === "parked") return "Parked";
-  if (st === "skipped") return "Skipped";
-  return onHold(x, st) ? `Level ${x.min}` : "";
+  if (st === "blocked") return word("page.epic.tag.blocked");
+  if (st === "parked") return word("page.epic.tag.parked");
+  if (st === "skipped") return word("page.epic.tag.skipped");
+  return onHold(x, st) ? word("page.epic.tag.level", { level: x.min }) : "";
 }
 const ORDER_WAITS = new Set(["pickup", "objectives", "run"]);
 function stepDetail(x, st, why, plan = null) {
   const said = why?.text && st !== "skipped" && !(st === "wait" && ORDER_WAITS.has(why.key)) ? why.text : "";
   return [said && `<span class="plan-step-why">${esc(said[0].toUpperCase() + said.slice(1))}</span>`,
-    x.mv && `<span class="plan-step-why">${esc(x.mv)}</span>`, blurbUnder(x), plan?.live && !plan.inspect && backgroundKey(x, st, plan)]
+    leadsLine(x) && `<span class="plan-step-why">${esc(leadsLine(x))}</span>`,
+    reasonWords(x) && `<span class="plan-step-why plan-step-reason">${esc(reasonWords(x))}</span>`, x.mv &&`<span class="plan-step-why">${esc(x.mv)}</span>`, blurbUnder(x), plan?.live && !plan.inspect && backgroundKey(x, st, plan)]
     .filter(Boolean).join("");
 }
 const unparkLine = (id) => `/ioa guide unpark ${id}`;
 const blurbUnder = (x) => (x.k === "P" && x.bl ? `<span class="plan-blurb">${esc(x.bl)}</span>` : "");
-const STEP_TICK = `<span class="step-mark tick" aria-label="Done">✓</span>`;
+const STEP_TICK = `<span class="step-mark tick" aria-label="${word("page.epic.step.done")}">✓</span>`;
 const STEP_ARROW = `<span class="step-mark here" aria-hidden="true">▶</span>`;
-const UNPARK_TIP = "This quest is parked and still to do. A click copies the line that puts the quest back in game, as a click on its row on the card does. The quest goes back in at once, fitted in from the character's spot";
-const PICK_TIP = "Shows this step of the plan on the map and in this panel";
+const UNPARK_TIP = word("page.epic.step.unpark.tip");
+const PICK_TIP = word("page.epic.step.pick.tip");
 function stepRow(x, state, live, lit, plan = null, k = 0) {
   const st = state || "todo", detail = stepDetail(x, st, stepWhy(x, state, live, plan), plan);
   const key = `row:${x.k}:${x.ids?.[0] ?? ""}:${x.text}`, open = !!detail && foldsOpen.has(key);
   const cls = `st-${st}${onHold(x, st) ? " hold" : ""}${lit ? " cur" : ""}${detail ? ` fold${open ? " open" : ""}` : ""}`;
   const mark = lit ? STEP_ARROW : st === "done" ? STEP_TICK : `<span class="step-mark"></span>`;
-  const tag = lit && !plan?.inspect ? `<span class="step-tag here">You are here</span>` : stepTag(x, st) ? `<span class="step-tag">${stepTag(x, st)}</span>` : "";
-  const more = detail ? `<button class="fold-plus step-more" data-fold-key="${esc(key)}" aria-expanded="${open}" title="Expands or collapses more about this step"></button>` : "";
+  const tag = lit && !plan?.inspect ? `<span class="step-tag here">${word("page.epic.tag.here")}</span>` : stepTag(x, st) ? `<span class="step-tag">${stepTag(x, st)}</span>` : "";
+  const more = detail ? `<button class="fold-plus step-more" data-fold-key="${esc(key)}" aria-expanded="${open}" title="${word("page.epic.step.more.tip")}"></button>` : "";
   const text = `${esc(x.text)}${x.grp ? GROUP_TAG : ""}`, unpark = st === "parked" && (app.status?.nums?.lineFormat || 0) >= UNPARK_FORMAT;
   const words = plan?.inspect ? `<button class="step-words" data-epic-pick="${k - 1}" title="${PICK_TIP}">${text}</button>`
     : unpark ? `<button class="step-words" data-epic-unpark="${x.ids[0]}" data-name="${esc(x.name || x.text)}" title="${UNPARK_TIP}">${text}</button>`
     : `<span class="step-words">${text}</span>`;
-  const tip = st === "parked" && !unpark ? ` title="This quest is parked and still to do. Click its row in the card's Steps list to put the quest back"` : "";
+  const hover = st === "parked" && !unpark ? word("page.epic.step.parked.tip") : reasonWords(x) ? esc(reasonWords(x)) : "";
+  const tip = hover ? ` title="${hover}"` : "";
   return `<li class="${cls}"${detail ? ` data-fold="${esc(key)}"` : ""}${tip}><div class="step-line">${mark}${stepIcon(x)}${words}${classQuestTag(x)}${tag}${more}</div>${
     detail ? `<div class="fold-more">${detail}</div>` : ""}</li>`;
 }
 const STEPS_WORDS = {
-  all: "All steps",
-  allTip: "Shows every step of the epic in order",
-  held: "Steps on hold",
-  heldTip: "Shows only the steps on hold: the ones blocked, parked or waiting for a level",
-  foldTip: "Collapses this list of steps",
-  none: "No step is on hold now",
+  all: word("page.epic.steps.all"),
+  allTip: word("page.epic.steps.all.tip"),
+  held: word("page.epic.steps.held"),
+  heldTip: word("page.epic.steps.held.tip"),
+  foldTip: word("page.epic.steps.fold.tip"),
+  none: word("page.epic.steps.none"),
 };
 const STEPS_LISTS = ["", "all", "held"];
 let stepsShown = STEPS_LISTS.includes(keptOr("cc.epicSteps", "")) ? keptOr("cc.epicSteps", "") : "";
@@ -945,10 +964,11 @@ function setStepsHtml(body, html) {
   if (list && was != null) list.scrollTop = was;
   else if (cur) list.scrollTop = Math.max(0, cur.offsetTop - 2 * cur.offsetHeight);
 }
-function planProgress(steps, states, cur, live, g, before = 0) {
+function planProgress(steps, states, cur, live, g, before, staged) {
   const done = before + (live ? states.filter((x) => x === "done").length : (g?.done ?? 0));
   const all = before + steps.length - states.filter((x) => x === "skipped").length;
-  const d = steps.findIndex((x) => x.k === "D") + 1;
+  const run = steps.findIndex((x) => x.k === "D") + 1;
+  const d = staged && run && states[run - 1] !== "parked" ? run : 0;
   const stage = !cur ? null : !d || cur < d ? "prep" : cur > d ? "turnin" : app.state?.flags?.instance ? "inside" : "travel";
   const share = (from, to) => {
     const ks = states.map((x, i) => [x, i + 1]).filter(([x, i]) => i >= from && i <= to && x !== "skipped");
@@ -1009,15 +1029,49 @@ function classQuestTag(x) {
   const col = CLASS_COLORS[app.status?.className];
   return `<span class="step-tag class-quest"${col ? ` style="color:${esc(col)}"` : ""}>${classIconHtml()}${esc(DirectorRules.line("heads", "class_quest"))}</span>`;
 }
-function tripHtml(s, leading) {
-  const out = [];
-  const cq = s?.cq ? `<div class="guide-line plan-trip plan-class">${classIconHtml()} ${esc(DirectorRules.line("heads", "class_quest"))}</div>` : "";
-  if (s?.why) out.push(s.why);
+function tripHtml(s) {
+  return s?.cq ? `<div class="guide-line plan-trip plan-class">${classIconHtml()} ${esc(DirectorRules.line("heads", "class_quest"))}</div>` : "";
+}
+function tripWhys(s, leading) {
+  const out = [[leadsLine(s), false], [s?.why || "", false]];
   if (leading && s?.hearth && app.status?.nums?.epicItem === HEARTH.item) {
     const n = Math.max(1, Math.round(hearthSaves(s, playerWorld()) / 60));
-    out.push(DirectorRules.say(n === 1 ? "hearth_one" : "hearth", { town: s.hearth.t, n }));
+    out.push([DirectorRules.say(n === 1 ? "hearth_one" : "hearth", { town: s.hearth.t, n }) || "", true]);
   }
-  return cq + out.filter(Boolean).map((line) => `<div class="guide-line plan-trip">${esc(line)}</div>`).join("");
+  return out.filter(([line]) => line);
+}
+function routeHtml(s) {
+  const args = Array.isArray(s?.rn) ? s.rn[1] : null;
+  const stops = Array.isArray(args?.stops) ? args.stops.filter((x) => typeof x === "string" && x) : [];
+  if (stops.length < 2) return "";
+  return `<div class="plan-route">${stops.map((name, k) => `${k ? `<i class="route-rule"></i>` : ""}<span class="route-stop${
+    k + 1 === args.at ? " here" : ""}"><i class="route-ring"></i><span class="route-name">${esc(name)}</span></span>`).join("")}</div>`;
+}
+function whyHtml(s, state, cur, live, plan, said, ahead, leading) {
+  const line = (text, thread = "") => `${thread}<div class="guide-line plan-reason">${esc(text)}</div>`;
+  if (said) return line(said);
+  const own = ahead ? "" : whyLine(s, state, cur, live, plan);
+  if (own) return own;
+  const trips = tripWhys(s, leading);
+  if (trips.length) return trips.map(([trip, hearth]) => line(trip, hearth ? routeHtml(s) : "")).join("");
+  const reason = reasonWords(s);
+  return reason ? line(reason, routeHtml(s)) : "";
+}
+function doorHtml(s, steps, states, live) {
+  const ids = s.ids || [], log = new Set((app.quests?.log || []).map((q) => q.id)), dungeon = s.name;
+  if (!ids.length) return "";
+  const missing = ids.filter((id) => !log.has(id));
+  if (!missing.length) return `<div class="guide-line plan-door">${esc(wordCount("page.epic.doorcheck.ready", ids.length, { dungeon }) || "")}</div>`;
+  const named = (id) => steps.find((x) => x.ids?.[0] === id && x.name)?.name || questEntry(id)?.title || word("page.epic.quest.id", { id });
+  const parked = parkedIds(live);
+  const why = missing.map((id) => {
+    const k = steps.findIndex((x) => x.k === "P" && x.ids?.[0] === id), quest = named(id);
+    return parked.has(id) ? word("page.epic.doorcheck.parked", { quest })
+      : k >= 0 && states[k] === "blocked" && steps[k].npc ? word("page.epic.doorcheck.offered", { quest, npc: steps[k].npc })
+      : word("page.epic.doorcheck.missing", { quest });
+  });
+  return `<div class="guide-line plan-door short">${esc([word("page.epic.doorcheck.short", { n: ids.length - missing.length, of: ids.length, dungeon }),
+    ...why].filter(Boolean).join(" "))}</div>`;
 }
 function useItemHtml() {
   const n = app.status?.nums || {}, id = n.epicItem;
@@ -1027,7 +1081,7 @@ function useItemHtml() {
   const a = USE_ARROWS[use];
   const arrow = a ? `<svg class="use-arrow seen-only" viewBox="0 0 90 40" aria-hidden="true"><path id="use-words" d="${USE_ARROWS[2].line}" fill="none"/>`
     + `<path class="use-line" pathLength="100" d="${a.line}"/><path class="use-head" d="${a.head}"/><text dy="-5">`
-    + `<textPath href="#use-words" startOffset="50%" text-anchor="middle">Use this</textPath></text></svg>` : "";
+    + `<textPath href="#use-words" startOffset="50%" text-anchor="middle">${word("page.epic.use")}</textPath></text></svg>` : "";
   return `<span class="plan-useitem${use === 2 ? " lit" : ""}" data-tip="${esc(id)}">${arrow}<img src="/icon/${
     esc(it?.icon || "inv_misc_questionmark")}.jpg" alt="${esc(it?.n || "")}"></span>`;
 }
@@ -1050,8 +1104,8 @@ function questTextIcon(s) {
   const id = textQuest(s), t = epicText(id);
   if (!t || !(t.todo || t.text)) return "";
   const open = epicTextOpen?.id === id;
-  return `<button class="plan-qt" data-epic-text="${id}" data-name="${esc(s.name || s.text)}" aria-expanded="${open}" title="Quest text. ${
-    open ? "Click to close the quest's text" : "Click to read the quest's full text"}"><img src="/icon/${QT_ICON}.jpg" alt="Quest text"></button>`;
+  return `<button class="plan-qt" data-epic-text="${id}" data-name="${esc(s.name || s.text)}" aria-expanded="${open}" title="${
+    open ? word("page.epic.qt.tip.open") : word("page.epic.qt.tip")}"><img src="/icon/${QT_ICON}.jpg" alt="${word("page.epic.qt")}"></button>`;
 }
 function toggleEpicText(id, name) {
   epicTextOpen = epicTextOpen?.id === id || id == null ? null : { id, name };
@@ -1072,11 +1126,11 @@ function drawQuestText() {
     document.body.appendChild(box);
   }
   const rows = t.game ? (questEntry(o.id)?.objectives || []).map((x) => x.text).filter(Boolean) : [];
-  const html = `<div class="epic-qt-head"><span class="epic-qt-title">${esc(o.name)}${t.game ? "" : ` <span class="epic-qt-not">(not picked up yet)</span>`}</span>
-    <button class="epic-qt-x" data-epic-text-close title="Closes the quest's text">x</button></div>
-    <div class="epic-qt-body${t.game ? "" : " dimmed"}">${t.todo ? `<div class="epic-qt-label">Quest objectives</div><p>${esc(t.todo)}</p>` : ""}${
-      rows.length ? `<p>${rows.map(esc).join("<br>")}</p>` : ""}${t.text ? `<div class="epic-qt-label">Description</div><p>${esc(t.text)}</p>` : ""}
-    <p class="epic-qt-src">${t.game ? "The game's text from your quest log." : "This quest isn't in your log. The text comes from the Index's quest data."}</p></div>`;
+  const html = `<div class="epic-qt-head"><span class="epic-qt-title">${esc(o.name)}${t.game ? "" : ` <span class="epic-qt-not">${word("page.epic.qt.not")}</span>`}</span>
+    <button class="epic-qt-x" data-epic-text-close title="${word("page.epic.qt.close")}">x</button></div>
+    <div class="epic-qt-body${t.game ? "" : " dimmed"}">${t.todo ? `<div class="epic-qt-label">${word("page.epic.qt.objectives")}</div><p>${esc(t.todo)}</p>` : ""}${
+      rows.length ? `<p>${rows.map(esc).join("<br>")}</p>` : ""}${t.text ? `<div class="epic-qt-label">${word("page.epic.qt.description")}</div><p>${esc(t.text)}</p>` : ""}
+    <p class="epic-qt-src">${t.game ? word("page.epic.qt.game") : word("page.epic.qt.ours")}</p></div>`;
   if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
   box.hidden = false;
   const at = slidePlace(panel.getBoundingClientRect(), box.offsetWidth, box.offsetHeight);
@@ -1084,14 +1138,25 @@ function drawQuestText() {
   box.style.left = `${Math.round(at.x)}px`;
 }
 document.addEventListener?.("keydown", (e) => { if (e.key === "Escape" && epicTextOpen) toggleEpicText(null); });
-function stepMoreHtml(s, state, cur, live, plan, said, ahead = false) {
-  const rest = [s.bl ? `<div class="guide-line plan-blurb">${esc(s.bl)}</div>` : "",
-    said ? `<div class="guide-line plan-why todo">${esc(said)}</div>` : ahead ? "" : whyLine(s, state, cur, live, plan)].join("");
-  return rest ? plusFoldHtml("epic:step-more", "guide-line plan-step-more", "", "Details", rest) : "";
+const NOW_FRAME_MS = 3000;
+const nowFrame = { key: null, at: 0 };
+function frameNow(now = Date.now()) {
+  const block = $("track-epic")?.querySelector?.(".plan-now");
+  if (!block) return;
+  const key = block.dataset.now;
+  if (key !== nowFrame.key) Object.assign(nowFrame, { at: nowFrame.key === null ? 0 : now, key });
+  const gone = now - nowFrame.at;
+  if (!nowFrame.at || gone >= NOW_FRAME_MS || block.classList.contains("changed")) return;
+  block.style.animationDelay = `${-gone}ms`;
+  block.classList.add("changed");
+}
+function stepMoreHtml(s) {
+  return s.bl ? plusFoldHtml("epic:step-more", "guide-line plan-step-more", "", word("page.epic.details"),
+    `<div class="guide-line plan-blurb">${esc(s.bl)}</div>`) : "";
 }
 function stepShownTag(s, state, lit) {
   if (lit && state !== "parked" && state !== "blocked") return "";
-  const tag = stepTag(s, state) || (state === "wait" ? "Waiting" : "");
+  const tag = stepTag(s, state) || (state === "wait" ? word("page.epic.tag.waiting") : "");
   return tag ? ` <span class="step-tag ${state}${onHold(s, state) ? " hold" : ""}">${tag}</span>` : "";
 }
 const coinsHtml = (copper) => `<span class="plan-coins">${money(copper)}</span>`;
@@ -1108,17 +1173,19 @@ function epicPlanHtml(t, head, where, way = "", src = shownPlan(t), legRow = "")
   const plan = { steps, states, live, inspect, skillShort: p.skillShort,
                  putOff: new Set(steps.filter((x, k) => x.k === "S" && (x.putOff || (live?.putOff || []).includes(at[k])))) };
   const newer = newerPlan(t);
-  const { done, all, d, stage, fills } = planProgress(steps, states, cur, live, g, inspect ? 0 : app.status?.nums?.epicBefore || 0);
-  const stages = [["prep", "Prep"], ["travel", "Travel"], ["inside", "Inside"], ["turnin", "Turn in"]].map(([k, name]) =>
-    `<span class="${k === stage ? "on" : ""}" style="--p:${Math.round((fills[k] || 0) * 100)}%">${name}</span>`).join("");
+  const { done, all, d, stage, fills } = planProgress(steps, states, cur, live, g, inspect ? 0 : app.status?.nums?.epicBefore || 0, !!dungeon.byKey[p.key]);
+  const order = [["prep", word("page.epic.stage.prep")], ["travel", word("page.epic.stage.travel")], ["inside", word("page.epic.stage.inside")],
+    ["turnin", word("page.epic.stage.turnin")]], on = order.findIndex(([k]) => k === stage);
+  const stages = order.map(([k, name], n) => `${n ? `<i class="stage-rule"></i>` : ""}<span class="${k === stage ? "on" : on > n ? "past" : ""}" style="--p:${
+    Math.round((fills[k] || 0) * 100)}%">${on > n ? `<b class="stage-tick">✓</b>` : ""}${name}</span>`).join("");
   const i = inspect ? pickedStep(t) + 1 : shownStep(states, cur);
   const extra = handInStep(p, steps, g, cur);
   const handing = g?.handIn && (extra || steps[cur - 1]?.ids?.[0] === g.handIn);
   const back = handing && !extra ? states.findIndex((x) => x === "todo") : -1;
   const s = extra || (i ? steps[i - 1] : null), state = extra ? "todo" : s ? states[i - 1] : null;
-  const said = s && (extra || (cur && i === cur)) ? leadLine(g, steps, at, s) : "";
+  const said = s && (extra || (cur && i === cur)) ? leadLine(g, steps, at, s, plan) : "";
   if (epicTextOpen && textQuest(s) !== epicTextOpen.id) epicTextOpen = null;
-  let who = !s ? "" : s.k === "P" || s.k === "T" ? esc(s.npc || "") : s.k === "D" ? `${s.ids.length} quest${s.ids.length === 1 ? "" : "s"} inside`
+  let who = !s ? "" : s.k === "P" || s.k === "T" ? esc(s.npc || "") : s.k === "D" ? wordCount("page.epic.inside.quests", s.ids.length)
     : (s.mobs || []).map((n, k) => esc(n) + (s.lv ? ` ${mobLevelHtml(stepMobLevels(s, k))}` : "")).join(", ") || esc(s.target || "");
   const along = s ? alongSteps(steps, i, states, playerWorld(), at) : [], colours = rowColours(s, steps, along);
   let objs = objectivesHtml(s, colours);
@@ -1129,19 +1196,21 @@ function epicPlanHtml(t, head, where, way = "", src = shownPlan(t), legRow = "")
   const run = app.run, same = run?.inside && (run.key === p.key
     || (dungeon.byKey[p.key]?.instance != null && dungeon.byKey[p.key].instance === dungeon.byKey[run.key]?.instance));
   const det = same ? dungeonDetail(p.key) : null;
-  let bosses = "", bossWhere = "";
+  let bosses = "", bossWhere = "", nextBoss = "";
   if (s?.k === "D" && s.bosses && det) {
     const index = Object.fromEntries(det.bosses.map((b, n) => [b.name, n + 1])), kills = runKills(p.key);
     let found = false, down = 0;
     bosses = s.bosses.map((b) => {
       const isDown = kills.includes(index[b.n]), now = !isDown && !found;
+      if (now) nextBoss = b.n;
       found ||= !isDown; down += isDown ? 1 : 0;
       const lv = index[b.n] ? ` <small>${mobLevelHtml(det.bosses[index[b.n] - 1].levels)}</small>` : "";
       return `<li class="${isDown ? "down" : now ? "now" : ""}">${esc(b.n)}${lv}${b.q ? `<span>${esc(b.q.join(", "))}</span>` : ""}</li>`;
     }).join("");
-    bossWhere = `Inside, ${down} of ${s.bosses.length} bosses down`;
+    bossWhere = word("page.epic.inside.bosses", { n: down, of: s.bosses.length });
   }
-  const next = [], nextLine = (st) => `<div class="guide-line">${stepIcon(st)} ${esc(nextWords(st))}${st.grp ? GROUP_TAG : ""}</div>`;
+  const next = [], nextLine = (st) => `<div class="guide-line plan-then"><span class="then-words">${stepIcon(st)} ${esc(nextWords(st))}${
+    st.grp ? GROUP_TAG : ""}</span><span class="then-place">${esc(placeName(st) || st.zone || "")}</span></div>`;
   const alongNow = new Set(along);
   const onCard = (st) => alongNow.has(st) || Boolean(s && DirectorRules.onCard(s.k, s.ids, st.k, st.ids?.[0]));
   const thenAt = g?.then && (extra || (cur && i === cur)) ? at.indexOf(g.then) : -1;
@@ -1152,35 +1221,43 @@ function epicPlanHtml(t, head, where, way = "", src = shownPlan(t), legRow = "")
   }
   const level = levelInText(steps, cur, states, live?.pace, live?.play);
   const over = !s && done >= all;
-  return `${head}<div class="guide-name">${esc(p.name || t.name)}</div>${epicWorking(t)}
-    <div class="guide-line plan-count">${done} of ${all} steps done</div>
-    ${level ? `<div class="guide-line muted">${level}</div>` : ""}
-    ${live?.cardHidden ? `<div class="guide-line muted">The epic's card is hidden in game. Click the add-on button or the blue arrow, or type /ioa guide, to show the card again</div>` : ""}
+  const leading = !!cur && i === cur;
+  const tag = s && !extra ? stepShownTag(s, state, leading) : "";
+  const before = stage === "prep" && d ? states.slice(0, d - 1).filter((x) => x !== "done" && x !== "skipped").length : 0;
+  const sentence = !s ? "" : s.k === "D" && same && nextBoss ? word("page.epic.now.boss", { boss: nextBoss }) : nextWords(s);
+  const under = !s ? "" : s.k === "D" ? who : s.fq ? esc(word("page.epic.for", { quest: s.fq }) || "") : "";
+  const whoWhere = !s ? "" : [s.k === "D" ? "" : who, esc([bossWhere || (cur && s.at ? where : ""), bossWhere ? "" : s.zone].filter(Boolean)
+    .join(" | "))].filter(Boolean).join(" | ");
+  return `${head}<div class="guide-name plan-caption"><span class="plan-caption-name">${esc(p.name || t.name)}</span><span class="plan-count">${
+    word("page.epic.count", { n: done, of: all })}</span>${before ? `<span>${esc(wordCount("page.epic.before", before))}</span>` : ""}${
+    level ? `<span>${level}</span>` : ""}${tag}</div>${epicWorking(t)}
+    ${live?.cardHidden ? `<div class="guide-line muted">${word("page.epic.card.hidden")}</div>` : ""}
     ${newer ? newerPlanHtml(newer) : ""}
     ${inspect ? "" : directorLeftHtml()}
     ${waysLine(t)}${unbuiltLine(t)}
     ${d ? `<div class="plan-stages">${stages}</div>` : ""}
     ${legRow}
-    ${s ? `<div class="plan-verb">${cur && i === cur ? useItemHtml() : ""}${stepIcon(s)} ${esc(planVerb(s))}${extra ? "" : stepShownTag(s, state, cur && i === cur)}</div>
-      <div class="guide-line plan-step-name">${questTextIcon(s)}<b>${esc(s.name || s.text)}</b></div>
+    ${s ? `<div class="plan-now" data-now="${esc(`${i}:${s.k}:${s.ids?.join(".") ?? ""}:${sentence}`)}">
+      <div class="plan-sentence">${leading ? useItemHtml() : ""}${stepIcon(s)}${questTextIcon(s)}<b>${esc(sentence)}</b></div>
+      ${under ? `<div class="guide-line plan-for">${under}</div>` : ""}
       ${s.grp ? groupHtml(s, states[i - 1]) : ""}
-      <div class="guide-line">${[who, esc([bossWhere || (cur && s.at ? where : ""), bossWhere ? "" : s.zone].filter(Boolean).join(" | "))]
-        .filter(Boolean).join(" | ")}</div>
+      ${whoWhere ? `<div class="guide-line">${whoWhere}</div>` : ""}</div>
+      ${s.k === "D" && !same ? doorHtml(s, steps, states, live) : whyHtml(s, state, cur, live, plan, said, Boolean(handing), leading)}
       ${cost ? `<div class="guide-line plan-money">${cost}</div>` : ""}
       ${cur && s.at && !bossWhere ? way : ""}
       ${s.mv ? `<div class="guide-line plan-moves">${esc(s.mv)}</div>` : ""}
       ${(s.careful || "").split("; ").filter(Boolean).map((m) => `<div class="guide-line plan-careful">${
-        planIcon("warning", "Careful")} ${esc(m)}</div>`).join("")}
+        planIcon("warning", word("page.epic.careful"))} ${esc(m)}</div>`).join("")}
       ${bosses ? `<ol class="plan-bosses">${bosses}</ol>` : ""}
-      ${tripHtml(s, !!cur && i === cur)}
+      ${tripHtml(s)}
       ${objs}
-      ${stepMoreHtml(s, state, cur, live, plan, said, Boolean(handing))}`
-      : done >= all ? `<div class="guide-line"><b>All done</b></div>${nextChainsHtml(p)}`
-      : `<div class="guide-line muted">The epic has nothing for you to do right now</div>`}
+      ${stepMoreHtml(s)}`
+      : done >= all ? `<div class="guide-line"><b>${word("page.epic.all-done.line")}</b></div>${nextChainsHtml(p)}`
+      : `<div class="guide-line muted">${word("page.epic.nothing")}</div>`}
     ${timersHtml(steps)}
     ${s ? alongHtml(steps, i, states, at) : ""}
     ${inspect ? "" : partyLine()}
-    ${next.length ? `<div class="plan-next"><span class="plan-next-label">Next</span><div>${next.join("")}</div></div>` : ""}
+    ${next.length ? `<div class="plan-next"><span class="plan-next-label">${word("page.epic.next")}</span><div>${next.join("")}</div></div>` : ""}
     ${over ? "" : `${grindLine(grindWords(steps, states, cur, live))}
     ${missingLine(p.missing)}
     ${errandNotesLine(p.notes, p.hidden)}`}
@@ -1204,7 +1281,7 @@ function refreshShared() {
     if (sh.working) return setTimeout(refreshShared, 2000);
     if (sh.version && was !== sh.version && sharedToast && sh.epic) {
       sharedToast = false;
-      showToast(`The plan for ${sh.epic.name || "the quest epic"} is ready for the addon. Type /reload in game to load the epic's guide`);
+      showToast(word("page.epic.ready", { name: sh.epic.name || word("page.epic.the-quest-epic") }));
     }
   }, () => setTimeout(refreshShared, askWait("/api/shared")));
 }
@@ -1214,8 +1291,9 @@ function askShared(t) {
   const sig = `${t.key}|${t.startedAt || ""}|${steps.map((s) => epicCode(s)).join(";")}`;
   if (sharedAsked === sig) return;
   const mode = trackMode(t);
-  const asked = postJson("/api/shared/epic", { key: t.key, anchor: t.anchor, mode, close: !!t.close, parked: t.keepParked || [],
-    click: t.startedAt, again: !!t.startSent }, { key: "shared epic" });
+  const asked = postJson("/api/shared/epic", { key: t.key, anchor: t.anchor, mode, close: !!t.close, questLevels: t.questLevels || [],
+    parked: t.keepParked || [],
+    click: t.startedAt, again: !!t.startSent }, { key: "shared-epic" });
   if (!asked) return;
   t.startSent = true;
   sharedAsked = sig;
@@ -1232,38 +1310,36 @@ function askShared(t) {
     renderTracks();
   });
 }
-const planAsks = () => (app.shared ? ["shared epic"] : ["shared epic", "/api/shared"]);
+const planAsks = () => (app.shared ? ["shared-epic"] : ["shared-epic", "/api/shared"]);
 const planAskFailed = () => planAsks().some((k) => askState(k)?.error);
 function planNote(t) {
   const broke = planBroke(t);
   if (!t.startedAt || planWritten(t) || !(broke || planAskFailed())) return "";
-  return `<div class="guide-line">${askNote(planAsks(), { what: "the epic's plan written for the game",
-    why: broke ? "the Index ran into an error while writing it" : null,
+  return `<div class="guide-line">${askNote(planAsks(), { what: word("page.epic.plan.what"),
+    why: broke ? word("page.epic.plan.broke") : null,
     again: () => {
       if (broke) { t.brokeBefore = app.plan.broke.at; t.planAsked = false; sharedAsked = ""; }
       refreshShared(); askShared(t); renderTracks();
     } })}</div>`;
 }
 
-const WAY_WORDS = { safe: "the safest route, to roads and well clear of mobs", fight: "the grinding route, through the mobs worth fighting",
-  any: "the quickest route round the mobs" };
+const WAY_WORDS = wordsOf("page.epic.way");
 function askEpicMode(t, quiet = false) {
-  const mode = trackMode(t), way = `Quest epic: ${WAY_WORDS[mode]}`, say = (words) => quiet || showToast(words);
-  const none = `${way}. The epic has no plan in game yet. A Re-plan writes one that way`;
-  if (t.startedAt && !t.planAsked) return say(`${way}. The Index is writing the epic's plan for the game that way`);
+  const mode = trackMode(t), way = { way: WAY_WORDS[mode] }, say = (words) => quiet || showToast(words);
+  const none = word("page.epic.mode.none", way);
+  if (t.startedAt && !t.planAsked) return say(word("page.epic.mode.writing", way));
   if (!t.planAsked && !(app.plan?.key === t.key && planIsMine(app.plan))) return say(none);
   postJson("/api/shared/mode", { key: t.key, mode }).then(({ asked }) => {
     const lp = loadedPlan()?.epic;
-    say(!asked ? none : lp?.key === t.key && (lp.mode || "any") === mode ? `${way}, as the epic's plan in game has it`
-      : `${way}. The blue arrow in game takes the new route after a /reload, once the reload prompt asks for one`);
-  }, (e) => quiet || askFailed("The epic's plan in game keeps its old route", e));
+    say(!asked ? none : lp?.key === t.key && (lp.mode || "any") === mode ? word("page.epic.mode.same", way) : word("page.epic.mode.reload", way));
+  }, (e) => quiet || askFailed(word("page.epic.mode.failed"), e));
 }
 function makingLine(t) {
   const p = app.plan, g = p?.progress;
   if (!g || g.key !== t.key || !g.of) return "";
-  const none = g.unbuilt ? `. ${num(g.unbuilt)} step${g.unbuilt === 1 ? " has" : "s have"} no walking path yet, because the map data there is still being built` : "";
+  const none = g.unbuilt ? `. ${wordCount("page.epic.making.unbuilt", g.unbuilt, { n: num(g.unbuilt) })}` : "";
   const at = Math.min(g.done + 1, g.of);
-  return `<div class="guide-line muted plan-making">The Index is working out the epic's legs, at step ${num(at)} of ${num(g.of)}${none}</div>${planBarHtml(g.key, at, g.done, g.of)}`;
+  return `<div class="guide-line muted plan-making">${word("page.epic.making", { n: num(at), of: num(g.of) })}${none}</div>${planBarHtml(g.key, at, g.done, g.of)}`;
 }
 
 const PLAN_BAR = { digit: 7, pad: 5, gap: 4, room: 6, width: 330, ease: 600 };
@@ -1285,7 +1361,7 @@ function planBarHtml(key, at, done, of) {
     clearTimeout(planBar.timer);
     planBar.timer = setTimeout(() => { planBar.from = planBar.to; }, PLAN_BAR.ease + 100);
   }
-  return `<div class="plan-bar" role="progressbar" aria-label="Steps worked out" aria-valuemin="0" aria-valuemax="${of}" aria-valuenow="${Math.min(done, of)}" style="--fill: ${
+  return `<div class="plan-bar" role="progressbar" aria-label="${word("page.epic.making.bar")}" aria-valuemin="0" aria-valuemax="${of}" aria-valuenow="${Math.min(done, of)}" style="--fill: ${
     pct(planBar.from)}" data-fill="${pct(p.fill)}"><div class="plan-bar-fill"></div><span class="plan-bar-of${p.total ? "" : " gone"}">${num(of)}</span><span class="plan-bar-at ${
     p.place}">${num(at)}</span></div>`;
 }
@@ -1303,15 +1379,14 @@ function unbuiltLine(t) {
   const p = app.plan, n = p?.unbuilt;
   if (!n || p.key !== t.key || !planIsMine(p) || app.navfill?.state === "done") return "";
   const pct = app.navfill?.pct;
-  const built = pct != null ? ` (${Math.min(99.9, Math.floor(pct * 10) / 10)}% of the world is mapped so far)` : "";
-  return `<div class="guide-line muted plan-unbuilt">The walking path to ${n === 1 ? "1 step" : `${num(n)} steps`} isn't worked out yet, because the map data for ${
-    n === 1 ? "that spot" : "those spots"} is still being built${built}. Until then the arrow points straight at ${n === 1 ? "that step" : "those steps"}.</div>`;
+  const fill = { n: num(n), pct: pct != null ? Math.min(99.9, Math.floor(pct * 10) / 10) : null };
+  return `<div class="guide-line muted plan-unbuilt">${pct != null ? wordCount("page.epic.unbuilt.mapped", n, fill) : wordCount("page.epic.unbuilt", n, fill)}</div>`;
 }
 function waysLine(t) {
   const p = app.plan;
   if (p?.key !== t.key || !planIsMine(p) || (p.mode || "any") === trackMode(t)) return "";
-  return `<div class="guide-line muted">${p.working ? "The Index is writing the epic's plan for the game again with this route"
-    : `The epic's plan for the game still goes ${WAY_WORDS[p.mode || "any"]}`}</div>`;
+  return `<div class="guide-line muted">${p.working ? word("page.epic.ways.writing")
+    : word("page.epic.ways.still", { way: WAY_WORDS[p.mode || "any"] })}</div>`;
 }
 function sharedStepIndex(t) {
   const sh = app.shared, loaded = app.status?.nums?.sharedVersion;
@@ -1357,7 +1432,7 @@ function drawTalkWalk(st, s, size, scale) {
   const screen = screenIn(st.inst, size, scale);
   const pts = st.patrols[0].map(screen).filter(Boolean);
   if (!pts.length) return;
-  const label = `${st.npc || st.target || "The NPC"} walks the marked route`;
+  const label = word("page.epic.walks", { npc: st.npc || st.target || word("page.epic.walks.npc") });
   noteOverlay(label, EPIC_TARGET.color, EPIC_TARGET.hot);
   drawLit(label, EPIC_TARGET.color, () => {
     if (st.walker === "off") renderHeat(pts.map(([x, y]) => [x, y, 1]), heatRadius(s.map, size, scale), heatRamp(EPIC_TARGET.color, EPIC_TARGET.hot));
@@ -1392,14 +1467,14 @@ function alongObjective(x) {
 }
 function alongLabel(x) {
   const log = app.questlog?.entries || [];
-  if (!(x.ids || []).some((id) => log.some((e) => e.id === id))) return `${x.text}, along the way`;
+  if (!(x.ids || []).some((id) => log.some((e) => e.id === id))) return word("page.epic.along.label", { text: x.text });
   const o = alongObjective(x)?.o;
   if (!o) {
     const left = stepObjective(x, logObjectives(x.ids[0])) < 0 && shownObjectives(x).some((r) => !r.o.finished);
-    return left ? `${x.text}, along the way` : "";
+    return left ? word("page.epic.along.label", { text: x.text }) : "";
   }
   const m = /^(.*?):\s*(\d+\s*\/\s*\d+)$/.exec(o.text || "");
-  return `${m ? `${m[2].replace(/\s/g, "")} ${m[1]}` : o.text || x.text}, along the way`;
+  return word("page.epic.along.label", { text: m ? `${m[2].replace(/\s/g, "")} ${m[1]}` : o.text || x.text });
 }
 function drawAlongTargets(t, s, size, scale) {
   alongTargets(t).forEach(({ step, label, quests }, n) => {
@@ -1416,14 +1491,13 @@ function drawAlongTargets(t, s, size, scale) {
 }
 
 REPLANS.epic = {
-  title: () => "Plans the epic afresh from the character's spot and what the game says now, the same as stopping the epic and starting it again. Then type /reload in game",
+  title: () => word("page.epic.replan.tip"),
   question() {
     const parked = replanParked(app.tracks.epic);
     if (!parked.length) return null;
-    return { title: "Unpark parked quests?", text: `Re-planning ${app.tracks.epic.name || "the quest epic"}. ${
-      parked.length === 1 ? "This quest is" : "These quests are"} parked:`, list: parked.map((q) => q.name),
-      more: "Yes plans the parked quests back in from where you are. No keeps them parked, planned last and still to do",
-      yes: "Unpark them", no: "Keep them parked" };
+    return { title: word("page.epic.replan.title"),
+      text: wordCount("page.epic.replan.text", parked.length, { name: app.tracks.epic.name || word("page.epic.the-quest-epic") }),
+      list: parked.map((q) => q.name), more: word("page.epic.replan.more"), yes: word("page.epic.replan.yes"), no: word("page.epic.replan.no") };
   },
   start(done, { answer } = {}) {
     const t = app.tracks.epic;

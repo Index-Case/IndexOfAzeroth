@@ -1,0 +1,26 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: day
+
+day.tip = Pick the day to play back
+day.none = No day recorded yet
+days.none = The Index hasn't recorded a day of yours yet.
+back.tip = Step back one recorded event (while paused)
+rewind.tip = Play the day backwards
+play.tip = Play or pause the day
+forward.tip = Fast forward: play at the next speed up
+next.tip = Step forward one recorded event (while paused)
+slower.tip = Slower
+speed.tip = How many times faster than it was played
+faster.tip = Faster
+pause = Pause on
+pause.tip = Pick what the replay pauses on when it reaches it
+onward = Next day
+onward.tip = At the end of a day the replay plays on into the next one, or into the day before when playing backwards
+fade = Path fade
+fade.tip = The walked path fades from faint at its start to full strength at the arrow
+follow = Follow
+follow.tip = Keep the map centred on the replayed character
+close.tip = Closes the replay and switches Replay off in Options
+timeline.tip = The mouse wheel over the timeline zooms in and out around the pointer. Dragging across the whole day zooms into that stretch. Zoomed in, dragging moves along the day and Shift with a drag zooms into a stretch. A double-click shows the whole day again
+edge.back = Go back to {day}
+edge.on = Go on to {day}

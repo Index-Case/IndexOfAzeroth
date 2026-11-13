@@ -8,6 +8,7 @@ class Torches {
     this.instances = {};
     this.colours = [];
     this.kinds = [];
+    this.reach = 0;
     this.stamp = 0;
   }
 
@@ -15,6 +16,10 @@ class Torches {
     this.instances = data?.instances && typeof data.instances === "object" ? data.instances : {};
     this.colours = Array.isArray(data?.colours) ? data.colours : [];
     this.kinds = Array.isArray(data?.kinds) ? data.kinds : [];
+    this.reach = 0;
+    for (const tiles of Object.values(this.instances)) {
+      for (const lights of Object.values(tiles || {})) for (const l of lights || []) if (l[7] > this.reach) this.reach = l[7];
+    }
     this.stamp++;
   }
 

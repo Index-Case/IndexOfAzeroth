@@ -107,6 +107,10 @@ def esc(text):
     return htmllib.escape(text or "", quote=False)
 
 
+def marked(words):
+    return esc(words).replace(spelltext.SUM_OPEN, '<span class="tip-sum">').replace(spelltext.SUM_CLOSE, "</span>")
+
+
 def money(copper):
     rest = copper
     out = []
@@ -529,7 +533,8 @@ class Builder:
         if level:
             head.append(f'<span class="tip-requirements">Requires level {level}</span><br />')
         head.append("</td></tr></table>")
-        words, gaps = t.filler.fill(sid)
+        sums = []
+        words, gaps = t.filler.fill(sid, sums=sums)
         note = self.proc_note(sid)
         body = ["<table><tr><td>"]
         reagents = [f'{esc(t.sparse[i]["Display_lang"])}{f" ({n})" if n > 1 else ""}' for i, n in sp.reagents.get(sid, ())
@@ -541,12 +546,22 @@ class Builder:
             body.append('Tools:<br />' + "".join(f'<div class="indent q1">{x}</div>' for x in tools))
         needs = [w for w in (self.spell_weapon(sid), self.spell_forms(sid)) if w]
         body.append("<br />".join(f'<span class="tip-requirements">{w}</span>' for w in needs))
-        body.append((f'<div class="q">{esc(words)}</div>' if words else "") + note + "</td></tr></table>")
+        body.append((f'<div class="q tip-desc">{marked(words)}</div>' if words else "") + note + "</td></tr></table>")
         body = "".join(body)
         misc = sp.misc.get(sid)
         icon = t.icons.get(int(misc["SpellIconFileDataID"])) if misc else None
-        return {"name": name, "icon": icon, "tooltip": "".join(head) + body, "quality": -1,
-                "gaps": sorted({f"spell {g}" for g in gaps})}
+        tip = {"name": name, "icon": icon, "tooltip": "".join(head) + body, "quality": -1,
+               "gaps": sorted({f"spell {g}" for g in gaps})}
+        if sums:
+            tip["sums"] = sums
+        if sp.ranked(sid) and not gaps:
+            tip["ranks"] = [self.rank_text(sid, r) for r in range(1, sp.ranks[sid] + 1)]
+        return tip
+
+    def rank_text(self, sid, rank):
+        sums = []
+        words, _ = self.t.filler.fill(sid, rank=rank, sums=sums)
+        return {"html": marked(words), "sums": sums}
 
     def spell_cost(self, sid):
         out, combo = None, ""

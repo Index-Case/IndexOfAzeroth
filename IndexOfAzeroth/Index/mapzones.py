@@ -312,6 +312,7 @@ def nearest_dock(hub, map_id, fx, fy, faction):
 
 
 CAPITAL = 0x100
+NO_PVP = 0x800
 AREA_DEPTH = 8
 
 
@@ -403,6 +404,20 @@ def capital_sides(rows, barred=()):
     return sides
 
 
+def zone_pvp(maps, rows):
+    import facts
+    by_id = {int(r["ID"]): r for r in rows}
+    out = {}
+    for mid, m in maps.items():
+        r = by_id.get(int(m.get("area") or 0)) if m.get("type") == 3 else None
+        if not r:
+            continue
+        named = [side for side, bit in facts.FACTION_BITS.items() if int(r.get("FactionGroupMask") or 0) & bit]
+        out[str(mid)] = ("sanctuary" if int(r.get("Flags_0") or 0) & NO_PVP else named[0] if len(named) == 1
+                         else "contested")
+    return out
+
+
 def capital_table(rows, barred=()):
     import nav
     parent = {int(r["ID"]): int(r["ParentAreaID"] or 0) for r in rows}
@@ -490,6 +505,7 @@ def set_zone_tables(hub):
             barred = opendungeons.barred()
             hub.zone_levels, walk_levels = zone_tables(hub.world, barred)
             rows = client.rows("AreaTable", stored=True)
+            hub.zone_pvp = zone_pvp(MAPS, rows)
             hub.city_areas = city_areas(rows, barred)
             capitals = capital_table(rows, barred)
             hub.paths.set_tables(zone_levels=walk_levels, capitals=capitals)

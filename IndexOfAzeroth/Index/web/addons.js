@@ -19,22 +19,29 @@ function addonAction(a) {
   const live = app.link?.ok && app.addons?.running ? app.loaded?.[a.folder] : null;
   if (a.status === "error") return `${a.label}: ${a.message}`;
   if (live) {
-    if (live.state === "missing" && a.installed) return `${a.label} is installed. Restart the game to load it`;
-    if (live.state === "disabled") return `${a.label} is turned off. Turn it on in the AddOns list at character select`;
-    if (live.state === "notLoaded") return `${a.label} didn't load${live.reason ? ` (${live.reason.toLowerCase().replace(/_/g, " ")})` : ""}. Check the AddOns list at character select`;
+    const name = a.label;
+    if (live.state === "missing" && a.installed) return word("page.addons.act.installed", { name });
+    if (live.state === "disabled") return word("page.addons.act.off", { name });
+    if (live.state === "notLoaded") {
+      return live.reason ? word("page.addons.act.not-loaded.why", { name, reason: live.reason.toLowerCase().replace(/_/g, " ") })
+        : word("page.addons.act.not-loaded", { name });
+    }
     if (live.state === "loaded" && a.installed && !a.linked && bare(live.version) !== bare(a.installed)) {
-      return `${a.label} ${a.installed} is on disk, but the game is running ${live.version}. Type /reload to load the new version`;
+      return word("page.addons.act.reload", { name, version: a.installed, running: live.version });
     }
     return null;
   }
-  if (a.restart) return `${a.label} was ${a.status === "updated" ? "updated" : "installed"}. Restart the game to load it`;
+  if (a.restart) {
+    return a.status === "updated" ? word("page.addons.act.restart.updated", { name: a.label })
+      : word("page.addons.act.restart.installed", { name: a.label });
+  }
   return null;
 }
 
 function renderAddonNotice() {
   const box = $("addon-notice");
   const lines = (app.addons?.list || []).map(addonAction).filter((t) => t && !noticeHidden[t]);
-  const html = lines.map((t) => `<div class="an-line"><span>${esc(t)}</span><button class="x-mark" data-hide="${esc(t)}" aria-label="Hide">×</button></div>`).join("");
+  const html = lines.map((t) => `<div class="an-line"><span>${esc(t)}</span><button class="x-mark" data-hide="${esc(t)}" aria-label="${esc(word("page.addons.hide"))}">×</button></div>`).join("");
   setHtml(box, html);
   box.hidden = !html;
 }
@@ -47,21 +54,24 @@ $("addon-notice").addEventListener("click", (e) => {
 });
 
 
-const ADDON_STATES = { ok: "", waiting: "Waiting", installed: "Installed", updated: "Updated", linked: "Linked", error: "Failed",
-  nogame: "No game folder", unknown: "Waiting" };
+const ADDON_STATES = { ok: "", ...wordsOf("page.addons.state") };
 
 function addonsTable() {
   const list = app.addons?.list;
   if (!list) return "";
   const rows = list.map((a) => {
     const live = app.link?.ok && app.addons.running ? app.loaded?.[a.folder] : null;
-    const inGame = !live ? "" : live.state === "loaded" ? esc(live.version || "loaded") : live.state === "missing" ? "not yet" : esc(live.state === "disabled" ? "turned off" : live.reason || "not loaded");
+    const inGame = !live ? "" : live.state === "loaded" ? esc(live.version || word("page.addons.game.loaded"))
+      : live.state === "missing" ? esc(word("page.addons.game.not-yet"))
+      : esc(live.state === "disabled" ? word("page.addons.game.off") : live.reason || word("page.addons.game.not-loaded"));
     const note = [ADDON_STATES[a.status] ?? a.status, a.message].filter(Boolean).join(". ");
     const fresh = freshRow(a.changed);
     const name = sourceName(a.label, a.url);
-    return `<tr class="${fresh}"><td>${name}</td><td class="num">${esc(a.installed || "none")}</td><td class="num">${inGame}</td>
+    return `<tr class="${fresh}"><td>${name}</td><td class="num">${esc(a.installed || word("page.addons.disk.none"))}</td><td class="num">${inGame}</td>
       <td>${a.status === "error" || a.error ? `<span class="zero-text">${esc(a.error || a.message || "")}</span>` : esc(note)}</td></tr>`;
   }).join("");
-  const where = app.gameInfo?.folder ? `<p class="muted">Game folder: ${esc(app.gameInfo.folder)}</p>` : "";
-  return `${where}<table class="list addons"><tr><th>Addon</th><th class="num">On disk</th><th class="num">In game</th><th>Status</th></tr>${rows}</table>`;
+  const where = app.gameInfo?.folder ? `<p class="muted">${esc(word("page.addons.folder", { folder: app.gameInfo.folder }))}</p>` : "";
+  return `${where}<table class="list addons"><tr><th>${esc(word("page.addons.head.addon"))}</th>`
+    + `<th class="num">${esc(word("page.addons.head.disk"))}</th><th class="num">${esc(word("page.addons.head.game"))}</th>`
+    + `<th>${esc(word("page.addons.head.status"))}</th></tr>${rows}</table>`;
 }

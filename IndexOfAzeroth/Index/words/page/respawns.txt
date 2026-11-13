@@ -1,0 +1,26 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: n, name, left, span, level
+
+title = Respawns
+running = {n} running
+show.tip = Show the timers on the map
+none = Kill a named or rare mob and its respawn timer shows here and on the map. Common mobs get no timer, because more of them are around.
+what = the respawn timers
+go = Guide me
+go.tip = This starts the Navigation Guide to the spawn point of {name} and copies the line for the in-game arrow
+forget.tip = Remove this timer
+forget.failed = The timer comes back with the next update
+guide = {level}, respawn
+
+any = any time
+any.most = any time, {left} at most
+back = back
+tag.rare = rare
+tag.guess = spot guessed
+tag.measured = time measured
+tag.est = time estimated
+in = respawns in {left}
+in.about = respawns in about {left}
+window = window {span}
+seen = seen back after {span}
+measured = as measured on Forever

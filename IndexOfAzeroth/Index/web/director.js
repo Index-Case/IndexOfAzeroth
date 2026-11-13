@@ -1,6 +1,5 @@
 // The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
 "use strict";
-
 const director = { shut: null, adopted: null };
 
 function directorWord(d = app.director, link = app.link) {
@@ -61,9 +60,11 @@ function directorClicked(e) {
   director.shut = { kind: s.kind, text: s.text };
   if (b.dataset.director === "replan") {
     if (s.kind === "nextzone" && s.quests?.length) {
-      startEpic({ key: `log:${[...s.quests].sort((a, z) => a - z).join(".")}`, name: "Your quests", label: "the quests that lead on to the next zone" });
+      startEpic({ key: `log:${[...s.quests].sort((a, z) => a - z).join(".")}`, name: word("page.director.next-zone"),
+        label: word("page.director.next-zone.label") });
     } else if (s.kind === "classquest" && s.chain) {
-      startEpic({ key: `class:${s.chain}`, name: "Your class quest", label: "the class quest epic" });
+      startEpic({ key: `class:${s.chain}`, name: word("page.director.class-quest"),
+        label: word("page.director.class-quest.label") });
     } else replanGuide("epic");
   }
   renderDirector();
@@ -73,10 +74,10 @@ function adoptAsked(p = app.plan, t = app.tracks?.epic) {
   if (p?.asked !== "game" || !p.key || !planIsMine(p) || director.adopted === p.version) return false;
   director.adopted = p.version;
   if (t?.key === p.key) return false;
-  app.tracks.epic = newEpic(p.key, p.anchor || null, p.mode, !!p.close);
+  app.tracks.epic = newEpic(p.key, p.anchor || null, p.mode, !!p.close, undefined, p.questLevels);
   saveTrack("epic");
   refreshEpic(true);
-  showToast(`You asked in game for ${p.name || "a new plan"}, so the page shows that epic too`);
+  showToast(word("page.director.asked", { name: p.name || word("page.director.asked.plan") }));
   return true;
 }
 

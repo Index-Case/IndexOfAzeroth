@@ -1,0 +1,18 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = PvP
+intro.p1 = The PvP window lists every fight with another player that the combat log holds, newest first, with a record over all of them.
+table = The table
+table.p1 = A level such as 22+ is the least the player can be, read from the spells they used. The add-on writes down the real level of each enemy player it sees.
+markers = Markers
+markers.p1 = A gold 1 v 1 marks a fight of one against one. A group icon counts the players on a side that had more than one.
+markers.p2 = A skull sits on the side of whoever was far above the other, grey to them as the game counts it for honour.
+stats = Stats
+stats.p1 = Duels never count. Won means the other side's player died and lost means the character died. Getting away counts as neither.
+battlegrounds = Battlegrounds
+battlegrounds.p1 = Battleground fights stay out of the table and the stats until Include battlegrounds is ticked.
+fight = One fight
+fight.p1 = A click on a fight opens it, with the character's side on the left. Crowd control taken leaves out snares, which only slow.
+missing = What a fight can lack
+missing.p1 = A fight is recorded only while the combat log is on, and a notice names each stretch it was off.

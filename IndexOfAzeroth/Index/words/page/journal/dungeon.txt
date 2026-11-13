@@ -3,7 +3,7 @@
 
 levels.range = Level {lo}-{hi}
 levels.from = Level {level}+
-levels.game = Forever's data says level {level}
+levels.open = Level {lo}-{hi}, open from {level}
 levels.notes = Blizzard's notes say {lo}-{hi}
 levels.notes-from = Blizzard's notes say level {level} and up
 levels.maybe = possibly {lo}-{hi}

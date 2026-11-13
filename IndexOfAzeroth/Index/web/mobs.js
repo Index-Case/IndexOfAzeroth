@@ -54,7 +54,7 @@ const lootIcons = (r, d, max = 30) => r.loot.slice(0, max).filter((id) => d.item
   .map((id) => html`<img src="/icon/${d.items[id].icon}.jpg" alt="" class="q${d.items[id].q}" data-tip="${id}">`);
 function lootLine(r, d, max) {
   const icons = lootIcons(r, d, max);
-  return html`<div class="mob-drops">${icons.length ? icons : html`<span class="muted">No drops recorded</span>`}</div>`;
+  return html`<div class="mob-drops">${icons.length ? icons : html`<span class="muted">${word("page.mobs.drops.none")}</span>`}</div>`;
 }
 const rareLine = (r) => [mobLevelText(r.levels), r.kind].filter(Boolean).join(", ");
 const rareMob = (r) => ({ id: r.id, name: r.name, where: "rares" });
@@ -77,18 +77,19 @@ function buildMobMenu() {
     const sw = st ? html`<span class="mob-swatch${st.rings ? " rings" : ""}" style="--c:${st.color}"></span>` : html`<span class="mob-swatch off"></span>`;
     return html`<label class="mob-row" data-rare="${r.id}"><input type="checkbox" value="${r.id}"${st ? " checked" : ""}>${sw}
       <span class="mob-num">${st ? mobs.on.indexOf(r.id) + 1 : ""}</span>
-      <span class="mob-name">${r.name}<small>${mobLevelHtml(r.levels, rareMob(r))}${r.loot.length ? `, ${r.loot.length} drops` : ""}</small></span>
-      <button class="mob-go" data-go="${r.id}" title="This starts the Navigation Guide to ${r.name} and copies the line for the in-game arrow">Guide me</button></label>`;
+      <span class="mob-name">${r.name}<small>${mobLevelHtml(r.levels, rareMob(r))}${r.loot.length ? `, ${word("page.mobs.drops", { n: r.loot.length })}` : ""}</small></span>
+      <button class="mob-go" data-go="${r.id}" title="${word("page.mobs.go.tip", { name: r.name })}">${word("page.mobs.go")}</button></label>`;
   }) : [];
   const rest = $("mob-rest");
-  rest.innerHTML = html`<div class="poi-all"><button data-all="1">All</button><button data-all="0">None</button></div>
+  rest.innerHTML = html`<div class="poi-all"><button data-all="1">${word("page.mobs.all")}</button><button data-all="0">${word("page.mobs.none")}</button></div>
     <div class="poi-group${open ? " open" : ""}">
-      <input type="checkbox" data-group="Rares" title="This shows or hides all of this zone's rares"${rares.length && shown === rares.length ? " checked" : ""}>
-      <button class="poi-fold" data-fold="Rares" aria-expanded="${open}">Rares
-      <span class="poi-on">${shown ? `${shown} of ${rares.length}` : rares.length ? `${rares.length} here` : ""}</span></button></div>
-    ${rows.length ? rows : open ? html`<p class="menu-note">${askNote("rares", { have: !!d, none: "No rares are known in this zone.",
-      what: "the zone's rares", again: () => { refreshMobs(); buildMobMenu(); } })}</p>` : ""}
-    <p class="menu-note">Hover over a rare to see its drops.</p>
+      <input type="checkbox" data-group="Rares" title="${word("page.mobs.rares.tip")}"${rares.length && shown === rares.length ? " checked" : ""}>
+      <button class="poi-fold" data-fold="Rares" aria-expanded="${open}">${word("page.mobs.rares")}
+      <span class="poi-on">${shown ? word("page.mobs.rares.shown", { n: shown, total: rares.length })
+        : rares.length ? word("page.mobs.rares.here", { n: rares.length }) : ""}</span></button></div>
+    ${rows.length ? rows : open ? html`<p class="menu-note">${askNote("rares", { have: !!d, none: word("page.mobs.zone.none"),
+      what: word("page.mobs.zone.what"), again: () => { refreshMobs(); buildMobMenu(); } })}</p>` : ""}
+    <p class="menu-note">${word("page.mobs.hover")}</p>
     ${respawnMenu()}`;
   const group = rest.querySelector("input[data-group]");
   if (group) group.indeterminate = shown > 0 && shown < rares.length;
@@ -97,12 +98,12 @@ function buildMobMenu() {
 function buildDungeonMobs() {
   const d = dungeon.detail[app.dungeon.key], rares = dungeonRares();
   const rows = rares.map((b) => html`<div class="mob-row"><span class="mob-name">${b.name}<small>${mobLevelHtml(b.levels)}${b.sub ? `, ${b.sub}` : ""}</small></span></div>`);
-  $("mob-rest").innerHTML = html`<div class="layer-group">${d?.name || "Dungeon"}</div>
+  $("mob-rest").innerHTML = html`<div class="layer-group">${d?.name || word("page.mobs.dungeon")}</div>
     ${rares.length ? html`<label class="mob-row"><input type="checkbox" data-drares="1"${poi.on.has("d:rares") ? " checked" : ""}>
-      <span class="mob-name">Show the dungeon's rares on the map<small>${rares.length}</small></span></label>${rows}`
-      : html`<p class="menu-note">${askNote(`/api/dungeon/${app.dungeon.key}`, { have: !!d, none: "No rares are known in this dungeon.",
-        what: "the dungeon's rares", again: detailAgain(app.dungeon.key) })}</p>`}
-    <p class="menu-note">This box is the same switch as Rare spawns under Places. Outside the dungeon, this menu shows the zone's rares again.</p>
+      <span class="mob-name">${raw(word("page.mobs.dungeon.show"))}<small>${rares.length}</small></span></label>${rows}`
+      : html`<p class="menu-note">${askNote(`/api/dungeon/${app.dungeon.key}`, { have: !!d, none: word("page.mobs.dungeon.none"),
+        what: word("page.mobs.dungeon.what"), again: detailAgain(app.dungeon.key) })}</p>`}
+    <p class="menu-note">${word("page.mobs.dungeon.note")}</p>
     ${respawnMenu()}`;
 }
 
@@ -115,7 +116,7 @@ function setAllRares(on) {
 }
 
 const toggleMobMenu = dropdown(mobButton, mobMenu, "m", () => { buildMobMenu(); $("poi-tip").hidden = true; focusFinder(); },
-  { el: $("mob-bar"), title: "NPCs, Monsters and Rares", help: "mobs" });
+  { el: $("mob-bar"), title: word("page.mobs.title"), help: "mobs" });
 
 mobMenu.addEventListener("click", (e) => {
   if (npcsClicked(e)) return;
@@ -232,7 +233,7 @@ function drawMobs(s, size, scale) {
 
 function rareTip(p) {
   const r = p.rare;
-  return html`${rareHead(r)}${lootLine(r, mobs.data, 24)}<small>Click the marker to start the guide to ${r.name} and copy the line for the in-game arrow</small>`;
+  return html`${rareHead(r)}${lootLine(r, mobs.data, 24)}<small>${word("page.mobs.tip.click", { name: r.name })}</small>`;
 }
 
 on("start", function startMobs() {

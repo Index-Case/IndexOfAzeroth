@@ -24,8 +24,8 @@ function timeLeft(t, now = nowSec()) {
 function leftText(t) {
   const { left, windowLeft } = timeLeft(t);
   if (left > 0) return (t.guess || t.est ? "~" : "") + hms(left);
-  if (windowLeft > 0) return `any time, ${hms(windowLeft)} at most`;
-  return "back";
+  if (windowLeft > 0) return word("page.respawns.any.most", { left: hms(windowLeft) });
+  return word("page.respawns.back");
 }
 
 function timerOnMap(t, mapId = app.displayMap) {
@@ -51,17 +51,17 @@ function respawnMenu() {
     const back = t.died + t.min <= now, zone = t.zone || zoneNameAt(t);
     return html`<div class="rs-row${back ? " back" : ""}" data-timer="${t.id}">
       <span class="rs-left" data-left="${t.id}">${leftText(t)}</span>
-      <span class="mob-name">${t.name}<small>${mobLevelHtml(t.levels)}${zone ? `, ${zone}` : ""}${t.rare ? ", rare" : ""}${t.guess ? ", spot guessed" : t.measured ? ", time measured" : t.est ? ", time estimated" : ""}</small></span>
-      <button class="mob-go" data-rs-go="${t.id}" title="This starts the Navigation Guide to the spawn point of ${t.name} and copies the line for the in-game arrow">Guide me</button>
-      <button class="rs-x x-mark" data-rs-forget="${t.id}" title="Remove this timer">×</button></div>`;
+      <span class="mob-name">${t.name}<small>${mobLevelHtml(t.levels)}${zone ? `, ${zone}` : ""}${t.rare ? `, ${word("page.respawns.tag.rare")}` : ""}${
+        t.guess ? `, ${word("page.respawns.tag.guess")}` : t.measured ? `, ${word("page.respawns.tag.measured")}` : t.est ? `, ${word("page.respawns.tag.est")}` : ""}</small></span>
+      <button class="mob-go" data-rs-go="${t.id}" title="${word("page.respawns.go.tip", { name: t.name })}">${word("page.respawns.go")}</button>
+      <button class="rs-x x-mark" data-rs-forget="${t.id}" title="${word("page.respawns.forget.tip")}">×</button></div>`;
   }) : [];
   return html`<div class="poi-group${open ? " open" : ""}">
-      <input type="checkbox" data-rs-show title="Show the timers on the map"${rs.show ? " checked" : ""}>
-      <button class="poi-fold" data-fold="Respawns" aria-expanded="${open}">Respawns
-      <span class="poi-on">${list.length ? `${running} running` : ""}</span></button></div>
+      <input type="checkbox" data-rs-show title="${word("page.respawns.show.tip")}"${rs.show ? " checked" : ""}>
+      <button class="poi-fold" data-fold="Respawns" aria-expanded="${open}">${word("page.respawns.title")}
+      <span class="poi-on">${list.length ? word("page.respawns.running", { n: running }) : ""}</span></button></div>
     ${rows.length ? rows : open ? html`<p class="menu-note">${askNote("/api/respawns", { have: rs.version !== -1,
-      none: "Kill a named or rare mob and its respawn timer shows here and on the map. Common mobs get no timer, because more of them are around.",
-      what: "the respawn timers", again: () => { refreshRespawns(); buildMobMenu(); } })}</p>` : ""}`;
+      none: word("page.respawns.none"), what: word("page.respawns.what"), again: () => { refreshRespawns(); buildMobMenu(); } })}</p>` : ""}`;
 }
 
 function zoneNameAt(t) {
@@ -80,7 +80,7 @@ setInterval(() => {
   });
 }, 1000);
 
-const guideToTimer = (t) => guideTo({ todoId: null, name: t.name, sub: `${mobLevelText(t.levels)}, respawn`, cat: "respawn", zone: "",
+const guideToTimer = (t) => guideTo({ todoId: null, name: t.name, sub: word("page.respawns.guide", { level: mobLevelText(t.levels) }), cat: "respawn", zone: "",
   instance: t.map, wx: t.x, wy: t.y });
 
 mobMenu.addEventListener("click", (e) => {
@@ -90,7 +90,7 @@ mobMenu.addEventListener("click", (e) => {
     if (t) guideToTimer(t);
   } else if (forget) {
     rs.timers = rs.timers.filter((x) => x.id !== forget.dataset.rsForget);
-    postJson("/api/respawns", { forget: forget.dataset.rsForget }).catch((err) => askFailed("The timer comes back with the next update", err));
+    postJson("/api/respawns", { forget: forget.dataset.rsForget }).catch((err) => askFailed(word("page.respawns.forget.failed"), err));
     buildMobMenu();
   }
 });
@@ -128,13 +128,15 @@ function drawRespawns(s, size, scale) {
     const left = t.died + t.min - now, back = left <= 0;
     const done = back ? 1 : Math.min(1, Math.max(0, (now - t.died) / t.min));
     const color = back ? tint("back-green") : t.rare ? tint("gold") : tint("cyan");
-    const label = back ? (t.died + t.max > now ? "any time" : "back") : hms(left);
+    const label = back ? (t.died + t.max > now ? word("page.respawns.any") : word("page.respawns.back")) : hms(left);
     drawCountdown(x, y, done, color, label, back ? tint("back-green") : tint("ivory"), t.guess);
     redrawIn(1000 * (!back ? Math.min(left, hmsTurns(left)) : t.died + t.max > now ? t.died + t.max - now : Infinity));
-    const how = t.back ? `, seen back after ${hms(t.min)}` : t.measured ? ", as measured on Forever" : "";
+    const how = t.back ? `, ${word("page.respawns.seen", { span: hms(t.min) })}` : t.measured ? `, ${word("page.respawns.measured")}` : "";
     const spot = timerSpot(t) ?? { map: mapId, x: at[0], y: at[1] };
+    const when = back ? word("page.respawns.back") : t.guess || t.est ? word("page.respawns.in.about", { left: hms(left) })
+      : word("page.respawns.in", { left: hms(left) });
     poi.drawn.push({ x, y, map: spot.map, p: { name: t.name, levels: t.levels ?? null,
-      sub: `${back ? "back" : `respawns in ${(t.guess || t.est ? "about " : "") + hms(left)}`}${t.max > t.min ? `, window ${hms(t.max - t.min)}` : ""}${how}`,
+      sub: `${when}${t.max > t.min ? `, ${word("page.respawns.window", { span: hms(t.max - t.min) })}` : ""}${how}`,
       cat: "respawn", x: spot.x, y: spot.y, respawn: t } });
   }
 }

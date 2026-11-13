@@ -118,6 +118,7 @@ class Clouds {
     this.covers = new Map();
     this.readyTiles = new Set();
     this.answers = {};
+    this.reachBoxes = new Map();
     for (const [inst, list] of Object.entries(this.index.instances || {})) {
       const areas = this.index.areas?.[inst] || [];
       const placed = (list || []).map((p, k) => {
@@ -125,6 +126,8 @@ class Clouds {
         const boxes = (motion ? motion.legs.map((l) => l.box) : [[p[1], p[1], p[2], p[2]]])
           .map(([c0, c1, r0, r1]) => [c0 - reach, c1 + reach, r0 - reach, r1 + reach]);
         for (const [c0, c1, r0, r1] of boxes) {
+          const b = this.reachBoxes.get(String(inst)), t = [Math.floor(c0), Math.floor(c1), Math.floor(r0), Math.floor(r1)];
+          this.reachBoxes.set(String(inst), b ? [Math.min(b[0], t[0]), Math.max(b[1], t[1]), Math.min(b[2], t[2]), Math.max(b[3], t[3])] : t);
           for (let r = Math.floor(r0); r <= Math.floor(r1); r++) {
             for (let c = Math.floor(c0); c <= Math.floor(c1); c++) {
               const id = `${inst}/${c}_${r}`;
@@ -164,6 +167,15 @@ class Clouds {
 
   has(instance) {
     return (this.lists.get(String(instance))?.length || 0) > 0;
+  }
+
+  reachBox(instance) {
+    return this.reachBoxes?.get(String(instance)) || null;
+  }
+
+  span(instance) {
+    const b = this.reachBox(instance);
+    return b ? [Math.min(0, b[0]), Math.max(63, b[1]), Math.min(0, b[2]), Math.max(63, b[3])] : [0, 63, 0, 63];
   }
 
   within(instance, c0, c1, r0, r1, t = null) {
@@ -490,19 +502,21 @@ class Clouds {
     if (!kept.has(name)) kept.set(name, {});
     const k = kept.get(name), settled = this.settled(), resting = k.frame === frameKey;
     k.frame = frameKey;
-    const inside = () => !k.region || jobs.every((j, i) => k.region[i] && Math.max(0, j.box[0]) >= k.region[i][0]
-      && Math.min(63, j.box[1]) <= k.region[i][1] && Math.max(0, j.box[2]) >= k.region[i][2] && Math.min(63, j.box[3]) <= k.region[i][3]);
+    const spans = jobs.map((j) => this.span(j.instance));
+    const inside = () => !k.region || jobs.every((j, i) => k.region[i] && Math.max(spans[i][0], j.box[0]) >= k.region[i][0]
+      && Math.min(spans[i][1], j.box[1]) <= k.region[i][1] && Math.max(spans[i][2], j.box[2]) >= k.region[i][2]
+      && Math.min(spans[i][3], j.box[3]) <= k.region[i][3]);
     const covers = () => !!k.canvas && k.what === what && k.big !== scaleKey && inside();
     if (!(covers() && k.base === base && k.scaleKey === scaleKey) && (settled || !covers()) && k.big !== scaleKey) {
-      const part = (share) => jobs.map((j) => {
-        const [c0, c1, r0, r1] = j.box, mc = Math.ceil((c1 - c0 + 1) * share), mr = Math.ceil((r1 - r0 + 1) * share);
-        return [Math.max(0, c0 - mc), Math.min(63, c1 + mc), Math.max(0, r0 - mr), Math.min(63, r1 + mr)];
+      const part = (share) => jobs.map((j, i) => {
+        const [c0, c1, r0, r1] = j.box, mc = Math.ceil((c1 - c0 + 1) * share), mr = Math.ceil((r1 - r0 + 1) * share), s = spans[i];
+        return [Math.max(s[0], c0 - mc), Math.min(s[1], c1 + mc), Math.max(s[2], r0 - mr), Math.min(s[3], r1 + mr)];
       });
       let made = null;
       for (const share of resting ? regions : moving) {
         const boxes = share == null ? null : part(share);
-        const region = boxes?.some((b) => b.join() !== "0,63,0,63") ? boxes : null;
-        made = this.frame(lin, jobs.map((j, i) => ({ ...j, box: region ? region[i] : [0, 63, 0, 63] })), pad, screen, share == null ? KEPT.area : KEPT.part);
+        const region = boxes?.some((b, i) => b.join() !== spans[i].join()) ? boxes : null;
+        made = this.frame(lin, jobs.map((j, i) => ({ ...j, box: region ? region[i] : spans[i] })), pad, screen, share == null ? KEPT.area : KEPT.part);
         if (made) { made.region = region; break; }
       }
       if (!made) {

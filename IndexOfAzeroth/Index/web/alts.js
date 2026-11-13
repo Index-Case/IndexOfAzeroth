@@ -48,11 +48,15 @@ function refreshAlts(snap) {
 }
 
 
+function restedPace(c, d) {
+  const t = c.restedTerms || {};
+  return { cap: (c.xpMax || 0) * (t.cap || 0), perHour: (c.xpMax || 0) * ((c.resting ? t.rate : t.awayRate) || 0) * d.factor };
+}
+
 function restedNow(c, d, playing) {
-  const cap = (c.xpMax || 0) * d.cap;
+  const { cap, perHour } = restedPace(c, d);
   if (playing || !c.xpMax) return { rested: c.rested || 0, cap, fullIn: null };
   const now = Date.now() / 1000 + alts.skew;
-  const perHour = c.xpMax * (c.resting ? d.rate : d.awayRate) * d.factor;
   const rested = Math.min(cap, (c.rested || 0) + perHour * Math.max(0, now - c.lastSeen) / 3600);
   return { rested, cap, fullIn: rested >= cap || !perHour ? 0 : (cap - rested) / perHour };
 }
@@ -374,9 +378,8 @@ function withLive(c) {
 
 function playingRows(c, d) {
   if ((c.level || 0) >= (c.maxLevel || d.maxLevel) || !c.xpMax) return "";
-  const left = c.xpMax - c.xp, cap = c.xpMax * d.cap;
+  const left = c.xpMax - c.xp, { cap, perHour } = restedPace(c, d);
   const covers = left > 0 ? Math.min(100, Math.round(c.rested / left * 100)) : 0;
-  const perHour = c.xpMax * (c.resting ? d.rate : d.awayRate) * d.factor;
   const full = c.rested >= cap * 0.999;
   const logout = full ? "Rested is full, so logging out here gains nothing more"
     : `Rested is full in ${restDuration((cap - c.rested) / perHour)}${c.resting ? "" : `. Out here rested builds at a quarter of the rate${

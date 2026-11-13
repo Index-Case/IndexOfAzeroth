@@ -1,0 +1,71 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: quest, zone, name, spells, level, n, done, total
+
+title = Quests and Professions
+
+zone-epic = Zone epic
+zone-epic.tip = This lists every zone with quests for the character. A click on a zone plans all of its quests as one epic
+log-epic = Quest epic
+log-epic.tip = This plans the ticked quests as one epic. The quests that follow them are offered once the epic is done
+log-epic.none = Tick the quests to plan first
+log-epic.name = your quests
+log-epic.label = a quest epic of your ticked quests
+camp = Camping epic
+camp.tip = This plans camping as one epic, with the camping quests at the nearest camper, Cooking, the professions' camp features and a first camp, as far as the character's level and skills allow
+camp.label = the camping epic
+camp.no-data = The data has no camping quests yet
+camp.opens = Camping opens at level {level}
+class = Class quest
+class.tip = This plans the class quest {name} as one epic, every step of it in order
+class.tip.teaches = This plans the class quest {name} as one epic, every step of it in order. {name} teaches {spells}
+class.label = the {name} class quest epic
+class.next = Your next class quest opens at level {level}
+class.none = No class quest is open for you now
+profs = Professions
+profs.tip = This lists every profession with its epic. Start a profession's epic and it leads the way when there's something to do, from the trainer to the next rank
+close = Prefer close
+close.tip = A dense camp further off can be the better camp, with more of what a quest needs in one spot. When this box is ticked, the epics started from now plan each objective's camp near its quest's giver instead, for less walking
+
+log.none = Your quest log shows here once the game sends it. Do a /reload in game after the addon updates.
+log.empty = Your quest log is empty.
+log.folded = this header is collapsed in game, so its quests aren't listed
+failed = Failed
+ready = Ready for turn-in
+go = Guide me
+go.turnin = This starts the Navigation Guide to the quest's turn-in and copies the line for the in-game arrow
+go.objectives = This starts the Navigation Guide to the quest's objectives and copies the line for the in-game arrow
+pick.tip = Tick this box to put the quest in the quest epic
+no-mark = The game hasn't marked this quest on its map yet
+no-mark.toast = The game hasn't marked {quest} on its map yet
+gone = That quest isn't in your quest log now
+guide.turnin = its turn-in
+guide.objectives = its objectives
+
+text.show = Show the quest's text
+text.hide = Hide the quest's text
+text.asking = The page is asking the Index for the quest's text
+text.failed = The quest's text didn't come, because the Index didn't answer
+text.none = Our quest data has no text for this quest yet
+text.game = This is the quest's text from your game
+text.ours = This is the quest's text from our quest data. The game's own text shows after a /reload
+
+tip.objectives = Objectives
+tip.no-objectives = The game lists no objectives
+tip.zone = In {zone}
+tip.zone.learnt = In {zone}, where the game last marked the quest
+tip.map = On the map
+tip.map.learnt = On the map, where the game last marked the quest
+
+zones.back = Back
+zones.what = the zones with quests for you
+zones.here = You are here
+zones.tip = This plans every quest of {zone} as one epic, with the order, the route and the legs
+zones.done = {done} of {total} done
+zones.quests = {n} quests
+zones.quests.one = {n} quest
+zones.missing = {n} no data yet
+zones.missing.tip = Forever added {n} quests to {zone} with no information on them yet. The zone epic leaves those quests out. When a quest giver offers one in game, the addon takes it
+zones.missing.tip.one = Forever added {n} quest to {zone} with no information on them yet. The zone epic leaves that quest out. When a quest giver offers one in game, the addon takes it
+zones.find = Find a zone
+zones.none = No zone has quests for you.
+zones.zone = the zone

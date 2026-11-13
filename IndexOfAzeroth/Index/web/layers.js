@@ -2,17 +2,17 @@
 "use strict";
 
 const LAYER_HEAT = {
-  xp: { base: tint("kill-crimson"), hot: tint("bone-white"), title: "XP grinding", gain: 3 },
-  gold: { base: tint("gold-layer"), hot: tint("glint"), title: "Gold grinding",
+  xp: { base: tint("kill-crimson"), hot: tint("bone-white"), title: word("page.layers.name.xp"), gain: 3 },
+  gold: { base: tint("gold-layer"), hot: tint("glint"), title: word("page.layers.name.gold"),
           bands: [tint("gold-band-1"), tint("gold-band-2"), tint("gold-band-3"), tint("gold-band-4"), tint("gold-band-5"),
                   tint("gold-band-6"), tint("gold-band-7")] },
-  skinning: { base: tint("skin-teal"), hot: tint("skin-teal-hot"), title: "Skinning" },
+  skinning: { base: tint("skin-teal"), hot: tint("skin-teal-hot"), title: word("page.layers.name.skinning") },
 };
 const LAYER_DOTS = {
-  mining: { color: tint(LOOP_LOOKS.mining), hot: tint("mining-hot"), title: "Mining", icon: "trade_mining" },
-  herbalism: { color: tint(LOOP_LOOKS.herbalism), hot: tint("herbalism-hot"), title: "Herbalism", icon: "spell_nature_naturetouchgrow" },
-  fishing: { color: tint(LOOP_LOOKS.fishing), hot: tint("fishing-hot"), title: "Fishing", icon: "trade_fishing" },
-  treasure: { color: tint(LOOP_LOOKS.treasure), hot: tint("glint"), title: "Treasure", icon: "inv_misc_ornatebox" },
+  mining: { color: tint(LOOP_LOOKS.mining), hot: tint("mining-hot"), title: word("page.layers.name.mining"), icon: "trade_mining" },
+  herbalism: { color: tint(LOOP_LOOKS.herbalism), hot: tint("herbalism-hot"), title: word("page.layers.name.herbalism"), icon: "spell_nature_naturetouchgrow" },
+  fishing: { color: tint(LOOP_LOOKS.fishing), hot: tint("fishing-hot"), title: word("page.layers.name.fishing"), icon: "trade_fishing" },
+  treasure: { color: tint(LOOP_LOOKS.treasure), hot: tint("glint"), title: word("page.layers.name.treasure"), icon: "inv_misc_ornatebox" },
 };
 const GATHER_SKILL = { mining: "miningSkill", herbalism: "herbalismSkill", fishing: "fishingSkill" };
 const NODE_ICON = 14;
@@ -27,16 +27,12 @@ const goldAh = () => (layers.ahPrices && layers.on.has("gold") ? 1 : 0);
 try { layers.daredevil = localStorage.getItem("cc.daredevil") === "1"; } catch (e) { layers.daredevil = false; }
 try { layers.gatherAll = localStorage.getItem("cc.gatherAll") === "1"; } catch (e) { layers.gatherAll = false; }
 try { layers.aoe = localStorage.getItem("cc.aoe") === "1"; } catch (e) { layers.aoe = false; }
-const AOE_SPECS = { 8: { tree: 3, from: 22, name: "a Frost Mage" }, 2: { tree: 2, from: 40, name: "a Protection Paladin" } };
+const AOE_SPECS = { 8: { tree: 3, from: 22, name: word("page.layers.aoe.mage") }, 2: { tree: 2, from: 40, name: word("page.layers.aoe.paladin") } };
 const AOE_MOST = { 8: 6, 2: 4 };
 const aoeSpec = () => { const a = AOE_SPECS[app.status?.classId]; return !!a && spec() === a.tree && (app.state?.level || 0) >= a.from; };
 const aoeMost = () => AOE_MOST[app.status?.classId] || 3;
 const WARN = `<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M8 1.5L15 14H1z" fill="${tint("caution")}" stroke="${tint("black")}" stroke-width="1"/><path d="M8 6v4" stroke="${tint("black")}" stroke-width="1.8"/><circle cx="8" cy="12" r="1" fill="${tint("black")}"/></svg>`;
-const layerTitle = (layer, style) => layer === "gold" && goldAll() ? "Gold grinding, all levels" : style.title;
-const SKIN_HERE = {
-  mine: "Finds the best beasts to skin for the character's Skinning in the area in view and a loop round them that keeps clear of anything too strong. The beasts that still raise the skill come first. Zoomed out, the page asks before it searches",
-  all: "All levels, for planning. Finds the best beasts to skin in the area in view at any level and whatever the skill, each counted as a character of its own level would kill it. The beasts that would raise the skill come first, and the loop round them doesn't check for anything too strong. Zoomed out, the page asks before it searches",
-};
+const layerTitle = (layer, style) => layer === "gold" && goldAll() ? word("page.layers.name.gold-all") : style.title;
 
 try {
   JSON.parse(localStorage.getItem("cc.layers") || "[]").forEach((l) => layers.on.add(l));
@@ -62,12 +58,8 @@ function saveLayers() {
 
 const menu = $("layer-menu"), menuButton = $("btn-layers");
 
-const LAYER_ROWS = {
-  xp: ["XP grinding", "XP an hour at the character's level"], gold: ["Gold grinding", "gold an hour: coin, loot and skins"],
-  skinning: ["Skinning", "beasts the character's skill can skin"],
-};
-const GATHER_NOTES = { mining: "ore veins", herbalism: "herbs", fishing: "fish schools and wreckage", treasure: "chests, footlockers and strongboxes",
-  skinning: "leathers, hides and scales" };
+const LAYER_ROWS = wordsOf("page.layers.row");
+const GATHER_NOTES = wordsOf("page.layers.note");
 const typeKey = (layer, name) => `${layer}:${name}`;
 const typeShown = (layer, name) => (layers.only[layer] ? layers.only[layer].has(name) : !layers.off.has(typeKey(layer, name)));
 
@@ -129,7 +121,7 @@ function typesNote(none, layer) {
     : !!layers.nodeKinds && insts.every((i) => layers.nodeZones[i]);
   return askNote(out ? zoned : "layers", {
     have: out ? zonesIn : !!layers.data, none,
-    what: out ? "the area's resources" : "the map's layers", again: layersAgain });
+    what: out ? word("page.layers.ask.area") : word("page.layers.ask.map"), again: layersAgain });
 }
 function layersAgain() {
   refreshLayers();
@@ -138,7 +130,7 @@ function layersAgain() {
 }
 
 function buildLayerMenu() {
-  const plain = (key) => `<label><input type="checkbox" value="${key}"${layers.on.has(key) ? " checked" : ""}> ${LAYER_ROWS[key][0]} <small>${LAYER_ROWS[key][1]}</small></label>`;
+  const plain = (key) => `<label><input type="checkbox" value="${key}"${layers.on.has(key) ? " checked" : ""}> ${LAYER_HEAT[key].title} <small>${LAYER_ROWS[key]}</small></label>`;
   const group = (layer, title, whole) => {
     const types = areaTypes(layer).slice().sort((a, b) => (b.can - a.can) || a.skill - b.skill || a.name.localeCompare(b.name));
     const open = layers.open.has(layer), on = layers.on.has(layer);
@@ -146,22 +138,24 @@ function buildLayerMenu() {
     const rows = open ? types.map((t) => `<label class="poi-cat layer-type${t.can ? "" : " dim"}">
         <input type="checkbox" data-type="${esc(typeKey(layer, t.name))}"${on && typeShown(layer, t.name) ? " checked" : ""}>
         <img src="/icon/${esc(t.icon || "inv_misc_questionmark")}.jpg" alt=""> ${esc(t.name)}
-        <small>${num(t.count)}${t.can || !t.skill ? "" : `, needs ${t.skill}`}</small></label>`).join("")
-      || `<p class="menu-note">${typesNote(zoomedOut() ? "None in this area." : "None on this map.", layer)}</p>` : "";
+        <small>${num(t.count)}${t.can || !t.skill ? "" : `, ${word("page.layers.needs", { skill: t.skill })}`}</small></label>`).join("")
+      || `<p class="menu-note">${typesNote(zoomedOut() ? word("page.layers.none.area") : word("page.layers.none.map"), layer)}</p>` : "";
     return `<div class="poi-group${open ? " open" : ""}">
         <input type="checkbox" data-layer="${layer}" title="${whole}"${on ? " checked" : ""}>
         <button class="poi-fold" data-fold="${layer}" aria-expanded="${open}">${title}
-        <span class="poi-on">${on && types.length ? `${shown} of ${types.length}` : types.length ? `${types.length} here` : GATHER_NOTES[layer]}</span></button></div>${rows}`;
+        <span class="poi-on">${on && types.length ? word("page.layers.shown", { n: shown, of: types.length })
+          : types.length ? word("page.layers.here", { n: types.length }) : GATHER_NOTES[layer]}</span></button></div>${rows}`;
   };
-  const groups = Object.entries(LAYER_DOTS).map(([layer, style]) => group(layer, style.title, `All ${style.title.toLowerCase()} nodes`)).join("");
-  const skinning = group("skinning", LAYER_ROWS.skinning[0], "Every beast the character's skill can skin");
-  const all = `<label class="layer-sub daredevil"><input type="checkbox" data-gold-all="1"${layers.goldAll ? " checked" : ""}> ${SKULL} All levels
-    <small>every level and no risk, for planning</small></label>`;
-  const gatherAll = `<label class="layer-sub daredevil"><input type="checkbox" data-gather-all="1"${layers.gatherAll ? " checked" : ""}> ${SKULL} All levels
-    <small>every resource counted whatever the skill, for planning</small></label>`;
-  $("layer-list").innerHTML = `<div class="poi-all"><button data-layers-all="1">All</button><button data-layers-all="0">None</button></div>
-    <div class="layer-group">Grinding</div>${plain("xp")}${plain("gold")}${all}
-    <div class="layer-group">Gathering</div>${gatherAll}${skinning}${groups}${emit("layerMenu").join("")}`;
+  const whole = wordsOf("page.layers.whole");
+  const groups = Object.entries(LAYER_DOTS).map(([layer, style]) => group(layer, style.title, whole[layer])).join("");
+  const skinning = group("skinning", LAYER_HEAT.skinning.title, whole.skinning);
+  const all = `<label class="layer-sub daredevil"><input type="checkbox" data-gold-all="1"${layers.goldAll ? " checked" : ""}> ${SKULL} ${word("page.layers.all")}
+    <small>${word("page.layers.all.gold")}</small></label>`;
+  const gatherAll = `<label class="layer-sub daredevil"><input type="checkbox" data-gather-all="1"${layers.gatherAll ? " checked" : ""}> ${SKULL} ${word("page.layers.all")}
+    <small>${word("page.layers.all.gather")}</small></label>`;
+  $("layer-list").innerHTML = `<div class="poi-all"><button data-layers-all="1">${word("page.layers.menu.all")}</button><button data-layers-all="0">${word("page.layers.menu.none")}</button></div>
+    <div class="layer-group">${word("page.layers.group.grinding")}</div>${plain("xp")}${plain("gold")}${all}
+    <div class="layer-group">${word("page.layers.group.gathering")}</div>${gatherAll}${skinning}${groups}${emit("layerMenu").join("")}`;
   menu.querySelectorAll("input[data-layer]").forEach((box) => {
     const layer = box.dataset.layer, types = areaTypes(layer);
     const off = types.filter((t) => !typeShown(layer, t.name)).length;
@@ -176,7 +170,7 @@ function syncMenu() {
 }
 
 const toggleMenu = dropdown(menuButton, menu, "l", () => { buildLayerMenu(); refreshLayers(); refreshNodeZones(); refreshLeathers(); },
-  { el: $("layer-bar"), title: "Overlays and Loops", help: "layers" });
+  { el: $("layer-bar"), title: word("page.layers.title"), help: "layers" });
 
 function layersChanged() {
   saveLayers();
@@ -227,7 +221,7 @@ function layerMenuChange(e) {
   layersChanged();
 }
 function setAllLayers(on) {
-  const keys = [...Object.keys(LAYER_ROWS), ...Object.keys(LAYER_DOTS)];
+  const keys = [...Object.keys(LAYER_HEAT), ...Object.keys(LAYER_DOTS)];
   if (on) keys.forEach((k) => wholeLayerOn(k));
   else { keys.forEach((k) => layers.on.delete(k)); for (const k of Object.keys(layers.only)) delete layers.only[k]; }
   menu.querySelectorAll?.("input[data-own]").forEach((b) => {
@@ -243,8 +237,8 @@ function wholeLayerOn(layer) {
 function showGatherLayer(layer) {
   wholeLayerOn(layer);
   layersChanged();
-  showToast(`${LAYER_DOTS[layer]?.title || LAYER_HEAT[layer]?.title || layer} is on the map. The ${
-    layer === "skinning" ? "Skin here" : "Gather here"} key under the zone name starts a loop`);
+  showToast(word("page.layers.on-map", { layer: LAYER_DOTS[layer]?.title || LAYER_HEAT[layer]?.title || layer,
+    key: layer === "skinning" ? word("page.layers.key.skin") : word("page.layers.key.gather") }));
 }
 on("start", function startLayers() { syncMenu(); renderLegend(); });
 
@@ -305,9 +299,9 @@ function nodeStacks(dots, hidden) {
 }
 const oddsPct = (v) => `${Math.round(v * 100)}%`;
 function nodeTip(p) {
-  const stack = p.stack ? `<span class="tip-stack"><small>One of these spawns here at a time:</small>${p.stack.map((s) =>
+  const stack = p.stack ? `<span class="tip-stack"><small>${word("page.layers.node.stack")}</small>${p.stack.map((s) =>
     `<span><img src="/icon/${esc(s.icon || "inv_misc_questionmark")}.jpg" alt="">${esc(s.name)} <b class="tip-odds">${oddsPct(s.chance)}</b>${s.needs ? ` <i>${esc(s.needs)}</i>` : ""}</span>`).join("")}</span>` : "";
-  const up = p.up != null && p.up < 1 ? `<small>This spawn is up about ${oddsPct(p.up)} of the time, because the zone keeps only so many up</small><br>` : "";
+  const up = p.up != null && p.up < 1 ? `<small>${word("page.layers.node.up", { pct: oddsPct(p.up) })}</small><br>` : "";
   return stack + up;
 }
 
@@ -345,17 +339,20 @@ function zoneTip(id = app.hoverZone) {
   for (const [layer, style] of Object.entries(LAYER_HEAT)) {
     if (!layers.on.has(layer) || !layers.zones[m.instance]) continue;
     const n = score?.[ZONE_VALUE[layer]] || 0, up = score?.skinUp || 0;
-    const text = layer === "xp" ? shown(n, `${num(n)} XP an hour`) : layer === "gold" ? shown(n, `${money(n)} an hour`)
-      : shown(n, `${num(n)} beasts to skin`) + (layers.gatherAll ? " at any level" : n ? `, ${shown(up, `${num(up)} still raise your skill`)}` : "");
+    const beasts = shown(n, word("page.layers.tip.skin", { n: num(n) }));
+    const text = layer === "xp" ? shown(n, word("page.layers.tip.xp", { n: num(n) })) : layer === "gold" ? shown(n, word("page.layers.tip.gold", { money: money(n) }))
+      : layers.gatherAll ? word("page.layers.tip.skin.any", { text: beasts })
+      : n ? `${beasts}, ${shown(up, word("page.layers.tip.raise", { n: num(up) }))}` : beasts;
     lines.push(line(`linear-gradient(135deg, ${style.base} 45%, ${style.hot})`, layerTitle(layer, style), text));
   }
   for (const [layer, style] of Object.entries(LAYER_DOTS)) {
     if (!layers.on.has(layer) || !layers.nodeZones[m.instance]) continue;
     const kinds = Object.entries(nodes?.spots?.[layer] || {}).filter(([name]) => typeShown(layer, name)).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
     const total = kinds.reduce((sum, [, n]) => sum + n, 0), up = nodes ? zoneNodeCount(nodes, layer) : 0;
-    const named = kinds.slice(0, TIP_KINDS).map(([name, n]) => `${esc(name)} ${num(n)}`).join(", ")
-      + (kinds.length > TIP_KINDS ? ` and ${kinds.length - TIP_KINDS} more` : "");
-    lines.push(line(style.color, style.title, shown(total, `${num(total)} nodes`) + (total ? `, about ${num(Math.max(1, Math.round(up)))} up at a time` : ""),
+    const list = kinds.slice(0, TIP_KINDS).map(([name, n]) => `${esc(name)} ${num(n)}`).join(", ");
+    const named = kinds.length > TIP_KINDS ? word("page.layers.tip.kinds.more", { list, n: kinds.length - TIP_KINDS }) : list;
+    lines.push(line(style.color, style.title, shown(total, word("page.layers.tip.nodes", { n: num(total) }))
+      + (total ? `, ${word("page.layers.tip.up", { n: num(Math.max(1, Math.round(up))) })}` : ""),
       named ? `<small class="tip-kinds">${named}</small>` : ""));
   }
   if (!lines.length) return "";
@@ -563,7 +560,7 @@ function drawLayers(s, size, scale) {
     const hidden = dots.types.map((t) => !typeShown(layer, t.name));
     if (hidden.every(Boolean)) continue;
     noteOverlay(style.title, style.color, style.color, "dots");
-    const needs = (type) => type.can || !type.skill ? "" : `needs ${type.skill}`;
+    const needs = (type) => type.can || !type.skill ? "" : word("page.layers.needs", { skill: type.skill });
     drawLit(style.title, style.color, () => {
       const stacks = nodeStacks(dots, hidden);
       for (const pass of [false, true]) {
@@ -622,7 +619,7 @@ function drawLitZone(size, scale) {
 
 function ahBox() {
   const note = ahNotice();
-  return `<label class="lg-ah" title="Counts gold an hour with the loot at what it sells for in the auction house. The page uses what an item sold for lately where the scans saw it. Without a sale the page uses the middle price the item is listed at, and without a listing what a vendor pays. With Skinning, the skins of the beasts the character can skin count too"><input type="checkbox" data-ah-prices="1"${layers.ahPrices ? " checked" : ""}><img src="/icon/inv_misc_coin_02.jpg" alt=""> Include AH prices</label>${note ? `<span class="lg-ah-note">${esc(note)}</span>` : ""}`;
+  return `<label class="lg-ah" title="${word("page.layers.ah.tip")}"><input type="checkbox" data-ah-prices="1"${layers.ahPrices ? " checked" : ""}><img src="/icon/inv_misc_coin_02.jpg" alt=""> ${word("page.layers.ah")}</label>${note ? `<span class="lg-ah-note">${esc(note)}</span>` : ""}`;
 }
 
 function renderLegend() {
@@ -639,50 +636,59 @@ function renderLegend() {
     const range = levels ? ` <small style="color:${zoneThreat(levels)}">${zoneRangeText(levels)}</small>` : "";
     rowsLit.add(`zone:${z.map}`);
     return rowHtml(`${esc(z.name)}${range}`, value, false,
-      ` data-lit="zone:${z.map}" role="button" tabindex="0" title="Lights ${esc(z.name)} on the map. Click to go into ${esc(z.name)}"`);
+      ` data-lit="zone:${z.map}" role="button" tabindex="0" title="${word("page.layers.lit.zone", { zone: esc(z.name) })}"`);
   };
   const forLeather = leatherWords(leatherFilter());
   const notAoe = layers.aoe && !aoeSpec()
-    ? `<span class="lg-warn" title="You are not an AOE spec. ${[AOE_SPECS[8], AOE_SPECS[2]].map((a) => `${a.name} from level ${a.from}`).join(" and ")} are AOE specs. The page counts the packs for ${aoeMost()} mobs a pull">${WARN}</span>` : "";
+    ? `<span class="lg-warn" title="${word("page.layers.aoe.warn", { n: aoeMost(), list: word("page.layers.and", {
+      list: word("page.layers.aoe.spec", { name: AOE_SPECS[8].name, level: AOE_SPECS[8].from }),
+      last: word("page.layers.aoe.spec", { name: AOE_SPECS[2].name, level: AOE_SPECS[2].from }) }) })}">${WARN}</span>` : "";
+  const skinTip = layers.gatherAll ? word("page.layers.key.skin.tip.all") : word("page.layers.key.skin.tip");
   const hunt = (layer) => app.dungeon ? "" : layer === "xp"
-    ? `<div class="lg-grind with-help"><button data-grind title="Finds the best camp for the character's level in the area in view and a loop round the camp that keeps clear of anything too strong. Zoomed out, the page asks before it searches">${SWORDS} Grind here</button>${helpButton("loop")}
-        <label class="lg-aoe" title="AOE finds the camp with the densest packs of mobs at the character's level or below, for pulls of several at once. Casters and shooters count against a camp"><input type="checkbox" data-aoe="1"${layers.aoe ? " checked" : ""}><img src="/icon/spell_nature_wispsplode.jpg" alt=""> AOE</label>${notAoe}</div>`
-    : layer === "gold" ? `<div class="lg-grind with-help"><button data-farm title="Finds the camp worth the most gold an hour for the character's level in the area in view and a loop round the camp that keeps clear of anything too strong. Zoomed out, the page asks before it searches">${SWORDS} Farm here</button>${helpButton("loop")}
+    ? `<div class="lg-grind with-help"><button data-grind title="${word("page.layers.key.grind.tip")}">${SWORDS} ${word("page.layers.key.grind")}</button>${helpButton("loop")}
+        <label class="lg-aoe" title="${word("page.layers.aoe.tip")}"><input type="checkbox" data-aoe="1"${layers.aoe ? " checked" : ""}><img src="/icon/spell_nature_wispsplode.jpg" alt=""> ${word("page.layers.aoe")}</label>${notAoe}</div>`
+    : layer === "gold" ? `<div class="lg-grind with-help"><button data-farm title="${word("page.layers.key.farm.tip")}">${SWORDS} ${word("page.layers.key.farm")}</button>${helpButton("loop")}
         ${ahBox()}</div>`
-    : layer === "skinning" && (app.status?.nums?.skinningSkill || layers.gatherAll) ? `<div class="lg-grind with-help"><button data-skin title="${SKIN_HERE[layers.gatherAll ? "all" : "mine"]}${forLeather ? `. The loop goes only to the beasts that give ${esc(forLeather)}` : ""}"><img class="lg-btn-icon" src="/icon/inv_misc_pelt_wolf_01.jpg" alt=""> Skin here</button>${helpButton("loop")}</div>` : "";
+    : layer === "skinning" && (app.status?.nums?.skinningSkill || layers.gatherAll) ? `<div class="lg-grind with-help"><button data-skin title="${forLeather
+      ? word("page.layers.key.skin.leathers", { tip: skinTip, leathers: esc(forLeather) }) : skinTip}"><img class="lg-btn-icon" src="/icon/inv_misc_pelt_wolf_01.jpg" alt=""> ${word("page.layers.key.skin")}</button>${helpButton("loop")}</div>` : "";
   for (const [layer, style] of Object.entries(LAYER_HEAT)) {
     if (!layers.on.has(layer)) continue;
     pane();
-    parts.push(head(layer === "skinning" && forLeather ? `${style.title} for ${esc(forLeather)}` : style.title, `linear-gradient(135deg, ${style.base} 45%, ${style.hot})`));
+    parts.push(head(layer === "skinning" && forLeather ? word("page.layers.skin-for", { layer: style.title, leathers: esc(forLeather) }) : style.title, `linear-gradient(135deg, ${style.base} 45%, ${style.hot})`));
     const noSkinning = layer === "skinning" && !skinFor();
     if (zoomedOut()) {
       const insts = viewInstances(), key = ZONE_VALUE[layer];
       const zones = insts.flatMap((i) => layers.zones[i] || []).filter((z) => z[key] > 0).sort((a, b) => b[key] - a[key]).slice(0, TOP_ZONES);
       if (!zones.length) {
         parts.push(`<div class="lg-note">${askNote(insts.map((i) => `layerzones:${i}`), { have: insts.every((i) => layers.zones[i]),
-          none: noSkinning ? "You don't have Skinning" : "Nothing in this area is worth it", what: "the zones' numbers", again: layersAgain })}</div>`);
+          none: noSkinning ? word("page.layers.no-skinning") : word("page.layers.nothing.area"), what: word("page.layers.ask.zones"), again: layersAgain })}</div>`);
       }
-      for (const z of zones) parts.push(zoneRow(z, layer === "xp" ? `${num(z.xp)} XP/h` : layer === "gold" ? `${money(z.gold)}/h` : `${num(z.skin)} spawns`));
+      for (const z of zones) {
+        parts.push(zoneRow(z, layer === "xp" ? word("page.layers.value.xp", { n: num(z.xp) }) : layer === "gold" ? word("page.layers.value.gold", { money: money(z.gold) })
+          : word("page.layers.value.spawns", { n: num(z.skin) })));
+      }
       parts.push(hunt(layer));
       continue;
     }
     const top = d?.top?.[layer] || [];
     if (!top.length) {
-      parts.push(`<div class="lg-note">${askNote("layers", { have: !!d, none: noSkinning ? "You don't have Skinning" : "Nothing on this map is worth it",
-        what: "the map's layers", again: layersAgain })}</div>`);
+      parts.push(`<div class="lg-note">${askNote("layers", { have: !!d, none: noSkinning ? word("page.layers.no-skinning") : word("page.layers.nothing.map"),
+        what: word("page.layers.ask.map"), again: layersAgain })}</div>`);
     }
     for (const e of top) {
-      const value = layer === "xp" ? `${num(e.perKill)} XP` : layer === "gold" ? `${money(e.perHour)}/h` : `${e.spawns} spawns`;
+      const value = layer === "xp" ? word("page.layers.value.kill", { n: num(e.perKill) }) : layer === "gold" ? word("page.layers.value.gold", { money: money(e.perHour) })
+        : word("page.layers.value.spawns", { n: e.spawns });
       rowsLit.add(`mob:${layer}:${e.name}`);
       parts.push(rowHtml(`${esc(e.name)} <small>${esc(e.levels)}</small>`, value, false,
-        ` data-lit="${esc(`mob:${layer}:${e.name}`)}" tabindex="0" title="Lights where ${esc(e.name)} spawns on the map"`));
+        ` data-lit="${esc(`mob:${layer}:${e.name}`)}" tabindex="0" title="${word("page.layers.lit.mob", { name: esc(e.name) })}"`));
     }
     const measured = layer === "xp" && d?.xpMeasured;
-    if (measured?.share) parts.push(`<div class="lg-note">From ${num(measured.kills)} of your kills, Forever gives ${Math.round(measured.share * 100)}% of Classic's XP</div>`);
-    else if (measured) parts.push(`<div class="lg-note">The page counts Classic's XP until your kills show Forever's (${measured.kills} kills so far)</div>`);
+    if (measured?.share) {
+      parts.push(`<div class="lg-note">${word("page.layers.measured.share", { n: num(measured.kills), pct: Math.round(measured.share * 100) })}</div>`);
+    } else if (measured) parts.push(`<div class="lg-note">${word("page.layers.measured", { n: measured.kills })}</div>`);
     const pace = (layer === "xp" || layer === "gold") && d?.pace;
-    if (pace?.measured) parts.push(`<div class="lg-note">The page counts your pace of ${pace.seconds} s a kill at your level, from ${num(pace.kills)} of your kills</div>`);
-    else if (pace) parts.push(`<div class="lg-note">The page counts ${pace.seconds} s a kill at your level until it has timed 10 of your kills</div>`);
+    if (pace?.measured) parts.push(`<div class="lg-note">${word("page.layers.pace.measured", { s: pace.seconds, n: num(pace.kills) })}</div>`);
+    else if (pace) parts.push(`<div class="lg-note">${word("page.layers.pace", { s: pace.seconds })}</div>`);
     if (d) parts.push(hunt(layer));
   }
   for (const [layer, style] of Object.entries(LAYER_DOTS)) {
@@ -691,16 +697,16 @@ function renderLegend() {
     parts.push(head(style.title, style.color));
     const out = zoomedOut(), have = out ? layers.nodeZones[viewInstances()[0]] : d;
     const types = areaTypes(layer).filter((t) => typeShown(layer, t.name)).sort((a, b) => (b.can - a.can) || a.skill - b.skill);
-    if (!types.length) parts.push(`<div class="lg-note">${typesNote(out ? "None in this area" : "None on this map")}</div>`);
+    if (!types.length) parts.push(`<div class="lg-note">${typesNote(out ? word("page.layers.legend.none.area") : word("page.layers.legend.none.map"))}</div>`);
     for (const t of types) {
-      const loopBtn = have && !app.dungeon ? `<button class="lg-loop" data-gather="${esc(layer)}" data-type="${esc(t.name)}" title="Makes a loop through where ${esc(t.name)} grows or spawns thickest in the area in view, with one stop in the middle of each cluster">loop</button>` : "";
+      const loopBtn = have && !app.dungeon ? `<button class="lg-loop" data-gather="${esc(layer)}" data-type="${esc(t.name)}" title="${word("page.layers.key.loop.tip", { name: esc(t.name) })}">${word("page.layers.key.loop")}</button>` : "";
       const icon = `<span class="lg-node" style="--node:${t.can ? style.color : "var(--node-locked)"}"><img src="/icon/${esc(t.icon || "inv_misc_questionmark")}.jpg" alt=""></span>`;
-      parts.push(rowHtml(icon + esc(t.name) + loopBtn + (t.can || !t.skill ? "" : ` <small>needs ${t.skill}</small>`), num(t.count), !t.can));
+      parts.push(rowHtml(icon + esc(t.name) + loopBtn + (t.can || !t.skill ? "" : ` <small>${word("page.layers.needs", { skill: t.skill })}</small>`), num(t.count), !t.can));
     }
     if (types.length && have && !app.dungeon) {
-      const all = `<button data-gather="${esc(layer)}" title="Makes a loop through where the resources shown here that the character can gather are thickest in the area in view, with one stop in the middle of each cluster. While the character can gather none of them yet, the loop goes through all the resources shown here">Gather here</button>`;
+      const all = `<button data-gather="${esc(layer)}" title="${word("page.layers.key.gather.tip")}">${word("page.layers.key.gather")}</button>`;
       parts.push(`<div class="lg-grind with-help">${all}${helpButton("loop")}
-        <label class="lg-daredevil" title="With Daredevil on, the loop avoids no mob. The loop keeps every spawn point and its legs go straight through, whatever stands near. With Daredevil off, the loop avoids every mob that would attack except the ones grey to the character. The loop then leaves out the points in a mob's reach and goes round the mob"><input type="checkbox" data-daredevil="1"${layers.daredevil ? " checked" : ""}> ${SKULL} Daredevil</label></div>`);
+        <label class="lg-daredevil" title="${word("page.layers.daredevil.tip")}"><input type="checkbox" data-daredevil="1"${layers.daredevil ? " checked" : ""}> ${SKULL} ${word("page.layers.daredevil")}</label></div>`);
     }
   }
   pane();
@@ -779,18 +785,18 @@ $("legend").addEventListener("click", (e) => {
     if (b) startGatherLoop(b.dataset.gather, b.dataset.type);
   }
 });
-const loopFailed = (e) => askFailed("The page couldn't start the loop", e);
+const loopFailed = (e) => askFailed(word("page.layers.loop.failed"), e);
 
 function upText(n) {
-  if (n == null) return "no";
+  if (n == null) return word("page.layers.up.none");
   const v = n >= 10 ? Math.round(n) : Math.round(n * 10) / 10;
-  return `${v} node${v === 1 ? "" : "s"}`;
+  return wordCount("page.layers.up", v);
 }
 function lapText(c) {
   if (!c?.lap || !c?.respawn) return "";
   const time = (s) => s < 90 ? `${Math.round(s)} s` : `${Math.round(s / 60)} min`;
-  return c.lap >= c.respawn ? `, a lap about ${time(c.lap)} (back in ${time(c.respawn)})`
-    : `, a lap about ${time(c.lap)}, shorter than the ${time(c.respawn)} respawn, but this is the longest lap this map has`;
+  const fill = { lap: time(c.lap), respawn: time(c.respawn) };
+  return `, ${c.lap >= c.respawn ? word("page.layers.lap.back", fill) : word("page.layers.lap.short", fill)}`;
 }
 
 function startGrindLoop(gold, skin) {
@@ -800,24 +806,14 @@ function startGrindLoop(gold, skin) {
   go();
 }
 app.scout = null;
-const SCOUT_LINES = [
-  "A troll hunter is counting the camps in reach",
-  "A dwarf rifleman is weighing each camp's bounty against the walk",
-  "The guards are telling a gnome where the beasts gather. The gnome is taking notes",
-  "An orc grunt is sharpening his axe while the scouts report back",
-  "A goblin quartermaster is working out what each camp is worth to you",
-  "A night elf sentinel is marking the camps on the map one by one",
-  "A Tauren hunter is following the spoor to the richest grounds",
-  "A Defias lookout is counting heads at every camp. He has his own reasons",
-  "A goblin surveyor is sizing up the hunting grounds and naming a price",
-  "Hemet Nesingwary is counting the camps. He only wants to know where the big heads are"];
-const SCOUT_WHAT = { grind: "A camp to grind", farm: "A camp to farm for gold", skin: "Beasts to skin" };
+const SCOUT_LINES = Object.values(wordsOf("page.layers.scout.line"));
 function scoutWords(s) {
-  if (s.item) return `The best place to farm ${s.item.name}`;
-  return `${SCOUT_WHAT[s.what]} ${s.zones.length > 1 ? `in ${s.zones.length} zones` : `in ${mapName(s.zones[0])}`}`;
+  if (s.item) return word("page.layers.scout.item", { item: s.item.name });
+  const what = { grind: word("page.layers.scout.grind"), farm: word("page.layers.scout.farm"), skin: word("page.layers.scout.skin") }[s.what];
+  return s.zones.length > 1 ? word("page.layers.scout.zones", { what, n: s.zones.length }) : word("page.layers.scout.zone", { what, zone: mapName(s.zones[0]) });
 }
 function scoutHtml() {
-  return `${panelHead("Scouting", "loop", `<button data-scout-stop title="Stop looking">Stop</button>`, { track: true })}
+  return `${panelHead(word("page.layers.scout.title"), "loop", `<button data-scout-stop title="${word("page.layers.scout.stop.tip")}">${word("page.layers.scout.stop")}</button>`, { track: true })}
     <div class="guide-name">${esc(scoutWords(app.scout))}</div>${runeLine(app.scout.line)}`;
 }
 function stopScout(quiet = false) {
@@ -825,7 +821,8 @@ function stopScout(quiet = false) {
   if (!s) return;
   app.scout = null;
   renderTracks();
-  if (!quiet) showToast(`Scouting stopped${s.was && app.tracks.loop === s.was ? `. ${s.was.name} runs on as it was` : ""}`);
+  const stopped = word("page.layers.scout.stopped");
+  if (!quiet) showToast(s.was && app.tracks.loop === s.was ? word("page.layers.runs-on", { text: stopped, loop: s.was.name }) : stopped);
   s.done?.();
 }
 document.querySelector(".sidestack")?.addEventListener("click", (e) => {
@@ -867,20 +864,27 @@ function searchCamp(gold, zones, skin, again, item = again?.was?.item) {
     if (!heeded()) return;
     if (again && app.tracks.loop !== again.was) return again.done();
     if (!c?.stops?.length) {
-      showToast(item ? `The Index found no place where you can farm ${item.name} at your level${again ? `. ${again.was.name} runs on as it was` : ""}`
-        : `The Index found no camp worth ${skin ? "skinning" : gold ? "farming" : "grinding"}${all ? "" : " for your level"} ${again ? "in the area the loop was found in"
-        : many ? "in the area in view" : "in this zone"}${again ? `. ${again.was.name} runs on as it was` : ""}`);
+      const none = { what: skin ? word("page.layers.found.skin") : gold ? word("page.layers.found.farm") : word("page.layers.found.grind"),
+        where: again ? word("page.layers.found.again") : many ? word("page.layers.found.area") : word("page.layers.found.zone") };
+      const text = item ? word("page.layers.found.none.item", { item: item.name })
+        : all ? word("page.layers.found.none", none) : word("page.layers.found.none.level", none);
+      showToast(again ? word("page.layers.runs-on", { text, loop: again.was.name }) : text);
       return again?.done();
     }
     if (item) return itemLoop(c, item, again);
     const words = leatherWords(leathers);
-    const cut = c.whole === false ? ", the best camp walked before the search ran out of time" : "";
-    const name = `${skin ? "Skin" : gold ? "Farm" : "Grind"} ${words ? `${words} from ` : ""}${c.name}${many && c.map ? ` in ${mapName(c.map)}` : ""}`;
-    const sub = skin ? `levels ${c.levels}, ${c.spawns} spawns, about ${num(c.skins)} ${leathers.length ? words || "pieces of leather" : "skins"} an hour${all ? " at their level" : ""}${lapText(c)}${cut}`
-      : gold ? [`levels ${c.levels}, ${c.spawns} spawns, about `, { money: c.gold },
-        ` an hour${layers.ahPrices ? " at auction house prices" : ""}${all ? " at their level" : ""}${lapText(c)}${cut}`]
-      : `levels ${c.levels}, ${c.spawns} spawns, about ${num(c.xp)} XP a kill` + (c.pack ? `, AOE packs of about ${c.pack}` : "")
-        + (c.perHour ? ` (${num(c.perHour)} an hour)` : "") + lapText(c) + cut;
+    const cut = c.whole === false ? `, ${word("page.layers.sub.cut")}` : "";
+    const from = words ? word("page.layers.loop.from", { what: words, name: c.name }) : c.name;
+    const at = many && c.map ? word("page.layers.loop.in", { name: from, zone: mapName(c.map) }) : from;
+    const name = skin ? word("page.layers.loop.skin", { name: at }) : gold ? word("page.layers.loop.farm", { name: at }) : word("page.layers.loop.grind", { name: at });
+    const camp = { levels: c.levels, spawns: c.spawns }, atLevel = all ? ` ${word("page.layers.sub.at-level")}` : "";
+    const [lead, after] = wordsOf("page.layers.sub").gold.split("{money}");
+    const sub = skin ? word("page.layers.sub.count", { ...camp, n: num(c.skins),
+      what: leathers.length ? words || word("page.layers.sub.leather") : word("page.layers.sub.skins") }) + atLevel + lapText(c) + cut
+      : gold ? [fillWords(lead, camp), { money: c.gold },
+        `${after}${layers.ahPrices ? ` ${word("page.layers.sub.ah")}` : ""}${atLevel}${lapText(c)}${cut}`]
+      : word("page.layers.sub.xp", { ...camp, n: num(c.xp) }) + (c.pack ? `, ${word("page.layers.sub.pack", { n: c.pack })}` : "")
+        + (c.perHour ? ` ${word("page.layers.sub.per-hour", { n: num(c.perHour) })}` : "") + lapText(c) + cut;
     if (again && sameLoop(again.was, what, name, c.stops, c.ids)) keepLoop(again.was, sub, c.spots);
     else {
       startLoopTrack(what, name, sub, c.stops, c.inst ?? app.maps[c.map ?? zones[0]]?.instance,
@@ -892,9 +896,10 @@ function searchCamp(gold, zones, skin, again, item = again?.was?.item) {
 }
 function itemLoop(c, item, again) {
   const what = c.kind === "skin" ? "skin" : "grind";
-  const cut = c.whole === false ? ", the best camp walked before the search ran out of time" : "";
-  const name = `${what === "skin" ? "Skin" : "Grind"} ${item.name} from ${c.name}`;
-  const sub = `levels ${c.levels}, ${c.spawns} spawns, about ${num(c.items)} ${item.name} an hour${lapText(c)}${cut}`;
+  const cut = c.whole === false ? `, ${word("page.layers.sub.cut")}` : "";
+  const from = word("page.layers.loop.from", { what: item.name, name: c.name });
+  const name = what === "skin" ? word("page.layers.loop.skin", { name: from }) : word("page.layers.loop.grind", { name: from });
+  const sub = word("page.layers.sub.count", { levels: c.levels, spawns: c.spawns, n: num(c.items), what: item.name }) + lapText(c) + cut;
   if (again && sameLoop(again.was, what, name, c.stops, c.ids)) keepLoop(again.was, sub, c.spots);
   else {
     startLoopTrack(what, name, sub, c.stops, c.inst ?? app.maps[c.map]?.instance,
@@ -920,7 +925,7 @@ function searchGather(layer, kinds, zones, again) {
   const s = app.state, me = playerWorld(), map = zones[0];
   const types = again?.types?.length ? again.types : kinds?.length ? kinds : gatherHereKinds(areaTypes(layer).filter((t) => typeShown(layer, t.name)));
   if (!types.length) {
-    showToast(`No ${LAYER_DOTS[layer]?.title || layer} resource is shown on the map, so there is nothing to make a loop through`);
+    showToast(word("page.layers.gather.none", { layer: LAYER_DOTS[layer]?.title || layer }));
     return again?.done();
   }
   const q = new URLSearchParams({ maps: zones.join(","), layer, types: types.join("|") });
@@ -930,7 +935,9 @@ function searchGather(layer, kinds, zones, again) {
   if (daredevil) q.set("daredevil", "1");
   q.set("level", s.level || 1); q.set("faction", app.status?.strs?.faction || "");
   if (me) { q.set("n", me.n.toFixed(1)); q.set("w", me.w.toFixed(1)); }
-  startProspecting(q, { name: `Prospecting ${types.join(", ") || layer}${zones.length > 1 ? "" : ` in ${mapName(map)}`}`,
+  const kindsNamed = types.join(", ") || layer;
+  startProspecting(q, { name: zones.length > 1 ? word("page.layers.prospecting", { kinds: kindsNamed })
+                          : word("page.layers.prospecting.zone", { kinds: kindsNamed, zone: mapName(map) }),
                         map, many: zones.length > 1, inst: app.maps[map]?.instance, layer, types, daredevil,
                         mode: loopMode({ what: "gather", layer, types, daredevil }),
                         searched: zones, all: again ? !!again.all : !kinds?.length, was: again?.was, done: again?.done });

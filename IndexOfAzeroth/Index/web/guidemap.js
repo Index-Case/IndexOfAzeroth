@@ -30,8 +30,8 @@ function dangerTipAt(mx, my) {
   if (!hit.length) return null;
   const notes = [...new Set(hit.flatMap((d) => d.notes))];
   return notes.length
-    ? `<b>Careful</b>${notes.map((n) => `<small>${esc(n)}</small>`).join("<br>")}`
-    : `<b>Mobs that would attack you</b><small>This stretch passes within their reach</small>`;
+    ? `<b>${word("page.guidemap.careful")}</b>${notes.map((n) => `<small>${esc(n)}</small>`).join("<br>")}`
+    : `<b>${word("page.guidemap.danger")}</b><small>${word("page.guidemap.danger.reach")}</small>`;
 }
 
 function strokeDots(pts, color = LATER_LEG, here = null) {
@@ -135,7 +135,7 @@ const ZIGZAG = { step: 7, width: 3.5 };
 const DROP_DASH = [3, 4];
 const CHEVRON = 6;
 const trickyDrawn = [];
-const TRICKY_WORDS = { climb: "A steep climb that seems like it can be done.", drop: "A drop that seems like it can be taken." };
+const TRICKY_WORDS = wordsOf("page.guidemap.tricky");
 function zigzag(a, b) {
   const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
   if (!len) return [a, b];
@@ -176,7 +176,7 @@ function easyTipAt(mx, my) {
   const hit = easyDrawn.find((d) => d.pts.some((a, i) => i > 0 && segDist([mx, my], d.pts[i - 1], a) <= DANGER_HOVER));
   return hit ? `<b>${esc(easyName(hit.name))}</b>` : null;
 }
-const easyName = (name) => `${name}, the easy way`;
+const easyName = (name) => word("page.guidemap.easy", { name });
 function trickyTipAt(mx, my) {
   const hit = trickyDrawn.find((t) => segDist([mx, my], t.a, t.b) <= DANGER_HOVER);
   return hit ? `<b>${esc(TRICKY_WORDS[hit.kind])}</b>` : null;
@@ -263,7 +263,8 @@ function drawStops(size, scale, color = LATER_LEG) {
     const at = k === g.stops.length - 1 ? null : screen([st.wx, st.wy]);
     if (!at) return;
     drawStopMark(at[0], at[1], k + 2, stopUnder(g, ...pairs[k]) ? COVERED : color);
-    noteMark(at[0], at[1], { name: st.name || `Stop ${k + 2}`, sub: `Stop ${k + 2} of ${g.stops.length + 1}`, cat: "guidestop" });
+    noteMark(at[0], at[1], { name: st.name || word("page.guidemap.stop", { n: k + 2 }),
+      sub: word("page.guidemap.stop.of", { n: k + 2, total: g.stops.length + 1 }), cat: "guidestop" });
   });
 }
 
@@ -281,12 +282,14 @@ function drawDestination(x, y, g, under = false, color = tint("gold")) {
   drawRingMarker(x, y, { r: 17, fill: tint("black"), ring: under ? COVERED : color, width: 3,
     icon: iconImage(g.icon || (g.cat === "gameguide" ? "inv_misc_map_01" : poiIcon(g.cat))) });
   const n = g.stops?.length;
-  noteMark(x, y, n ? { name: g.stops[n - 1].name || `Stop ${n + 1}`, sub: `Stop ${n + 1} of ${n + 1}, the last`, cat: "guideend" }
+  noteMark(x, y, n ? { name: g.stops[n - 1].name || word("page.guidemap.stop", { n: n + 1 }),
+    sub: word("page.guidemap.stop.last", { n: n + 1, total: n + 1 }), cat: "guideend" }
     : { name: g.name, sub: g.sub || "", cat: "guideend" });
 }
 function guideNowTip(whole, leg) {
-  if (leg?.leg) return { name: leg.name, sub: `On the way to ${whole.name}`, cat: "guidenow" };
-  return { name: whole.stopName || whole.name, sub: whole.stops?.length ? `Stop 1 of ${whole.stops.length + 1}` : whole.sub || "", cat: "guidenow" };
+  if (leg?.leg) return { name: leg.name, sub: word("page.guidemap.on-the-way", { name: whole.name }), cat: "guidenow" };
+  return { name: whole.stopName || whole.name, cat: "guidenow",
+    sub: whole.stops?.length ? word("page.guidemap.stop.of", { n: 1, total: whole.stops.length + 1 }) : whole.sub || "" };
 }
 function routeEndsUnder(r, from) {
   const k = r.legs.length - 1, leg = r.legs[k], start = k ? r.legs[k - 1].at : from;

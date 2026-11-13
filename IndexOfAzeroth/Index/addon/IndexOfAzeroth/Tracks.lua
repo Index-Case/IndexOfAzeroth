@@ -202,7 +202,7 @@ function ns.EpicStepDone(step)
 end
 
 local naming = {
-  verbs = { P = "Pick up", O = "Do", T = "Turn in", D = "Do the dungeon for" },
+  verbs = { P = "Pick up", O = "Finish", T = "Turn in", D = "Go into the dungeon for" },
   errand = { train = "train", repair = "repair", sell = "sell", restock = "buy what you're low on",
              bind = "set your hearth", flightpath = "learn the flight path", learn = "learn", supplies = "buy supplies",
              craft = "craft", camp = "make camp", wall = "what comes next waits" },
@@ -395,7 +395,7 @@ local function LoopWant(tr)
   if ns.TargetWant then ns.TargetWant("loop", want) end
 end
 local function EpicRideKey(tr)
-  local who = ns.EpicRideWho()
+  local who = ns.EpicRideWho(tr.kind)
   if who == tr.rideWho then return end
   tr.rideWho = who
   if ns.GuideKeysAgain then ns.GuideKeysAgain() end
@@ -410,7 +410,7 @@ local function Clear(tr, message)
   if message then ns.Print(message) end
   tr:SayStop()
   tr.target = nil
-  if tr.kind ~= "e" then LoopWant(tr) end
+  if not (tr.kind == "e" or KINDS[tr.kind].prof) then LoopWant(tr) end
   tr:Height(nil)
   tr.frame:Hide()
   if pasted and ns.PastedChanged then ns.PastedChanged() end
@@ -421,7 +421,7 @@ local function Update(tr, dt)
   local t = tr.target
   if tr.elapsed < 0.05 or not t then return end
   tr.elapsed = 0
-  if tr.kind ~= "e" then LoopWant(tr) else EpicRideKey(tr) end
+  if tr.kind == "e" or KINDS[tr.kind].prof then EpicRideKey(tr) else LoopWant(tr) end
   tr:Height(nil)
   tr:Glow(nil)
   if ns.Ghost() then
@@ -857,7 +857,7 @@ end
 ns.EpicHold(nil)
 function ns.AnyRewardPick(tr)
   local id = Plain(Call(GetQuestID))
-  if ((tr and tr.target) or guide) and not IsShiftKeyDown() and handing[id] then return end
+  if ((tr and tr.target) or ns.GuidesRunning()[1]) and not IsShiftKeyDown() and handing[id] then return end
   if (Plain(Call(GetNumQuestChoices)) or 0) <= 1 or not ns.Options().general.rewardMark then return end
   local pick, why = ns.GuideRewardPick(id)
   if not pick then return end
@@ -871,7 +871,7 @@ ns.On({ "GOSSIP_SHOW", "QUEST_GREETING", "QUEST_DETAIL", "QUEST_ACCEPT_CONFIRM",
   if event ~= "QUEST_ACCEPT_CONFIRM" then listed.giver.Window(event) end
   if event == "QUEST_COMPLETE" then ns.AnyRewardPick(tr) end
   if IsShiftKeyDown() then return end
-  local running = (tr and tr.target) or guide
+  local running = (tr and tr.target) or ns.GuidesRunning()[1]
   local general = ns.Options().general
   local npc, take, give = Plain(Call(UnitGUID, "npc")), general.accept, general.handIn
   if not (running or take or give) then return end
@@ -1179,7 +1179,7 @@ local function Event(kind, i)
   if #e > 8 then table.remove(e, 1) end
 end
 
-local function Parked(id) local p = Saved().parked[guide.key]; return p and p[id] or false end
+local function Parked(id, g) local p = Saved().parked[(g or guide).key]; return p and p[id] or false end
 local function ParkQuests(s)
   if s.kind ~= "D" then return { s.ids[1] } end
   local out = {}
@@ -1375,8 +1375,8 @@ function ns.GuideHearth(i)
   return h, saves
 end
 
-local function NeedsFirst(s)
-  local named, out, open = guide.handIns or {}, {}, false
+local function NeedsFirst(s, g)
+  local named, out, open = (g or guide).handIns or {}, {}, false
   for _, p in ipairs(s.any or {}) do open = open or Turned(p) end
   for _, list in ipairs({ s.pre or {}, open and {} or s.any or {} }) do
     for _, p in ipairs(list) do
@@ -1385,16 +1385,16 @@ local function NeedsFirst(s)
   end
   return out
 end
-local function WaitsOn(s)
-  local needs = NeedsFirst(s)
-  for _, p in ipairs(needs) do if Parked(p) then return p end end
+local function WaitsOn(s, g)
+  local needs = NeedsFirst(s, g)
+  for _, p in ipairs(needs) do if Parked(p, g) then return p end end
   return needs[1]
 end
 ns.GuideWaitsOn = WaitsOn
 ns.GuideNeedsFirst = NeedsFirst
-local function AfterWords(p)
-  local fill = { quest = guide.handIns[p] }
-  return Parked(p) and ns.Word("both.step-why.after.parked", fill) or ns.Word("both.step-why.after", fill)
+local function AfterWords(p, g)
+  local fill = { quest = (g or guide).handIns[p] }
+  return Parked(p, g) and ns.Word("both.step-why.after.parked", fill) or ns.Word("both.step-why.after", fill)
 end
 
 local function Needs(s)
@@ -1440,6 +1440,7 @@ local function BaseState(s, g)
     if ErrandDone(s) then chore.Tick(s, g); return G.DONE end
     if Skipped(s) then return G.SKIPPED, ns.Word("both.step-why.skipped") end
     if s.what == "wall" then return G.WAIT, s.text end
+    if ns.SoldGone and ns.SoldGone(s) then return G.BLOCKED, ns.Word("both.step-why.sold") end
     for _, t in ipairs(type(s.takes) == "table" and steps or {}) do
       if t ~= s and chore.TakesFrom(s, t) then
         local st = BaseState(t, g)
@@ -1448,6 +1449,8 @@ local function BaseState(s, g)
     end
     local short = Needs(s)
     if short then return G.WAIT, short end
+    local skill, rank = ns.TaughtShort(s.need)
+    if skill then return G.WAIT, ns.Word("both.step-why.skill", { skill = skill, rank = rank }) end
     local pay = type(s.need) == "table" and tonumber(s.need.pay)
     local have = pay and Plain(Call(GetMoney))
     if pay and have and have < pay then return G.WAIT, ns.Word("both.step-why.money", { money = ns.ChoreRules.Coins(pay) }) end
@@ -1471,8 +1474,8 @@ local function BaseState(s, g)
     if Saved().notOffered[id] then
       return G.BLOCKED, ns.Word("both.step-why.not-offered", { npc = s.npc }) or ns.Word("both.step-why.not-offered.giver")
     end
-    local after = WaitsOn(s)
-    if after then return G.WAIT, AfterWords(after) end
+    local after = WaitsOn(s, g)
+    if after then return G.WAIT, AfterWords(after, g) end
     local short = Needs(s)
     if short then return G.WAIT, short end
     return G.TODO
@@ -1521,6 +1524,37 @@ local function WhyLine(state, why)
 end
 ns.GuideWhyLine = WhyLine
 
+local function LeadsLine(s)
+  return s and s.lt and ns.Word("both.step-why.leads-to", { quest = s.lt }) or nil
+end
+ns.GuideLeadsLine = LeadsLine
+
+naming.reasons = ns.WordsOf("both.reason")
+function ns.GuideReasonLine(s)
+  local rn, REASONS = s and s.rn, naming.reasons
+  if not rn then return nil end
+  local code, args = rn[1], type(rn[2]) == "table" and rn[2] or {}
+  local keys, others = { code }, {}
+  for k in pairs(REASONS) do
+    if k:sub(1, #code + 1) == code .. "-" and not k:find(".", 1, true) then others[#others + 1] = k end
+  end
+  table.sort(others)
+  for _, k in ipairs(others) do keys[#keys + 1] = k end
+  for _, key in ipairs(keys) do
+    local line = REASONS[key] and ns.Fill(REASONS[key], args)
+    local one = line and REASONS[key .. ".one"]
+    if one then
+      local single = true
+      for name in REASONS[key]:gmatch("{(%w+)}") do
+        if not one:find("{" .. name .. "}", 1, true) and tonumber(args[name]) ~= 1 then single = false end
+      end
+      if single then line = ns.Fill(one, args) or line end
+    end
+    if line then return line, code, args end
+  end
+  return nil
+end
+
 local function GuideStep(e, i)
   local s = { i = i, p = i, kind = e.k, ids = e.ids or {}, inst = e.inst, text = e.text or "", name = e.name, npc = e.npc,
               zone = e.zone, min = e.min, req = e.req, target = e.target, count = e.count, mobs = e.mobs, bosses = e.bosses,
@@ -1546,6 +1580,7 @@ local function GuideStep(e, i)
               pre = e.pre, any = e.any, par = e.par, dis = e.dis,
               what = e.what, need = type(e.need) == "table" and e.need or {}, key = e.key, cost = e.cost,
               takes = type(e.takes) == "table" and e.takes or nil,
+              made = type(e.made) == "table" and e.made or nil, seen = type(e.seen) == "string" and e.seen or nil,
               cash = tonumber(e.cash), spend = tonumber(e.spend), gain = tonumber(e.gain),
               group = e.grp and true or nil,
               grind = tonumber(e.grind),
@@ -1555,6 +1590,9 @@ local function GuideStep(e, i)
               get = tonumber(e.get), gi = type(e.gi) == "table" and e.gi or nil, ga = e.ga and true or nil,
               sk = type(e.sk) == "table" and e.sk or nil,
               trip = tonumber(e.trip), why = type(e.why) == "string" and e.why or nil,
+              lt = type(e.lt) == "string" and e.lt or nil,
+              fq = type(e.fq) == "string" and e.fq or nil,
+              rn = type(e.rn) == "table" and type(e.rn[1]) == "string" and e.rn or nil,
               cq = tonumber(e.cq) }
   if type(e.at) == "table" then s.wx, s.wy, s.z = e.at[1], e.at[2], e.at[3] end
   local h = e.hearth
@@ -1585,6 +1623,15 @@ local function GuideStep(e, i)
           for k, b in ipairs(a.way) do o.bends[k] = { b[1], b[2], rise = (o.z and b[3]) and o.z - b[3] or nil } end
         end
         s.also[#s.also + 1] = o
+      end
+    end
+  end
+  if type(e["or"]) == "table" then
+    s.others = {}
+    for _, a in ipairs(e["or"]) do
+      if type(a.at) == "table" and a.npc and tonumber(a.ni) then
+        s.others[#s.others + 1] = { npc = a.npc, ni = tonumber(a.ni), inst = a.inst, wx = a.at[1], wy = a.at[2], z = a.at[3],
+                                    map = a.map, zone = a.zone, text = a.text }
       end
     end
   end
@@ -1736,8 +1783,12 @@ local function PointGuideArrow(g, tr)
   end
   if s.route and continent and (continent ~= s.inst or not px or Dist(s.wx, s.wy, px, py) >= ways.ROUTE_FROM) then
     local legs = {}
-    for _, p in ipairs(s.route) do
-      if #legs == 0 and p.inst == continent and #p.path > 0 then
+    for k, p in ipairs(s.route) do
+      if k == 1 and p.ride then
+        legs[1] = p.ride
+        if p.inst ~= continent or #p.path == 0 then break end
+        legs[2] = { kind = "W", path = p.path, continent = continent, start = p.path[1] }
+      elseif #legs == 0 and p.inst == continent and #p.path > 0 then
         legs[1] = { kind = "W", path = p.path, continent = continent }
       elseif #legs > 0 then
         if p.ride then legs[#legs + 1] = p.ride end
@@ -1746,9 +1797,10 @@ local function PointGuideArrow(g, tr)
       end
     end
     if #legs > 0 then
-      local first = legs[1].path
-      tr.target = { continent = continent, wx = first[#first][1], wy = first[#first][2], name = ns.StepLabel(s),
-                    path = #first > 1 and first or nil, leg = 1, lap = 1, route = ns.NewRoute(legs), guided = true }
+      local first = legs[1].path or legs[2] and legs[2].path
+      tr.target = { continent = continent, wx = first and first[#first][1] or s.wx, wy = first and first[#first][2] or s.wy,
+                    name = ns.StepLabel(s), path = legs[1].path and #first > 1 and first or nil, leg = 1, lap = 1,
+                    route = ns.NewRoute(legs), guided = true }
       tr.name:SetText(ns.StepLabel(s))
       tr.dist:SetText("")
       tr.frame:Show()
@@ -1780,7 +1832,8 @@ function ns.GuidePickWay(i, easy)
 end
 
 function ns.StepLabel(s)
-  if (s.kind == "P" or s.kind == "T") and s.npc and s.npc ~= "" then
+  local said = s.oi or (s.rn and s.rn[1] == "offer")
+  if (s.kind == "P" or s.kind == "T") and s.npc and s.npc ~= "" and not (said and s.text ~= "") then
     return string.format("%s: %s %s", s.npc, s.kind == "P" and "pick up" or "turn in", s.name or s.text)
   end
   if s.kind == "S" then return naming.Chore(s) end
@@ -2026,36 +2079,47 @@ local function Evaluate()
     local looked, err = pcall(ns.Director.Look, guide, d)
     if not looked then ns.Report("the director", err) end
   end
-  local take, give, hold = {}, {}, {}
-  for i, s in ipairs(guide.steps) do
-    local st = guide.state[i]
-    if st ~= G.BLOCKED and st ~= G.DONE then
-      if s.kind == "P" and (st ~= G.PARKED or i == cur) and (not s.limit or i == cur) then
-        for _, id in ipairs(s.ids) do take[#take + 1] = id end
-      elseif s.kind == "P" and s.limit then
-        for _, id in ipairs(s.ids) do hold[#hold + 1] = id end
-      end
-      if s.kind == "T" then for _, id in ipairs(s.ids) do give[#give + 1] = id end end
-    end
-  end
-  for _, id in ipairs(guide.maybe or {}) do take[#take + 1] = id end
-  ns.EpicAccept(take)
-  ns.EpicHandIn(give)
-  ns.EpicHold(hold)
+  ns.GuidesTake()
   if changed then Changed("state") end
 end
 ns.GuideEvaluate = Evaluate
+function ns.GuidesTake()
+  if not guide and tracks.e.target and tracks.e.target.pasted then return end
+  local take, give, hold = {}, {}, {}
+  for _, g in ipairs(ns.GuidesRunning()) do
+    for i, s in ipairs(g.steps) do
+      local st = g.state[i]
+      if st ~= G.BLOCKED and st ~= G.DONE then
+        if s.kind == "P" and (st ~= G.PARKED or i == g.cur) and (not s.limit or i == g.cur) then
+          for _, id in ipairs(s.ids) do take[#take + 1] = id end
+        elseif s.kind == "P" and s.limit then
+          for _, id in ipairs(s.ids) do hold[#hold + 1] = id end
+        end
+        if s.kind == "T" then for _, id in ipairs(s.ids) do give[#give + 1] = id end end
+      end
+    end
+    for _, id in ipairs(g.maybe or {}) do take[#take + 1] = id end
+  end
+  ns.EpicAccept(take)
+  ns.EpicHandIn(give)
+  ns.EpicHold(hold)
+end
 
 
 function side.Of(slot)
   for _, g in ipairs(side.list) do if g.slot == slot then return g end end
 end
+function ns.GuideKeptClosed(closed, at, written, e)
+  if not closed then return false end
+  local opened = type(e.opened) == "table" and tonumber(e.opened.at) or 0
+  local fresh = e.fresh and (tonumber(written) or 0) > (tonumber(closed) or 0)
+  return not fresh and opened <= (tonumber(at) or 0)
+end
 function side.ShutHere(e)
   local shut = Saved().sideClosed or {}
   local s = shut[e.key]
   if not s then return false end
-  local opened = type(e.opened) == "table" and tonumber(e.opened.at) or 0
-  if s.version ~= tonumber(e.written) or opened > (s.at or 0) then
+  if not ns.GuideKeptClosed(s.version, s.at, e.written, e) then
     shut[e.key] = nil
     return false
   end
@@ -2066,15 +2130,22 @@ function side.Load()
   wipe(side.list)
   side.shut = {}
   local sh = IndexOfAzerothShared
+  local held = {}
   for _, e in ipairs(type(sh) == "table" and type(sh.profs) == "table" and sh.profs or {}) do
     local mine = type(e) == "table" and type(e.char) == "table" and ns.IsMe(e.char)
-    local here = mine and not e.closed and side.ShutHere(e)
-    if here then side.shut[#side.shut + 1] = tonumber(e.written) or 0 end
-    if #side.list < side.MOST and mine and not here and type(e.steps) == "table" and #e.steps > 0 and not e.closed then
+    if mine and e.key then held[e.key] = true end
+    local closed = mine and (e.closed or side.ShutHere(e))
+    local untold = type(e.closed) ~= "table" or not e.closed.game
+    if closed and untold then side.shut[#side.shut + 1] = tonumber(e.written) or 0 end
+    if #side.list < side.MOST and mine and not closed and type(e.steps) == "table" and #e.steps > 0 then
       local g = { key = e.key or "", name = e.name or KINDS.p1.label, line = tonumber(e.line), prof = e.prof,
-                  version = tonumber(e.written), steps = {}, state = {}, why = {}, slot = "p" .. (#side.list + 1),
+                  version = tonumber(e.written), steps = {}, state = {}, why = {}, base = {}, slot = "p" .. (#side.list + 1),
                   look = e.ic and ("prof:" .. tostring(e.line)) or nil }
-      for i, x in ipairs(e.steps) do g.steps[i] = GuideStep(x, i) end
+      g.handIns = {}
+      for i, x in ipairs(e.steps) do
+        g.steps[i] = GuideStep(x, i)
+        if x.k == "T" and g.steps[i].ids[1] then g.handIns[g.steps[i].ids[1]] = x.name or x.text or ns.Word("both.step-why.quest-before") end
+      end
       g.H = { Count = function() return #g.steps end, Takes = function() return false end }
       if g.look then ns.UI.MARKS[g.look] = { art = tonumber(e.ic) or e.ic } end
       side.list[#side.list + 1] = g
@@ -2082,8 +2153,9 @@ function side.Load()
   end
   local kept = Saved().sideTicks or {}
   for key in pairs(kept) do
-    if not side.ByKey(key) then kept[key] = nil end
+    if not held[key] then kept[key] = nil end
   end
+  if ns.GuideRefusalApply then ns.GuideRefusalApply() end
   side.Look()
   if ns.SideWindowsRender then ns.SideWindowsRender() end
   if ns.MarkChanged then ns.MarkChanged("sides") end
@@ -2139,6 +2211,10 @@ function side.Look()
   end
   if changed and ns.SideWindowsRender then ns.SideWindowsRender() end
   if changed and ns.MarkChanged then ns.MarkChanged("sides") end
+  if changed or not guide then ns.GuidesTake() end
+  local lead = #side.list > 0 and ns.SideLeading() or nil
+  if (changed or lead ~= side.leading) and ns.GuideKeysAgain then ns.GuideKeysAgain() end
+  side.leading = lead
 end
 ns.SideGuides = function() return side.list end
 ns.SideLook = function() side.Look() end
@@ -2148,6 +2224,18 @@ if C_Timer.NewTicker then
   end)
 end
 
+local refusal = { TRAINER_ICON = 132058, KEEP = 30 * 86400 }
+function refusal.StepTo(s, e)
+  local function swap(words)
+    if not (words and s.npc) then return words end
+    local a, b = string.find(words, " at " .. s.npc, 1, true)
+    return a and (words:sub(1, a - 1) .. " at " .. e.npc .. words:sub(b + 1)) or words
+  end
+  s.text, s.name = e.text or swap(s.text), e.text or swap(s.name)
+  s.npc, s.ni, s.inst, s.wx, s.wy, s.z, s.map, s.zone = e.npc, e.ni, e.inst, e.wx, e.wy, e.z, e.map or s.map, e.zone or s.zone
+  s.cost, s.bends, s.alt, s.route, s.easy, s.easyPicked = e.cost or s.cost, e.bends, nil, nil, nil, nil
+  s.ground, s.under, s.guess, s.careful = nil, nil, nil, nil
+end
 local landed = { JUMP = 300, WALK_MOST = 14 * 1.25, RIDE = 60, EVERY = 1, SETTLED = 3, NEAR = 150, HERE = 120,
                  spots = {}, away = false, ride = nil }
 function landed.Pick(also, c, x, y)
@@ -2203,42 +2291,156 @@ function landed.See(c, x, y, flags, now)
 end
 ns.EpicJumpSee = landed.See
 function landed.Move(c, x, y)
-  if not guide then return end
-  local moved = false
-  for i, s in ipairs(guide.steps) do
-    local st = guide.state[i]
-    if st ~= G.DONE and st ~= G.SKIPPED then
-      if s.kind ~= "S" then break end
-      local e = s.also and not (s.inst == c and s.wx and Dist(s.wx, s.wy, x, y) <= landed.HERE) and landed.Pick(s.also, c, x, y)
-      if e and e.npc ~= s.npc then
-        local function swap(words)
-          if not (words and s.npc) then return words end
-          local a, b = string.find(words, " at " .. s.npc, 1, true)
-          return a and (words:sub(1, a - 1) .. " at " .. e.npc .. words:sub(b + 1)) or words
+  local mainMoved, sideMoved = false, {}
+  for _, g in ipairs(ns.GuidesRunning()) do
+    for i, s in ipairs(g.steps) do
+      local st = g.state[i]
+      if st ~= G.DONE and st ~= G.SKIPPED then
+        if s.kind ~= "S" then break end
+        local e = s.also and not (s.inst == c and s.wx and Dist(s.wx, s.wy, x, y) <= landed.HERE) and landed.Pick(s.also, c, x, y)
+        if e and e.npc ~= s.npc then
+          refusal.StepTo(s, e)
+          if g == guide then mainMoved = true else sideMoved[g] = true end
         end
-        s.text, s.name = e.text or swap(s.text), e.text or swap(s.name)
-        s.npc, s.inst, s.wx, s.wy, s.z, s.map, s.zone = e.npc, e.inst, e.wx, e.wy, e.z, e.map or s.map, e.zone or s.zone
-        s.cost, s.bends, s.alt, s.route, s.easy, s.easyPicked = e.cost or s.cost, e.bends, nil, nil, nil, nil
-        s.ground, s.under, s.guess, s.careful = nil, nil, nil, nil
-        moved = true
       end
     end
   end
-  if not moved then return end
-  guide.arrowOff = nil
-  PointArrow()
-  if ns.BeaconFollow then ns.BeaconFollow() end
-  Changed("state")
+  ns.GuidesMoved(mainMoved, sideMoved)
 end
 ns.EpicLandedMove = landed.Move
 function landed.Tick()
-  if not guide then landed.spots, landed.ride = {}, nil; return end
+  if not guide and #side.list == 0 then landed.spots, landed.ride = {}, nil; return end
   local c, x, y = ns.PlayerWorldPos()
   pcall(landed.See, c, x, y, { taxi = Plain(Call(UnitOnTaxi, "player")), instance = Plain(Call(IsInInstance)),
                                dead = Plain(Call(UnitIsDeadOrGhost, "player")) }, GetTime())
 end
 ns.EpicJumpTick = landed.Tick
 if C_Timer.NewTicker then C_Timer.NewTicker(landed.EVERY, landed.Tick) end
+
+function refusal.Kept()
+  local sv = Saved()
+  sv.refused = type(sv.refused) == "table" and sv.refused or {}
+  local now = time()
+  for npc, r in pairs(sv.refused) do
+    if type(r) ~= "table" or now - (tonumber(r.at) or 0) > refusal.KEEP then sv.refused[npc] = nil end
+  end
+  return sv.refused
+end
+function refusal.Holds(r, spell)
+  return r ~= nil and (r.spells == nil or (spell ~= nil and r.spells[spell] == true))
+end
+function ns.GuidesRunning()
+  local all = {}
+  if guide then all[1] = guide end
+  for _, g in ipairs(side.list) do all[#all + 1] = g end
+  return all
+end
+function ns.GuidesMoved(main, sides)
+  if main then
+    guide.arrowOff = nil
+    PointArrow()
+    if ns.BeaconFollow then ns.BeaconFollow() end
+    Changed("state")
+  end
+  if next(sides) then
+    for g in pairs(sides) do PointGuideArrow(g, tracks[g.slot]) end
+    if ns.SideWindowsRender then ns.SideWindowsRender() end
+    if ns.MarkChanged then ns.MarkChanged("sides") end
+  end
+end
+function refusal.Steps(fn)
+  for _, g in ipairs(ns.GuidesRunning()) do
+    for i, s in ipairs(g.steps) do
+      if s.what == "learn" and s.ni and g.state[i] ~= G.DONE and g.state[i] ~= G.SKIPPED then
+        fn(g, i, s, s.need and type(s.need.recipes) == "table" and tonumber(s.need.recipes[1]) or nil)
+      end
+    end
+  end
+end
+function refusal.Apply()
+  local kept, mainMoved, sideMoved = refusal.Kept(), false, {}
+  local let = false
+  refusal.Steps(function(_, _, s, spell)
+    if not (spell and ns.TaughtShort(s.need)) then return end
+    local function go(ni)
+      local r = ni and kept[ni]
+      if not (r and r.spells and r.spells[spell]) then return end
+      r.spells[spell] = nil
+      if next(r.spells) == nil then kept[ni] = nil end
+      let = true
+    end
+    go(s.ni)
+    for _, o in ipairs(s.others or {}) do go(o.ni) end
+  end)
+  if let and ns.MarkChanged then ns.MarkChanged("refused") end
+  refusal.Steps(function(g, _, s, spell)
+    if not refusal.Holds(kept[s.ni], spell) then return end
+    for _, o in ipairs(s.others or {}) do
+      if not refusal.Holds(kept[o.ni], spell) then
+        refusal.StepTo(s, o)
+        if g == guide then mainMoved = true else sideMoved[g] = true end
+        return
+      end
+    end
+  end)
+  ns.GuidesMoved(mainMoved, sideMoved)
+end
+ns.GuideRefusalApply = refusal.Apply
+function refusal.Saw(npc, spells)
+  local kept = refusal.Kept()
+  local had = kept[npc]
+  local r = { at = time(), spells = nil }
+  if spells then
+    r.spells = had and had.spells or {}
+    for _, spell in ipairs(spells) do r.spells[spell] = true end
+  end
+  kept[npc] = r
+  if ns.MarkChanged then ns.MarkChanged("refused") end
+  refusal.Apply()
+end
+ns.On("GOSSIP_SHOW", function()
+  local key = ns.Geo.UnitKey("npc")
+  if type(key) ~= "number" then return end
+  local wanted = false
+  refusal.Steps(function(_, _, s) if s.ni == key then wanted = true end end)
+  if not wanted then return end
+  local gossip = C_GossipInfo or {}
+  for _, o in ipairs(Call(gossip.GetOptions) or {}) do
+    if Plain(o.icon) == refusal.TRAINER_ICON or Plain(o.overrideIconID) == refusal.TRAINER_ICON then return end
+  end
+  refusal.Saw(key)
+end)
+function ns.GuideTrainerShown(npc, listed)
+  local missing = {}
+  refusal.Steps(function(_, _, s, spell)
+    if s.ni == npc and spell and not listed[spell] and not ns.TaughtShort(s.need) then missing[#missing + 1] = spell end
+  end)
+  if #missing > 0 then refusal.Saw(npc, missing) end
+end
+refusal.MOST, refusal.SPELLS_MOST = 12, 6
+function ns.EncodeRefused()
+  local kept, list = refusal.Kept(), {}
+  for npc, r in pairs(kept) do list[#list + 1] = { npc = tonumber(npc), r = r } end
+  if #list == 0 then return nil end
+  table.sort(list, function(a, b) return (tonumber(a.r.at) or 0) > (tonumber(b.r.at) or 0) end)
+  local w = ns.NewWriter()
+  w:u8(47)
+  w:u8(math.min(#list, refusal.MOST))
+  for k = 1, math.min(#list, refusal.MOST) do
+    local e = list[k]
+    local at = tonumber(e.r.at) or 0
+    w:u24(e.npc)
+    w:u16(at % 65536)
+    w:u16(math.floor(at / 65536))
+    local spells = {}
+    for spell in pairs(e.r.spells or {}) do spells[#spells + 1] = spell end
+    table.sort(spells)
+    w:u8(math.min(#spells, refusal.SPELLS_MOST))
+    for j = 1, math.min(#spells, refusal.SPELLS_MOST) do w:u24(spells[j]) end
+  end
+  return w.bytes
+end
+function ns.RefusedKept() return next(refusal.Kept()) ~= nil end
 
 function ns.GuidePace()
   local done, ratios = {}, {}
@@ -2332,9 +2534,7 @@ function ns.GuideLoad(force)
     return Changed("state")
   end
   if not force then
-    local opened = type(epic.opened) == "table" and tonumber(epic.opened.at) or 0
-    local fresh = epic.fresh and (tonumber(sh.version) or 0) > (tonumber(sv.stopped) or 0)
-    if epic.closed or (sv.stopped and not fresh and opened <= (tonumber(sv.stoppedAt) or 0)) then
+    if epic.closed or ns.GuideKeptClosed(sv.stopped, sv.stoppedAt, sh.version, epic) then
       if not sv.stopped then
         sv.stoppedAt = time()
         ns.Print(string.format("%s is closed. Its plan and your progress are kept. Type /ioa guide start to pick it up again.",
@@ -2400,6 +2600,7 @@ function ns.GuideLoad(force)
   run.version, run.done = sh.version, 0
   sv.run = run
   if ns.Arbiter then ns.Arbiter.Reset() end
+  refusal.Apply()
   Evaluate()
   ns.Print(string.format("%s: the plan loaded with %d steps. /ioa guide shows or hides the card.", guide.name, #steps))
   for id in pairs(type(asked) == "table" and asked or {}) do
@@ -2410,8 +2611,19 @@ end
 
 function ns.GuideInfo() return guide end
 
+function ns.GuideRun(g)
+  g = g or guide
+  local d = g and g.dungeon
+  return d and g.state[d] ~= G.PARKED and d or nil
+end
+
+function ns.GuideStaged(g)
+  g = g or guide
+  return g and ns.DungeonByKey and ns.DungeonByKey[g.key] and ns.GuideRun(g) or nil
+end
+
 function ns.GuideStage(i)
-  local d = guide and guide.dungeon
+  local d = ns.GuideStaged()
   if not d or not i then return "prep" end
   if i < d then return "prep" end
   if i > d then return "turnin" end
@@ -2419,21 +2631,23 @@ function ns.GuideStage(i)
 end
 
 local AT_LOOP = { stay = 15 }
-function ns.GuideAtLoop(reach)
+function ns.GuideAtLoop(reach, s)
   reach = reach or 1
-  local s = EpicNow()
-  local by = AT_LOOP[reach] or {}
+  s = s or EpicNow()
+  local by = AT_LOOP[reach] or setmetatable({}, { __mode = "k" })
   AT_LOOP[reach] = by
-  if not (s and s.loop and ns.AtRing) or ns.Ghost() then by.step = nil; return false end
+  if not (s and s.loop and ns.AtRing) or ns.Ghost() then
+    if s then by[s] = nil end
+    return false
+  end
   local continent, px, py = ns.PlayerWorldPos()
-  local was = by.step == s and by.was
-  local at = continent == s.inst and px and ns.AtRing(s.loop, px, py, was and AT_LOOP.stay or 0, s.walks, reach) or false
-  by.step, by.was = s, at
+  local at = continent == s.inst and px and ns.AtRing(s.loop, px, py, by[s] and AT_LOOP.stay or 0, s.walks, reach) or false
+  by[s] = at or nil
   return at
 end
 
-function ns.GuideInArea()
-  local s = EpicNow()
+function ns.GuideInArea(s)
+  s = s or EpicNow()
   if not s or ns.Ghost() then return false end
   local continent, px, py = ns.PlayerWorldPos()
   return continent == s.inst and px ~= nil and ns.Arbiter.InArea(s, px, py)
@@ -2465,6 +2679,7 @@ function ns.GuidePark(i, said)
   for _, q in ipairs(quests) do Saved().parked[guide.key][q] = true end
   ns.Arbiter.MarkAway("q:" .. quests[1], guide.cur == i)
   Event("parked", i)
+  back.Place(back.Onward(i))
   ns.Print(said or (s.kind == "D"
     and string.format("You parked %s. Its quests are still to do, and the guide comes back to them.", s.name or "the dungeon")
     or string.format("You parked %s. The quest is still to do, and the guide comes back to it.", s.name or ("quest " .. s.ids[1]))))
@@ -2650,10 +2865,16 @@ function back.Steps(id)
   return out
 end
 
-function back.Place(id)
-  Saved().parked[guide.key][id] = nil
-  local steps = back.Steps(id)
-  if #steps == 0 then return false end
+function back.Place(ids)
+  local has, steps, placed = {}, {}, 0
+  for _, id in ipairs(ids) do
+    Saved().parked[guide.key][id] = nil
+    for _, s in ipairs(back.Steps(id)) do has[s] = true end
+  end
+  for _, s in ipairs(guide.steps) do
+    if has[s] then steps[#steps + 1] = s elseif s.moved then placed = placed + 1 end
+  end
+  if #steps == 0 or #steps + placed > back.MOST then return false end
   local moving, route, first = {}, {}, false
   for _, s in ipairs(steps) do moving[s] = true end
   for _, s in ipairs(guide.steps) do
@@ -2679,6 +2900,23 @@ function back.Place(id)
   return (route[1] ~= nil and fit[1].before == route[1]) and fit[1].step or nil
 end
 
+function back.Onward(i)
+  local s, out, seen, first = guide.steps[i], {}, {}, nil
+  if not (s and s.kind == "D" and s.wx) then return out end
+  local near = ns.Arbiter.Reach("visit")
+  for k = i + 1, #guide.steps do
+    local t = guide.steps[k]
+    local st = StepState(t)
+    if t.kind ~= "S" and t.kind ~= "D" and t.wx and (st == G.TODO or st == G.WAIT) then
+      if first and (t.inst ~= first.inst or Dist(t.wx, t.wy, first.wx, first.wy) > near) then break end
+      first = first or t
+      local q = t.ids[1]
+      if q and not seen[q] then seen[q] = true; out[#out + 1] = q end
+    end
+  end
+  return out
+end
+
 function back.Find(id)
   for i, s in ipairs(guide.steps) do if s.kind ~= "D" and s.kind ~= "S" and s.ids[1] == id then return i end end
 end
@@ -2688,7 +2926,7 @@ function back.Unpark(id)
   if not i then Saved().parked[guide.key][id] = nil; return end
   local s = guide.steps[i]
   Event("unparked", i)
-  local now = back.Place(id)
+  local now = back.Place({ id })
   if now and ns.Arbiter then ns.Arbiter.Pick(now) end
   ns.Print(string.format("%s is back in the guide %s.", s.name or ("quest " .. id),
     now and "as the next step, because you'd come back for it otherwise" or "where it adds the least walking"))
@@ -2700,7 +2938,7 @@ function ns.GuideUnpark(i)
   if not s or s.kind == "S" or not StepParked(s) then return end
   if s.kind ~= "D" then return back.Unpark(s.ids[1]) end
   Event("unparked", i)
-  for _, q in ipairs(ParkQuests(s)) do back.Place(q) end
+  back.Place(ParkQuests(s))
   ns.Print(string.format("%s is back in the guide.", s.name or "The dungeon"))
   Evaluate()
 end
@@ -2837,9 +3075,7 @@ function ns.GuideStop()
   local look = not guide.stopSaid and ns.UI.EpicLook(guide.key)
   guide = nil
   ns.epicDirty = true
-  ns.EpicAccept(nil)
-  ns.EpicHandIn(nil)
-  ns.EpicHold(nil)
+  ns.GuidesTake()
   if tracks.e.target and tracks.e.target.guided then Clear(tracks.e) end
   if ns.BeaconFollow then ns.BeaconFollow() end
   ns.Print("You closed the quest epic. Its plan and your progress are kept. Type /ioa guide start to pick it up again.")
@@ -3284,8 +3520,8 @@ local function LoopSpot(lt, continent, px, py)
   return { inst = lt.continent, wx = cx / #lt.loop, wy = cy / #lt.loop, name = lt.name }
 end
 
-function ns.EpicRideWho()
-  local t = tracks.e and tracks.e.target
+function ns.EpicRideWho(kind)
+  local t = tracks[kind or "e"] and tracks[kind or "e"].target
   local route = t and (t.guided or t.pasted) and t.route
   local ride = route and route:NextRide()
   if not ride then return nil end
@@ -3354,6 +3590,10 @@ local function Primary()
   return c[1], c[2], c[3]
 end
 ns.BeaconPrimary = Primary
+function ns.SideLeading()
+  local _, kind, id = Primary()
+  return kind == "prof" and side.Of(id) or nil
+end
 
 function ns.BeaconOwnerSlot()
   if not (tracked and BeaconOn() and Runs(tracked.kind, tracked.id)) then return nil end
@@ -4371,8 +4611,10 @@ end
 function ns.GuideRewardPick(qid)
   local byPrice = ns.Options().general.sellPrice
   local rw = nil
-  for _, s in ipairs(guide and guide.steps or {}) do
-    if s.kind == "T" and s.rw and s.ids[1] == qid then rw = s.rw end
+  for _, g in ipairs(ns.GuidesRunning()) do
+    for _, s in ipairs(g.steps) do
+      if s.kind == "T" and s.rw and s.ids[1] == qid then rw = s.rw end
+    end
   end
   if not rw then
     local quests = ns.QuestRewards()

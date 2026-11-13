@@ -14,6 +14,7 @@ PATH = os.path.join(ROOT, "data", "quest_pois.json")
 CHECKS = os.path.join(ROOT, "data", "quest_checks.json")
 OBJECTIVE_FAR = 300.0
 TURNIN_FAR = 100.0
+MARKS_KEPT = 12
 
 
 def nearest(spot, points):
@@ -49,6 +50,9 @@ class QuestPois:
                     changed = True
                 if (have.get(kind) or [None])[:3] == spot:
                     continue
+                if kind == "obj":
+                    before = have.get("marks") or ([have["obj"][:3]] if have.get("obj") else [])
+                    have["marks"] = ([m for m in before if m != spot] + [spot])[-MARKS_KEPT:]
                 have[kind] = spot + [now]
                 changed = True
                 found = self.check(e["id"], kind, spot, book, to_world, now)
@@ -124,6 +128,8 @@ class QuestPois:
                     nearest = min(yards(a) for a in areas)
                     for a in areas:
                         a["main"] = yards(a) <= max(0.0, nearest)
+                marks = [w for w in (to_world(*m[:3]) for m in have.get("marks") or ([have["obj"]] if have.get("obj") else ())) if w]
                 if spots:
-                    out[qid] = {**spots, "maps": {k: have[k][0] for k in spots}, **({"areas": areas} if areas else {})}
+                    out[qid] = {**spots, "maps": {k: have[k][0] for k in spots}, **({"areas": areas} if areas else {}),
+                                **({"marks": marks} if marks else {})}
             return out

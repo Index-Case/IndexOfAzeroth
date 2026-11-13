@@ -1,0 +1,11 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: zone
+
+colours.gray = Trivial
+colours.green = Standard
+colours.yellow = Difficult
+colours.orange = Very difficult
+colours.red = Impossible
+colour.tip = The colour is the quest's difficulty for you now, as the game colours it in your quest log. The epic holds a red or orange quest until you are high enough to do it.
+row.tip = This plans the quests of {zone} in the colours ticked above as one epic, with the order, the route and the legs.
+none = Tick at least one colour to start a zone epic.

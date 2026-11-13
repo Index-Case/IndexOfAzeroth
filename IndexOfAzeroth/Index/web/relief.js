@@ -34,6 +34,8 @@ const withoutTrees = (file) => groundOf(file, [KIND.tree]);
 
 const groundOnly = (file) => groundOf(file, [KIND.building, KIND.tree]);
 
+const groundLayer = (file) => (file.ground ||= file.layer ? { heights: file.layer } : groundOnly(file));
+
 function groundOf(file, out) {
   const w = file.w || file.n, h = file.h || file.n, heights = Uint16Array.from(file.heights), kinds = Uint8Array.from(file.kinds);
   const left = new Uint8Array(w * h);
@@ -161,10 +163,15 @@ function oneLightAt(hour, shown = true, left = 1) {
 
 const TORCH = { steps: 24, size: 1 };
 
-const PLACED = { reach: 10, lift: 0.7, ease: 1.5, steps: 8, clear: 1600 / 3 / 256, leastPx: 2, cells: 96, width: 1024, round: 0.5,
-  kinds: { torch: [1, 1, 1, 1, 0, 0, 0, 0], fire: [2.3, 3, 2, 1.4, 8, 0.5, 0.8, 0.08] } };
+const PLACED = { reach: 10, lift: 0.7, ease: 1.5, steps: 8, clear: 1600 / 3 / 256, leastPx: 2, cells: 96, width: 1000, texels: 5, round: 0.5,
+  kinds: { torch: [1, 1, 1, 1, 0, 0, 0, 0], fire: [2.3, 3, 2, 1.4, 8, 0.5, 0.8, 0.08], spill: [1, 1.5, 0, 0, 0, 0, 0, 0] } };
 const placedFar = ([reach, , core, , , , wander, breathe], R = PLACED.reach) => Math.max(R * reach * (1 + breathe) + wander, R * core);
 const PLACED_FAR = Math.max(...Object.values(PLACED.kinds).map((k) => placedFar(k) / PLACED.reach));
+const placedSize = (l, kinds) => {
+  const k = PLACED.kinds[kinds[l[6]]] || PLACED.kinds.torch;
+  return l[7] > 0 ? [l[7] / PLACED.reach, ...k.slice(1)] : k;
+};
+const placedFarthest = (pad, most = 0) => Math.max(pad * PLACED_FAR, ...Object.values(PLACED.kinds).map((k) => placedFar([most / PLACED.reach, ...k.slice(1)])));
 const PATCH = { cell: 16, pad: 2 };
 const WALK_LIT = { px: 0.5, shades: 2, least: 0.05 };
 function walkedOn(was, now, yards) {
@@ -177,7 +184,7 @@ function placedPatches(lights, kinds, m, w, h, R = PLACED.reach) {
   const S = PATCH.cell, gx = Math.ceil(w / S), gy = Math.ceil(h / S), marked = new Uint8Array(gx * gy);
   const sx = Math.abs(m[0]) + Math.abs(m[3]), sy = Math.abs(m[1]) + Math.abs(m[4]);
   for (const l of lights) {
-    const k = PLACED.kinds[kinds[l[6]]] || PLACED.kinds.torch;
+    const k = placedSize(l, kinds);
     if (!(k[6] + k[7] > 0)) continue;
     const far = placedFar(k, R), x = m[0] * l[0] + m[3] * l[1] + m[6], y = m[1] * l[0] + m[4] * l[1] + m[7];
     const i0 = Math.max(0, Math.floor((x - sx * far - PATCH.pad) / S)), i1 = Math.min(gx - 1, Math.floor((x + sx * far + PATCH.pad) / S));
@@ -243,7 +250,7 @@ function placedGrid(lights, box, colours = [], reach = PLACED.reach, kinds = [],
   const W = PLACED.width, cell = Math.max(reach, span / PLACED.cells);
   const gx = Math.max(1, Math.ceil(box.east / cell)), gy = Math.max(1, Math.ceil(box.south / cell)), cells = [];
   for (let i = 0; i < gx * gy; i++) cells.push([]);
-  const size = (l) => PLACED.kinds[kinds[l[6]]] || PLACED.kinds.torch;
+  const size = (l) => placedSize(l, kinds);
   lights.forEach((l, i) => {
     const [n, w] = l, far = placedFar(size(l), reach);
     const span = (v) => [Math.max(0, Math.floor((v - far) / cell)), Math.floor((v + far) / cell)];
@@ -257,13 +264,14 @@ function placedGrid(lights, box, colours = [], reach = PLACED.reach, kinds = [],
     list.set(c, at);
     at += c.length;
   });
-  const out = new Float32Array(Math.ceil((4 * lights.length) / W) * W * 4);
+  const T = PLACED.texels, out = new Float32Array(Math.ceil((T * lights.length) / W) * W * 4);
   const shared = (l) => {
     const k = size(l), s = l[8] ?? 1;
     return s === 1 ? k : [k[0], k[1] * s, k[2], k[3] * s, ...k.slice(4)];
   };
+  const facing = (l) => (Number.isFinite(l[9]) ? [Math.cos(l[9] * Math.PI / 180), Math.sin(l[9] * Math.PI / 180), 0, 0] : [0, 0, 0, 0]);
   lights.forEach((l, i) => out.set([l[0], l[1], l[2], (l[4] || 0) + PLACED.clear, ...(colours[l[3]] || [1, 1, 1]), l[5] ? 1 : 0,
-    ...shared(l)], 16 * i));
+    ...shared(l), ...facing(l)], 4 * T * i));
   return { cell, gx, gy, count: lights.length, lights: out, list };
 }
 
@@ -845,7 +853,7 @@ vec4 placedLit(vec2 w, float h0, vec3 nrm) {
   vec3 rgb = vec3(0.0);
   float sum = 0.0;
   for (uint k = 0u; k < count; k++) {
-    uint i = 4u * torchAt(first + k);
+    uint i = ${PLACED.texels}u * torchAt(first + k);
     ivec2 t = ivec2(int(i % ${PLACED.width}u), int(i / ${PLACED.width}u));
     vec4 L = texelFetch(torchL, t, 0), K = texelFetch(torchL, t + ivec2(2, 0), 0), S = texelFetch(torchL, t + ivec2(3, 0), 0);
     vec2 p = L.xy;
@@ -861,8 +869,11 @@ vec4 placedLit(vec2 w, float h0, vec3 nrm) {
     vec4 C = texelFetch(torchL, t + ivec2(1, 0), 0);
     float x2 = d * d / (r * r), f = 1.0 - x2, on = torchBurn(C.a);
     if (on <= 0.0) continue;
+    vec2 F = texelFetch(torchL, t + ivec2(4, 0), 0).xy;
+    float face = dot(F, F) > 0.0 ? max(-dot(to.xy, F) / max(d, 1e-3), 0.0) : 1.0;
+    if (face <= 0.0) continue;
     float g = f * f / (1.0 + S.x * x2);
-    float a = K.y * on * g * pointLit(w, h0, nrm, to, ${PLACED.steps}, min(L.w / max(d, 1e-3), 1.0));
+    float a = K.y * on * g * face * pointLit(w, h0, nrm, to, ${PLACED.steps}, min(L.w / max(d, 1e-3), 1.0));
     sum += a;
     vec3 hue = C.rgb / max(max(C.r, C.g), max(C.b, 1e-3));
     rgb += a * (S.y > 0.0 ? mix(hue, vec3(1.0), S.y * g) : C.rgb);
@@ -877,7 +888,7 @@ vec2 coreLit(vec2 w) {
   vec2 sum = vec2(0.0);
   float t = torchCore.y;
   for (uint k = 0u; k < count; k++) {
-    uint i = 4u * torchAt(first + k);
+    uint i = ${PLACED.texels}u * torchAt(first + k);
     ivec2 tx = ivec2(int(i % ${PLACED.width}u), int(i / ${PLACED.width}u));
     vec4 L = texelFetch(torchL, tx, 0), K = texelFetch(torchL, tx + ivec2(2, 0), 0);
     vec2 p = L.xy, d = p - w;
@@ -1217,9 +1228,8 @@ class Relief {
       a.grounds = new Array(a.kx * a.ky).fill(null);
     }
     if (a.grounds[at] === file) return;
-    if (!file.ground) file.ground = file.layer ? { heights: file.layer } : groundOnly(file);
     gl.activeTexture(gl.TEXTURE0 + RELIEF_TEXTURES.indexOf("gf"));
-    gl.texSubImage2D(gl.TEXTURE_2D, 0, sx * S, sy * S, file.n, file.n, gl.RED_INTEGER, gl.UNSIGNED_SHORT, file.ground.heights);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, sx * S, sy * S, file.n, file.n, gl.RED_INTEGER, gl.UNSIGNED_SHORT, groundLayer(file).heights);
     a.grounds[at] = file;
   }
 
@@ -1246,8 +1256,7 @@ class Relief {
     if (kx !== this.atlas.kx || ky !== this.atlas.ky) this.allocate(gl, kx, ky);
     const S = HEIGHTS.most, a = this.atlas, inView = [];
     keys.forEach((key, k) => {
-      const id = `${instance}/${key}`, [c, r] = cr[k];
-      const source = far || !this.files.has(id) ? this.farCut(instance, c, r) : this.files.get(id), file = this.lit(source);
+      const [c, r] = cr[k], source = this.tileFile(instance, c, r, far), file = this.lit(source);
       if (!file) return;
       inView.push(file);
       const [sx, sy] = slotOf(c, r, a.kx, a.ky), at = sy * a.kx + sx, tag = tagOf(instance, c, r);
@@ -1265,6 +1274,11 @@ class Relief {
     if (a.dirty) this.texture(gl, "tags", gl.RGBA32F, a.kx, a.ky, gl.RGBA, gl.FLOAT, a.tags);
     a.dirty = false;
     return inView;
+  }
+
+  tileFile(instance, col, row, far = false) {
+    const id = `${instance}/${col}_${row}`;
+    return far || !this.files.has(id) ? this.farCut(instance, col, row) : this.files.get(id);
   }
 
   farCut(instance, col, row) {
@@ -1480,7 +1494,7 @@ class Relief {
     const kept = k?.key === key && k.torches === torches && same(k.span, span) && same(k.pad, pad) && view.n <= k.box.n && view.w <= k.box.w
       && view.n - view.south >= k.box.n - k.box.south && view.w - view.east >= k.box.w - k.box.east;
     const m = span * PLACED.round, box = kept ? k.box : { n: view.n + m, w: view.w + m, south: view.south + 2 * m, east: view.east + 2 * m };
-    const far = pad * PLACED_FAR, around = { n0: box.n + far, n1: box.n - box.south - far, w0: box.w + far, w1: box.w - box.east - far };
+    const far = placedFarthest(pad, torches?.reach), around = { n0: box.n + far, n1: box.n - box.south - far, w0: box.w + far, w1: box.w - box.east - far };
     const walkers = walk ? walk.travellers.within(instance, around).filter((l) => l[8] * WALK_LIT.shades >= 0.5)
       .map((l) => [...l.slice(0, 8), l[8] * walk.share]) : null;
     const walked = walkedOn(k?.walking || null, walkers, walk ? WALK_LIT.px * walk.ypx / RELIEF.scale : 0);
@@ -2040,9 +2054,9 @@ class Relief {
 }
 
 if (typeof module === "object") {
-  module.exports = { HEIGHTS, KIND, RELIEF, farTile,ONE_LIGHT, ONE_HALF, oneLightAt, oneLightV, oneShadow, oneCloudTake, oneLightLevel, oneLightRgb, AREA_NONE, nightMatrix, oneLightPixel, groundOnly, groundOf, RELIEF_TEXTURES,
+  module.exports = { HEIGHTS, KIND, RELIEF, farTile,ONE_LIGHT, ONE_HALF, oneLightAt, oneLightV, oneShadow, oneCloudTake, oneLightLevel, oneLightRgb, AREA_NONE, nightMatrix, oneLightPixel, groundOnly, groundOf, groundLayer, RELIEF_TEXTURES,
     RELIEF_SMOOTH, RELIEF_ARRAYS,
-    TORCH, torchV, torchShadow, screenMatrix, gauntletHides, SHAPE, RANK, renderShape, shapeHeight, shapesRead, shapeSide, shapeBands, shapeBlend, shapeRead, shapeWeights, shapeWord, shapeSteps, shapeCone, shapeHides, shapeShadowAt, shadedFar, PLACED, PLACED_FAR, PLACED_NONE, glFloat, placedOn, placedFalloff, PATCH, WALK_LIT, walkedOn, placedPatches, patchBox, clipBox,
+    TORCH, torchV, torchShadow, screenMatrix, gauntletHides, SHAPE, RANK, renderShape, shapeHeight, shapesRead, shapeSide, shapeBands, shapeBlend, shapeRead, shapeWeights, shapeWord, shapeSteps, shapeCone, shapeHides, shapeShadowAt, shadedFar, PLACED, PLACED_FAR, placedSize, placedFarthest, PLACED_NONE, glFloat, placedOn, placedFalloff, PATCH, WALK_LIT, walkedOn, placedPatches, patchBox, clipBox,
     placedLift, placedGrid, CORE, coreRadius, coreBright, coreSteady, coreRgb,
     decodeHeights, withoutTrees, heightAt, kindAt, coarseHeight, gridAround, edgeSurface, aboveShare, lean, reliefNormal, tilePoint, reliefTiles, reliefWanted, reliefLight, marchPlan, coneShare, reliefShadow,
     lanternKeep, viewMatrix, slotOf, tagOf, RELIEF_VERTEX, RELIEF_FRAGMENT, RELIEF_GL, RELIEF_UNIFORMS, PROBE_MS, PROGRAM_POLL_MS, programsBuilt, buildPrograms, Relief };

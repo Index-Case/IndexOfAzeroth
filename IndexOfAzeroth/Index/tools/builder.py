@@ -56,6 +56,7 @@ def note_fill(script, notes=None):
 
 def run(main, *args):
     script = os.path.basename(sys.argv[0] or "builder")
+    store.start_builder_run()
     try:
         return main(*args)
     except game.GameNotFound as e:

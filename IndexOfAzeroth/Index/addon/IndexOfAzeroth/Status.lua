@@ -35,6 +35,9 @@ local N = {
   camps = 107, campWood = 108, campTool = 109,
   addonOptions = 110,
   epicWay = 114,
+  attackPower = 115, rangedAttackPower = 116, spirit = 117, healing = 118, spellDamage = 119,
+  fireDamage = 120, frostDamage = 121, shadowDamage = 122, arcaneDamage = 123,
+  meleeCrit = 124,
 }
 local S = { bind = 1, repName = 2, petLoyalty = 3, ammoName = 4, demon = 5, faction = 6, petDiet = 7, ammoBetter = 8,
   talentRead = 9,
@@ -97,6 +100,11 @@ local function CountAll(list)
   local n = 0
   for _, id in ipairs(list) do n = n + Count(id) end
   return n
+end
+
+local function Reagent(itemID)
+  if ns.VendorReagents and ns.VendorReagents[itemID] and ns.LegacyNodes and ns.LegacyNodes().reagentEconomy then return nil end
+  return Count(itemID)
 end
 
 
@@ -632,6 +640,11 @@ function ns.NeedMet(need)
     any = true
     if not id or Count(id) < (tonumber(e[2]) or 1) then return false end
   end
+  for _, e in ipairs(Each("most")) do
+    local id = type(e) == "table" and tonumber(e[1])
+    any = true
+    if not id or Count(id) > (tonumber(e[2]) or 0) then return false end
+  end
   for _, id in ipairs(Each("recipes")) do
     any = true
     if not watch.Known(tonumber(id)) then return false end
@@ -654,10 +667,22 @@ function ns.NeedMet(need)
   if any then return true end
 end
 
+function ns.TaughtShort(need)
+  local t = type(need) == "table" and need.taught
+  if type(t) ~= "table" then return nil end
+  local info, rank = Skills()[t[1]], tonumber(t[2]) or 1
+  if info and (Plain(info.rank) or 0) >= rank then return nil end
+  return t[1], rank
+end
+
+local function Selling(s)
+  return type(s) == "table" and s.what == "supplies" and type(s.key) == "string" and s.key:find(":sell", 1, true) ~= nil
+end
 local function ItemsGot(s)
-  if type(s) ~= "table" or s.kind ~= "S" or (s.what ~= "farm" and s.what ~= "supplies") then return nil end
-  local items = type(s.need) == "table" and type(s.need.items) == "table" and s.need.items or nil
-  if not items or #items == 0 then return nil end
+  if type(s) ~= "table" or s.kind ~= "S" or (s.what ~= "farm" and s.what ~= "supplies" and s.what ~= "craft") then return nil end
+  local need, sell = type(s.need) == "table" and s.need or {}, Selling(s)
+  local items = sell and need.most or (s.what == "craft" and type(s.made) == "table" and { s.made }) or need.items
+  if type(items) ~= "table" or #items == 0 then return nil end
   local out = {}
   for _, e in ipairs(items) do
     local id = type(e) == "table" and tonumber(e[1])
@@ -667,8 +692,13 @@ local function ItemsGot(s)
         Call(C_Item.RequestLoadItemDataByID, id)
         return nil
       end
-      local need = tonumber(e[2]) or 1
-      out[#out + 1] = { id = id, name = name, have = math.min(Count(id), need), need = need }
+      local mark, n = tonumber(e[2]) or (sell and 0 or 1), tonumber(e[3])
+      local have, total = math.min(Count(id), mark), mark
+      if n then
+        local left = sell and Count(id) - mark or mark - Count(id)
+        have, total = n - math.max(0, math.min(n, left)), n
+      end
+      out[#out + 1] = { id = id, name = name, have = have, need = total }
     end
   end
   return #out > 0 and out or nil
@@ -697,9 +727,173 @@ function ns.ItemStepLine(s)
   if #parts > 1 then
     items = ns.Word("both.craft.list", { rest = table.concat(parts, ", ", 1, #parts - 1), last = parts[#parts] })
   end
-  if type(s.key) == "string" and s.key:match(":auction$") then return ns.Word("both.craft.auction", { items = items }) end
+  if Selling(s) then return ns.Word("both.craft.sell", { items = items, npc = s.npc }) end
+  if type(s.key) == "string" and s.key:find(":auction", 1, true) then return ns.Word("both.craft.auction", { items = items }) end
+  if type(s.key) == "string" and s.key:match(":bank$") then
+    if type(s.seen) == "string" and s.seen ~= "" then return ns.Word("both.craft.bank.old", { items = items, age = s.seen }) end
+    return ns.Word("both.craft.bank", { items = items })
+  end
   return ns.Word("both.craft.buy", { items = items, npc = s.npc })
 end
+
+local sold = { short = {}, gone = {}, counts = nil, atVendor = false, frame = nil }
+ns.sold = sold
+
+local function SoldSaved()
+  if type(IndexOfAzerothCharDB) ~= "table" then return {} end
+  IndexOfAzerothCharDB.soldShort = type(IndexOfAzerothCharDB.soldShort) == "table" and IndexOfAzerothCharDB.soldShort or {}
+  return IndexOfAzerothCharDB.soldShort
+end
+
+function sold.Used()
+  local out, states = {}, ns.GUIDE or {}
+  for _, g in ipairs(ns.GuidesRunning and ns.GuidesRunning() or {}) do
+    for i, s in ipairs(g.steps or {}) do
+      local uses = s.kind == "S" and type(s.takes) == "table" and s.takes.uses
+      local state = g.state and g.state[i]
+      if type(uses) == "table" and state ~= states.DONE and state ~= states.SKIPPED then
+        for _, e in ipairs(uses) do
+          local id = type(e) == "table" and tonumber(e[1])
+          if id then out[id] = (out[id] or 0) + (tonumber(e[2]) or 0) end
+        end
+      end
+    end
+  end
+  return out
+end
+
+function sold.Line(used)
+  local parts = {}
+  for id in pairs(sold.short) do
+    local name = PlainText(Call(C_Item.GetItemNameByID, id))
+    if not name or name == "" then
+      Call(C_Item.RequestLoadItemDataByID, id)
+      return nil
+    end
+    parts[#parts + 1] = ns.Count("both.craft.got", math.max(1, (used[id] or 0) - Count(id)), { item = name })
+  end
+  if #parts == 0 then return nil end
+  table.sort(parts)
+  local items = parts[#parts]
+  if #parts > 1 then
+    items = ns.Word("both.craft.list", { rest = table.concat(parts, ", ", 1, #parts - 1), last = parts[#parts] })
+  end
+  return ns.Word("both.craft.sold", { items = items })
+end
+
+function sold.Show(loud)
+  local line = next(sold.short) and sold.Line(sold.Used())
+  if not line then
+    if sold.frame then sold.frame:Hide() end
+    sold.loud = next(sold.short) ~= nil and (loud or sold.loud) or false
+    return
+  end
+  local f = sold.frame
+  if not f then
+    f = CreateFrame("Button", "IndexOfAzerothSoldWarning", UIParent)
+    f:SetFrameStrata("HIGH")
+    f:SetPoint("TOP", UIParent, "TOP", 0, -128)
+    f.icon = f:CreateTexture(nil, "ARTWORK")
+    f.icon:SetTexture("Interface\\DialogFrame\\UI-Dialog-Icon-AlertNew")
+    f.icon:SetVertexColor(1, 0.2, 0.2)
+    f.icon:SetSize(40, 40)
+    f.icon:SetPoint("LEFT", f, "LEFT", 0, 0)
+    f.text = f:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    f.text:SetPoint("LEFT", f.icon, "RIGHT", 8, 0)
+    f.text:SetTextColor(1, 0.25, 0.2, 1)
+    f:SetScript("OnClick", function() sold.Dismiss() end)
+    f:SetScript("OnEnter", function(self)
+      GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
+      GameTooltip:SetText(ns.Word("both.craft.sold.tip"), 1, 1, 1, 1, true)
+      GameTooltip:Show()
+    end)
+    f:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    sold.frame = f
+  end
+  f.text:SetText(line)
+  f:SetSize(48 + (f.text:GetStringWidth() or 0), 40)
+  f:Show()
+  if loud or sold.loud then ns.WarningSound() end
+  sold.loud = false
+end
+
+function sold.Gone(id)
+  sold.short[id], SoldSaved()[tostring(id)] = nil, nil
+  sold.gone[id] = true
+  if ns.GuideLook then ns.GuideLook() end
+end
+
+function sold.Dismiss()
+  local ids = {}
+  for id in pairs(sold.short) do ids[#ids + 1] = id end
+  for _, id in ipairs(ids) do sold.Gone(id) end
+  sold.Show()
+end
+
+function sold.Look()
+  local used, changed, fresh = sold.Used(), false, false
+  if sold.atVendor and sold.counts then
+    for id, need in pairs(used) do
+      local n, was = Count(id), sold.counts[id]
+      if was and n < was and n < need and not sold.short[id] then
+        sold.short[id], SoldSaved()[tostring(id)], sold.gone[id] = true, true, nil
+        changed, fresh = true, true
+      end
+      sold.counts[id] = n
+    end
+  end
+  for id in pairs(sold.short) do
+    if Count(id) >= (used[id] or 0) then
+      sold.short[id], SoldSaved()[tostring(id)] = nil, nil
+      changed = true
+    end
+  end
+  if changed or (next(sold.short) and not (sold.frame and sold.frame:IsShown())) then sold.Show(fresh) end
+end
+
+function sold.Buyback()
+  if not sold.atVendor or not next(sold.short) then return end
+  local held = {}
+  for i = 1, PlainNumber(Call(GetNumBuybackItems)) or 0 do
+    local link = PlainText(Call(GetBuybackItemLink, i))
+    local id = link and tonumber(link:match("item:(%d+)"))
+    if id then held[id] = true end
+  end
+  local lost = {}
+  for id in pairs(sold.short) do if not held[id] then lost[#lost + 1] = id end end
+  for _, id in ipairs(lost) do sold.Gone(id) end
+  if #lost > 0 then sold.Show() end
+end
+
+function ns.SoldGone(s)
+  local uses = type(s) == "table" and type(s.takes) == "table" and s.takes.uses
+  if type(uses) ~= "table" or not next(sold.gone) then return false end
+  for _, e in ipairs(uses) do
+    local id = type(e) == "table" and tonumber(e[1])
+    if id and sold.gone[id] and Count(id) < (tonumber(e[2]) or 0) then return true end
+  end
+  return false
+end
+
+ns.On("MERCHANT_SHOW", function()
+  sold.atVendor, sold.counts = true, {}
+  for id in pairs(sold.Used()) do sold.counts[id] = Count(id) end
+  pcall(sold.Buyback)
+end)
+ns.On("MERCHANT_UPDATE", function() pcall(sold.Buyback) end)
+ns.On("MERCHANT_CLOSED", function() sold.atVendor = false end)
+ns.On({ "BAG_UPDATE_DELAYED", "GET_ITEM_INFO_RECEIVED" }, function() pcall(sold.Look) end)
+ns.On("PLAYER_ENTERING_WORLD", function(_, login, reload)
+  if not (login or reload) then return end
+  for key in pairs(SoldSaved()) do
+    local id = tonumber(key)
+    if id then
+      if reload then sold.short[id] = true else sold.gone[id] = true end
+    end
+  end
+  if not reload then wipe(SoldSaved()) end
+  C_Timer.After(3, function() pcall(sold.Show) end)
+end)
 
 function ns.EncodeWatched()
   local l, now = watch.List(), GetTime()
@@ -819,6 +1013,26 @@ function legacy.Mine(c, currency)
   return PlainNumber(found.quantity), PlainNumber(found.spent)
 end
 
+function legacy.Nodes(c)
+  if not (C_Traits and C_Traits.GetConfigIDByTreeID and C_Traits.GetTreeNodes and C_Traits.GetNodeInfo) then return nil end
+  local out = {}
+  for _, key in ipairs(legacy.TREES) do
+    local tree = tonumber(c[key])
+    local config = tree and PlainNumber(Call(C_Traits.GetConfigIDByTreeID, tree))
+    local nodes = config and Call(C_Traits.GetTreeNodes, tree)
+    for _, id in ipairs(type(nodes) == "table" and nodes or {}) do
+      local node = PlainNumber(id)
+      local info = node and Call(C_Traits.GetNodeInfo, config, node)
+      local active = type(info) == "table" and type(info.activeEntry) == "table" and info.activeEntry or nil
+      local entry = active and PlainNumber(active.entryID)
+      local rank = type(info) == "table" and (PlainNumber(info.currentRank) or PlainNumber(info.ranksPurchased)) or nil
+      if entry and rank and rank > 0 then out[#out + 1] = { node = node, entry = entry, rank = rank } end
+    end
+  end
+  table.sort(out, function(a, b) return a.node < b.node end)
+  return out
+end
+
 function legacy.Max(currency, limit)
   return C_Traits and PlainNumber(Call(C_Traits.GetMaxAvailableTraitCurrency, currency, limit)) or nil
 end
@@ -850,12 +1064,14 @@ function ns.EncodeLegacy()
   end
   w:u8(0)
   local flags = #w.bytes
+  local nodes = legacy.Nodes(c)
+  local taken = nodes and ns.WriteFitting(w, nodes, function(e, t) e:u24(t.node); e:u24(t.entry); e:u8(t.rank) end, ns.MAX_PAYLOAD - 80)
   ns.WriteFitting(w, names, function(e, s) e:str(s, legacy.NAME_MOST) end, ns.MAX_PAYLOAD - 40)
   local n = ns.WriteFitting(w, done, function(e, d)
     if d.before then e:var(d.id - d.before) else e:u24(d.id) end
     e:u8(d.amount); e:u8(d.who)
   end)
-  w.bytes[flags] = n == #done and 1 or 0
+  w.bytes[flags] = (n == #done and 1 or 0) + (nodes and 2 or 0) + (nodes and taken == #nodes and 4 or 0)
   return w.bytes
 end
 
@@ -877,6 +1093,10 @@ function ns.PrintLegacy()
     if Plain(completed) == true then n = n + 1 end
   end
   Say(string.format("%d of the %d Legacy achievements in Shared.lua done", n, #list))
+  local nodes, said = legacy.Nodes(c), {}
+  for _, t in ipairs(nodes or {}) do said[#said + 1] = string.format("%d (entry %d) rank %d", t.node, t.entry, t.rank) end
+  Say(not nodes and "Legacy nodes taken here: not given" or #said == 0 and "Legacy nodes taken here: none"
+    or "Legacy nodes taken here: " .. table.concat(said, ", "))
 end
 
 local function OnXP()
@@ -920,6 +1140,37 @@ local function TempEnchant(slot)
   return hasOH, ohMs or 0, ohCharges or 0
 end
 
+local SCHOOLS = { { "fireDamage", 3 }, { "frostDamage", 5 }, { "shadowDamage", 6 }, { "arcaneDamage", 7 } }
+
+local function Total(...)
+  local sum = 0
+  for i = 1, select("#", ...) do
+    local v = PlainNumber((select(i, ...)))
+    if v == nil then return nil end
+    sum = sum + v
+  end
+  return sum
+end
+
+local function StatNumbers(nums)
+  local function Put(key, v) if v then nums[key] = math.max(0, math.floor(v + 0.5)) end end
+  Put("attackPower", Total(Call(UnitAttackPower, "player")))
+  Put("rangedAttackPower", Total(Call(UnitRangedAttackPower, "player")))
+  Put("spirit", PlainNumber((select(2, Call(UnitStat, "player", 5)))))
+  Put("healing", PlainNumber(Call(GetSpellBonusHealing)))
+  local crit = PlainNumber(Call(GetCritChance))
+  Put("meleeCrit", crit and crit * 100)
+  local each, shared = {}, nil
+  for _, school in ipairs(SCHOOLS) do
+    local v = PlainNumber(Call(GetSpellBonusDamage, school[2]))
+    if v == nil then return end
+    each[school[1]] = v
+    shared = shared and math.min(shared, v) or v
+  end
+  Put("spellDamage", shared)
+  for key, v in pairs(each) do if v > shared then Put(key, v - shared) end end
+end
+
 function ns.CollectStatus()
   if bags.dirty then bags.dirty = false; ScanBags() end
   local _, _, classID = UnitClass("player")
@@ -955,6 +1206,7 @@ function ns.CollectStatus()
   local general, options = ns.Options().general, 0
   for name, bit in pairs(OPTION_BITS) do if general[name] then options = options + bit end end
   nums.addonOptions = options
+  StatNumbers(nums)
   if bags.specialSlots > 0 then nums.specialSlots = bags.specialSlots end
   local lowest, lowestItem
   for slot = 1, 18 do
@@ -1089,18 +1341,18 @@ function ns.CollectStatus()
     end
   elseif classID == 9 then
     if Known(1120) or Known(697) then
-      nums.shards = Count(SOUL_SHARD)
-      local level = Level(nums.shards, 3)
+      nums.shards = Reagent(SOUL_SHARD)
+      local level = nums.shards and Level(nums.shards, 3)
       if level then Warn("shards", level) end
     end
     if Known(6201) then nums.healthstones = CountAll(HEALTHSTONES) end
     if Known(693) then nums.soulstones = CountAll(SOULSTONES) end
     if UnitExists("pet") then strs.demon = PlainText(Call(UnitCreatureFamily, "pet")) end
   elseif classID == 8 then
-    if Known(23028) then nums.arcanePowder = Count(17020) end
-    if AnyKnown(TELEPORTS) then nums.runeTeleport = Count(17031) end
-    if AnyKnown(PORTALS) then nums.runePortals = Count(17032) end
-    if Known(130) then nums.lightFeather = Count(17056) end
+    if Known(23028) then nums.arcanePowder = Reagent(17020) end
+    if AnyKnown(TELEPORTS) then nums.runeTeleport = Reagent(17031) end
+    if AnyKnown(PORTALS) then nums.runePortals = Reagent(17032) end
+    if Known(130) then nums.lightFeather = Reagent(17056) end
     if AnyKnown(CONJURE_GEM) then nums.manaGems = CountAll(MANA_GEMS) end
   elseif classID == 4 then
     if Known(2842) then
@@ -1121,25 +1373,25 @@ function ns.CollectStatus()
         end
       end
     end
-    if Known(1856) then nums.flashPowder = Count(5140) end
-    if Known(2094) then nums.blindingPowder = Count(5530) end
+    if Known(1856) then nums.flashPowder = Reagent(5140) end
+    if Known(2094) then nums.blindingPowder = Reagent(5530) end
   elseif classID == 5 then
-    if Known(21562) then nums.holyCandles = Count(17028) end
-    if Known(21564) or Known(27681) or Known(27683) then nums.sacredCandles = Count(17029) end
+    if Known(21562) then nums.holyCandles = Reagent(17028) end
+    if Known(21564) or Known(27681) or Known(27683) then nums.sacredCandles = Reagent(17029) end
   elseif classID == 11 then
     for _, pair in ipairs(REBIRTH) do
-      if Known(pair[1]) then nums.rebirthSeeds = Count(pair[2]); break end
+      if Known(pair[1]) then nums.rebirthSeeds = Reagent(pair[2]); break end
     end
     for _, pair in ipairs(GIFT) do
-      if Known(pair[1]) then nums.giftReagents = Count(pair[2]); break end
+      if Known(pair[1]) then nums.giftReagents = Reagent(pair[2]); break end
     end
   elseif classID == 2 then
-    if Known(19752) then nums.divinitySymbols = Count(17033) end
-    if AnyKnown(GREATER_BLESSINGS) then nums.kingsSymbols = Count(21177) end
+    if Known(19752) then nums.divinitySymbols = Reagent(17033) end
+    if AnyKnown(GREATER_BLESSINGS) then nums.kingsSymbols = Reagent(21177) end
   elseif classID == 7 then
     if Known(20608) then
-      nums.ankhs = Count(17030)
-      local level = Level(nums.ankhs, 2)
+      nums.ankhs = Reagent(17030)
+      local level = nums.ankhs and Level(nums.ankhs, 2)
       if level then Warn("ankh", level) end
       local start, duration = Call(GetSpellCooldown, 20608)
       if C_Spell and C_Spell.GetSpellCooldown then
@@ -1425,7 +1677,8 @@ local announced = {}
 function ns.QuietWarnings()
   local sh = IndexOfAzerothShared
   local q = type(sh) == "table" and type(sh.quiet) == "table" and sh.quiet or {}
-  return type(q.ranks) == "table" and q.ranks or {}, type(q.low) == "table" and q.low or {}
+  return type(q.ranks) == "table" and q.ranks or {}, type(q.low) == "table" and q.low or {},
+    type(q.silenced) == "table" and q.silenced or {}
 end
 
 local QUIET_GONE = 10
@@ -1442,11 +1695,14 @@ local function MoveLasts(key, present, now)
 end
 
 function ns.MarkQuiet(warns)
-  local now, present, quietLow = GetTime(), {}, select(2, ns.QuietWarnings())
+  local now, present = GetTime(), {}
+  local _, quietLow, never = ns.QuietWarnings()
   for _, warn in ipairs(warns) do present[warn.name] = true end
   local lasts = {}
   for key, on in pairs(quietLow) do lasts[key] = on == true and MoveLasts(key, present[key], now) end
-  for _, warn in ipairs(warns) do warn.quiet = warn.level == LOW and lasts[warn.name] == true or nil end
+  for _, warn in ipairs(warns) do
+    warn.quiet = never[warn.name] == true or warn.level == LOW and lasts[warn.name] == true or nil
+  end
 end
 
 function ns.WarningSound()
@@ -1817,6 +2073,13 @@ end
 function ns.CharKey()
   local guid = ns.PlayerGuid()
   return guid ~= "" and guid or ns.NameKey()
+end
+
+function ns.LegacyNodes()
+  local sh = IndexOfAzerothShared
+  local all = type(sh) == "table" and type(sh.nodes) == "table" and sh.nodes or nil
+  local mine = all and all[ns.CharKey()]
+  return type(mine) == "table" and mine or {}
 end
 
 function ns.IsMe(who)
@@ -2206,6 +2469,11 @@ function prof.Trainer()
   end
   prof.npc, prof.line, prof.last = npc, main or "", rows
   prof.trainer.Offer(rows, table.concat(said, ","))
+  if ns.GuideTrainerShown and npc ~= 0 then
+    local listed = {}
+    for _, r in ipairs(rows) do listed[r[1]] = true end
+    ns.GuideTrainerShown(npc, listed)
+  end
   return true
 end
 ns.ProfTrainerPending, ns.NextProfTrainerFrame = prof.trainer.Pending, prof.trainer.Next

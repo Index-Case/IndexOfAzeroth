@@ -33,7 +33,7 @@ from planning import (QuestPicks, covered_points, indoor_points, dress_epic, end
 from strip import strip_loop
 from npcs import warm_npcs
 from handler import TYPES, PageServer, make_handler, whole
-from hub import Hub, reload_data, share_watch
+from hub import Hub, reload_data, share_nodes, share_watch
 from layers import lay_gathered
 import nav
 import words
@@ -242,6 +242,7 @@ def main():
         except OSError:
             log_error("writing the watch list into Shared.lua")
         share_stars(hub)
+        share_nodes(hub)
         hub.watch = EpicWatch(hub.shared, lambda key, anchor, parked, kept:
                               (lambda e: None if e and e.get("waiting") else e)(plan_epic(hub, key, anchor, parked,
                                                                                          kept=kept)),

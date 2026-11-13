@@ -1,6 +1,7 @@
 # The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
 import os
 import shutil
+import sys
 import threading
 import time
 import zipfile
@@ -8,7 +9,12 @@ import zipfile
 from serverlog import start_thread
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
+if os.path.join(ROOT, "launcher") not in sys.path:
+    sys.path.append(os.path.join(ROOT, "launcher"))
+import updater
+
 DATA = os.path.join(ROOT, "data")
+PLACE = "data/"
 MINE = {"game.json", "addons.json", "server.log", "server.log.old", "server.stuck.log", "rebuild.log", "rebuild.log.old",
         "traffic.log", "traffic.log.old", "reloads.json"}
 STAGE = ".import"
@@ -18,12 +24,13 @@ def passing(name):
     return name.endswith((".part", ".lock")) or ".part." in name or ".unreadable-" in name
 
 
-def kept_out(rel):
+def kept_out(rel, shipped=()):
     parts = rel.split("/")
-    return parts[0] == STAGE or (len(parts) == 1 and parts[0] in MINE) or passing(parts[-1])
+    return (parts[0] == STAGE or (len(parts) == 1 and parts[0] in MINE) or passing(parts[-1])
+            or PLACE + rel in shipped)
 
 
-def packed_files():
+def packed_files(shipped=()):
     for folder, dirs, files in os.walk(DATA):
         rel = os.path.relpath(folder, DATA)
         if rel == ".":
@@ -31,7 +38,7 @@ def packed_files():
         for f in files:
             path = os.path.join(folder, f)
             name = os.path.relpath(path, DATA).replace(os.sep, "/")
-            if not kept_out(name):
+            if not kept_out(name, shipped):
                 yield path, name
 
 
@@ -39,12 +46,12 @@ def apply_staged():
     stage = os.path.join(DATA, STAGE)
     if not os.path.isdir(stage):
         return None
-    applied, failed = 0, []
+    applied, failed, shipped = 0, [], updater.shipped(ROOT)
     for folder, dirs, files in os.walk(stage):
         for f in files:
             src = os.path.join(folder, f)
             rel = os.path.relpath(src, stage)
-            if passing(f):
+            if kept_out(rel.replace(os.sep, "/"), shipped):
                 os.remove(src)
                 continue
             try:
@@ -96,7 +103,7 @@ class Pack:
         return self._run("exporting", self._export, folder)
 
     def _export(self, folder):
-        files = list(packed_files())
+        files = list(packed_files(updater.shipped(ROOT)))
         total = sum(os.path.getsize(p) for p, _ in files)
         target = os.path.join(folder, f"IndexOfAzeroth-data-{time.strftime('%Y-%m-%d')}.zip")
         done = 0
@@ -117,7 +124,7 @@ class Pack:
         return self._run("importing", self._import, path)
 
     def _import(self, path):
-        stage = os.path.join(DATA, STAGE)
+        stage, shipped = os.path.join(DATA, STAGE), updater.shipped(ROOT)
         with zipfile.ZipFile(path) as z:
             members = [m for m in z.infolist() if not m.is_dir()]
             total = sum(m.file_size for m in members)
@@ -127,7 +134,8 @@ class Pack:
                 done += m.file_size
                 self.state["done"] = done
                 target = os.path.normpath(os.path.join(DATA, m.filename))
-                if not target.startswith(DATA + os.sep) or kept_out(os.path.relpath(target, DATA).replace(os.sep, "/")):
+                if not target.startswith(DATA + os.sep) or kept_out(os.path.relpath(target, DATA).replace(os.sep, "/"),
+                                                                     shipped):
                     continue
                 when = time.mktime(m.date_time + (0, 0, -1))
                 if os.path.exists(target) and os.path.getmtime(target) > when + 2:

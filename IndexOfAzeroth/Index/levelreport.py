@@ -505,15 +505,17 @@ def unlocks(hub, key, rep):
             "zones": zones_reached(getattr(hub, "zone_levels", None) or {}, levels, questplan.book(),
                                    {"side": side, "race": bit, "classId": cid}, set(me.get("completed") or ()),
                                    levels[-1], cap),
-            "talents": talents_to_take(hub, key, cid, nums, levels) if playing else []}
+            "talents": talents_to_take(hub, key, cid, nums, levels, me) if playing else []}
 
 
-def talents_to_take(hub, key, cid, nums, levels):
+def talents_to_take(hub, key, cid, nums, levels, me=None):
+    import legacynodes
     import talentplan
     c = ((hub.class_spells or {}).get("classes") or {}).get(str(cid))
     ranks = getattr(hub, "talentranks", None)
     got = talentplan.talent_plan(c, int(cid), (talentplan.builds().get("classes") or {}).get(str(cid)), nums,
-                                 ranks.ranks(key) if ranks else None, levels[-1], hub.characters.talent_build())
+                                 ranks.ranks(key) if ranks else None, levels[-1], hub.characters.talent_build(),
+                                 legacynodes.points(me))
     return [s for s in (got or {}).get("steps") or () if s["level"] in levels]
 
 

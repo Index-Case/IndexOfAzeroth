@@ -9,10 +9,12 @@ import director_rules
 import planreport
 import planunits
 import store
-from epic import Epic, GROUP_TYPES, asks_offer, can_take, closed_by, fight_level, if_offered, for_side, leads_up, level_guessed, taken_instead, \
-    unavailable, first as first_needs, objective_places, own_run as own_run_why, placed, spell_unmet
+from epic import Epic, asks_offer, can_take, closed_by, fight_level, if_offered, for_side, leads_up, level_guessed, taken_instead, \
+    unavailable, first as first_needs, group_work, objective_places, own_run as own_run_why, placed, spell_unmet, \
+    quest_sentence
 from epicwatch import names
 import plansteps
+import stepwords
 from facts import MAX_LEVEL, RUN_SPEED as RUN, xp_table
 from spelltext import duration
 from words import say as word_said
@@ -27,10 +29,13 @@ PASS_MOVES = 40
 BAND_ABOVE = 5
 OBJECTIVE_FAR = 300.0
 TURNIN_FAR = 100.0
+ELSEWHERE = 250.0
+EARLY_STEPS = 5
 LOG_MOST = 20
 ON_THE_WAY = 60.0
 RAID_TYPE = 62
 SKIP_TYPES = {41: "the quest is a PvP quest", RAID_TYPE: "the quest is for a raid"}
+NO_HAND_IN = "no source says where the quest is handed in"
 NOT_YOURS = re.compile(r"^the quest is for (the other faction|another class|another race)$")
 KINDS = {"pickup": 0, "objective": 1, "dungeon": 1, "turnin": 2}
 WALK_MARGIN = 1.3
@@ -177,12 +182,13 @@ class QuestPlan(Epic):
                  band=None, travel=None, close=False, objectives=None, pois=None, spawns_of=None, danger_of=None,
                  counts=None, rested=0, inside=(), cap=MAX_LEVEL, offered=(), with_gets=None, extra=(), stops=(),
                  raids=False, found_in=None, runs=(), spells=None, log_most=None, closed=None, kept=(),
-                 heights_of=None, ways=None, levels=None, seconds=None):
+                 heights_of=None, ways=None, levels=None, seconds=None, mob_rank=None, guards_near=None, zone_side=None,
+                 towns=None):
         book_ = book_.for_side(side, class_id)
         super().__init__({"key": key, "name": name, "quests": list(extra)}, book_.quests, to_world, level, side, class_id,
                          done, log, anchor, None, parked, faces, close, spawns_of=spawns_of, danger_of=danger_of,
                          mob_level=mob_level, counts=counts, offered=offered, with_gets=with_gets, objectives=objectives,
-                         book=book_.quests if extra else None, heights_of=heights_of, levels=levels)
+                         book=book_.quests if extra else None, heights_of=heights_of, levels=levels, zone_side=zone_side)
         self.book, self.follow, self.stops = book_, follow, list(stops)
         self.band_of = "zone" if key.startswith("zone:") else "dungeon"
         self.zone = int(key[5:]) if key.startswith("zone:") and key[5:].isdigit() else None
@@ -191,8 +197,11 @@ class QuestPlan(Epic):
         self.spells = None if spells is None else set(spells)
         self.xp_to_next = xp_table()
         self.kill_xp, self.mob_level, self.bags = kill_xp, mob_level, set(bags)
+        self.mob_rank, self.guards_near = mob_rank, guards_near
+        self.towns = towns
         self.rested, self.inside, self.cap = rested or 0, set(inside), cap
         self.dungeon_of, self.band, self.travel, self.ways, self.seconds = dungeon_of, band, travel, ways, seconds
+        self.band_level = level if self.zone is not None else None
         self.raids, self.found_in = raids, found_in
         self.log_most = log_most or LOG_MOST
         self.closed = dict(closed or {})
@@ -236,6 +245,8 @@ class QuestPlan(Epic):
     def startable(self, q):
         if q["id"] in self.log:
             return None
+        if not self.handed_in_at(q):
+            return NO_HAND_IN
         starts = q.get("start") or []
         if any(g.get("map") is not None for g in starts):
             return None
@@ -251,6 +262,11 @@ class QuestPlan(Epic):
         if items:
             return f"the quest starts from {items[0]['name']}, which you don't have"
         return "the giver of the quest isn't on any map"
+
+    def handed_in_at(self, q):
+        if any(e.get("map") is not None for e in q.get("end") or ()) or (self.pois.get(q["id"]) or {}).get("end"):
+            return True
+        return bool(self.dungeon_of and self.dungeon_of(q))
 
     def shut(self, q):
         run = self.dungeon_of(q) if self.dungeon_of else None
@@ -295,7 +311,8 @@ class QuestPlan(Epic):
         return plan, later
 
     def taken(self):
-        plan, later, seen = {}, [], set()
+        plan, later, seen, wanted = {}, [], set(), set(self.wanted)
+        self.leads = {}
         self.spares = spares = []
         todo = list(self.wanted)
         while todo:
@@ -313,8 +330,10 @@ class QuestPlan(Epic):
             if qid not in self.log and taken_instead(q, self.done, self.log, plan) is not None:
                 continue
             why = self.allowed(q) or self.startable(q)
-            if not why and qid not in self.log and not in_band(q, self.band):
-                why = f"the quest opens at level {opens_at(q)}, well above the {self.band_of}'s levels of {self.band[0]}-{self.band[1]}"
+            if not why and qid not in self.log and not in_band(q, self.band, self.band_level):
+                why = f"the quest opens at level {opens_at(q)}, " + (
+                    f"well above the {self.band_of}'s levels of {self.band[0]}-{self.band[1]}" if self.band
+                    else f"well above your level of {self.band_level}")
             if not why and self.spare(q) and qid not in self.passed:
                 spares.append(qid)
                 continue
@@ -327,6 +346,12 @@ class QuestPlan(Epic):
                 if not self.follow or qid in self.wanted:
                     later.append((q, why or why2))
                 continue
+            ahead = None
+            for cq in reversed(chain + [q]):
+                if cq["id"] in wanted:
+                    ahead = cq
+                elif ahead:
+                    self.leads.setdefault(cq["id"], ahead["name"])
             for cq in chain + [q]:
                 plan.setdefault(cq["id"], cq)
         later = [(q, why) for q, why in later if q["id"] not in plan]
@@ -375,7 +400,7 @@ class QuestPlan(Epic):
             q = self.by_id.get(i)
             if not q or i in plan or i in self.done or i in self.log or \
                     taken_instead(q, self.done, self.log, plan) is not None or self.allowed(q, have=have) or \
-                    self.startable(q) or not in_band(q, self.band):
+                    self.startable(q) or not in_band(q, self.band, self.band_level):
                 continue
             chain, _ = self.before(q, have=have)
             if chain is None or any(c["id"] not in plan for c in chain):
@@ -446,7 +471,7 @@ class QuestPlan(Epic):
         return out
 
     def late_quests(self, plan):
-        late = {i for i, q in plan.items() if q.get("type") in GROUP_TYPES}
+        late = {i for i, q in plan.items() if group_work(q, self.mob_rank, self.guards_near)}
         after = {i: set(self.pre_of(q)) for i, q in plan.items()}
         for a, b in self.links:
             after[b[0]].add(a[0])
@@ -485,10 +510,7 @@ class QuestPlan(Epic):
         if q["id"] not in self.log:
             at, who = self.place(q.get("start"))
             item = self.start_item(q) if at is None else None
-            if item:
-                text = f"Use {item['name']} to start {q['name']}"
-            else:
-                text = f"Pick up {q['name']}" + (f" from {who}" if who else "")
+            text = stepwords.pickup(q["name"], who, self.thing(q.get("start")), item=item and item["name"])
             nodes.append({"kind": "pickup", "step": self.mapped(self.step("pickup", q, text, at, npc=who, min=offered_at(q),
                                                                           face=self.face(self.giver(q.get("start"))),
                                                                           **self.giver_ids(q.get("start"))), q.get("start"))})
@@ -519,7 +541,8 @@ class QuestPlan(Epic):
                      for w, finished, *_ in self.game_objectives.get(q["id"], ()) if not finished and "(optional)" not in (w or "").casefold()]
             if mark and words:
                 on = ((self.pois.get(q["id"]) or {}).get("maps") or {}).get("obj")
-                s = self.step("objective", q, "; ".join(words), mark, target=words[0], count=1, game=True, map=on)
+                s = self.step("objective", q, stepwords.game_objective(q, words, quest_sentence), mark, target=words[0],
+                              count=1, game=True, map=on)
                 if opens_at(q) > 1:
                     s["min"] = opens_at(q)
                 nodes.append({"kind": "objective", "step": s, "kills": None})
@@ -529,7 +552,7 @@ class QuestPlan(Epic):
                 if s:
                     nodes.append({"kind": "objective", "step": s, "kills": self.kills_of(t, s)})
             nodes.append(run_level({"kind": "dungeon", "dungeon": inside, "works": {q["id"]: opens_at(q)}}))
-        nodes.append({"kind": "turnin", "step": self.mapped(self.step("turnin", q, f"Turn in {q['name']}" + (f" to {who_end}" if who_end else ""),
+        nodes.append({"kind": "turnin", "step": self.mapped(self.step("turnin", q, stepwords.turnin(q["name"], who_end, self.thing(q.get("end"))),
                                                                       at_end, npc=who_end, face=self.face(self.giver(q.get("end"))),
                                                                       giverAt=giver_at, **self.giver_ids(q.get("end"))), q.get("end"))})
         if opens_at(q) > 1 and not self.log.get(q["id"]) and not any(n["kind"] in ("objective", "dungeon") for n in nodes):
@@ -553,7 +576,7 @@ class QuestPlan(Epic):
             if at is None or (at[:3], who) in seen:
                 continue
             seen.add((at[:3], who))
-            step = self.mapped(self.step("pickup", q, f"Pick up {q['name']}" + (f" from {who}" if who else ""), at, npc=who,
+            step = self.mapped(self.step("pickup", q, stepwords.pickup(q["name"], who, self.thing([g])), at, npc=who,
                                          min=offered_at(q), face=self.face(g), **self.giver_ids([g])), [g])
             out.append((spot_of(step), step))
         return out
@@ -562,20 +585,20 @@ class QuestPlan(Epic):
         mark = (self.pois.get(q["id"]) or {}).get("obj")
         if not mark:
             return None, False
-        targets = [t for t in q.get("targets", []) if not t.get("get") and not placed(t, q) and not self.left_out(q["id"], t)]
+        targets = [t for t in q.get("targets", []) if not placed(t, q) and not self.left_out(q["id"], t)]
 
         def closest(t):
-            return min((math.hypot(p[1] - mark[1], p[2] - mark[2]) for p in (self.to_world(*s) for s in t["spots"])
+            return min((math.hypot(p[1] - mark[1], p[2] - mark[2]) for p in (self.to_world(*s) for s in t.get("spots") or ())
                         if p and p[0] == mark[0]), default=math.inf)
-        return mark, bool(targets) and all(closest(t) > OBJECTIVE_FAR for t in targets)
+        return mark, any(not t.get("get") for t in targets) and all(closest(t) > OBJECTIVE_FAR for t in targets)
 
     def objective_at(self, q, t, near, level=None, loop=True):
         mark, wrong = (None, False) if t.get("get") or placed(t, q) or t.get("owned") else self.marked(q)
         areas = self.game_areas(q, t) if mark else []
-        s = None if wrong else self.objective(q, t, mark or near, level, loop, areas)
+        s = None if wrong else self.objective(q, t, mark or near, level, loop, areas, (self.pois.get(q["id"]) or {}).get("marks"))
         if s is None and (wrong or areas):
             at = next((a["at"] for a in areas if a.get("main")), mark)
-            s = self.step("objective", q, t.get("text") or t["name"], at, target=t["name"], count=t.get("count", 1),
+            s = self.step("objective", q, stepwords.objective(q, t, quest_sentence), at, target=t["name"], count=t.get("count", 1),
                           objective=t["kind"], game=True, map=((self.pois.get(q["id"]) or {}).get("maps") or {}).get("obj"),
                           places=objective_places([], at[0], [], areas))
         fight, work = s and fight_level(t, self.mob_level), opens_at(q)
@@ -965,46 +988,23 @@ class QuestPlan(Epic):
         load, room = self.log_load(route), self.log_room()
         inside = self.timed_inside(route, pick)
         prev, nxt = self.sides(route)
-        runs = planunits.runs_at([n.get("spot") for n in route])
-        reach = [planunits.reach("giver", runs[min(p, len(runs) - 1)] if runs else None) for p in range(len(route) + 1)]
-        firsts = [self.passes(route, n, prev, nxt, reach, inside) for n in run]
-        windows, off_way = [], False
+        steps, places = [pick] + run, []
         for i in range(lo, len(route) + 1):
             if not need <= levels[i] <= top or i in inside or load[i] >= room:
                 continue
-            at, last = pick["spot"] or prev[i], i
-            added, places = plansteps.detour(prev[i], pick["spot"], nxt[i], self.gap) if pick["spot"] else 0.0, [i]
-            for n, first in zip(run, firsts):
-                here = plansteps.detour(at, n["spot"], nxt[last], self.gap) if n["spot"] else 0.0
-                p = last if here <= reach[last] else first[last + 1] if last + 1 < len(first) else None
-                if p is None:
-                    break
-                added += here if p == last else plansteps.detour(prev[p], n["spot"], nxt[p], self.gap)
-                places.append(p)
-                at, last = n["spot"] or at, p
-            else:
-                held = route[i:last]
-                if max(load[i:last + 1]) >= room or any(m["kind"] in ("grind", "dungeon") or (
-                        m.get("quest") not in (None, q["id"]) and self.timed(m["quest"])) for m in held):
-                    continue
-                windows.append((added, i, places))
-                continue
-            off_way = True
-        over, steps = [], [pick] + run
-        for added, i, places in sorted(windows, key=lambda w: (w[0], w[1])):
-            trial = list(route)
-            for j in sorted(range(len(steps)), key=lambda j: (places[j], j), reverse=True):
-                trial.insert(places[j], steps[j])
-            start = next(k for k, m in enumerate(trial) if m is pick)
-            end = next(k for k, m in enumerate(trial) if m is run[-1])
-            took = self.clock_s(trial[start:end + 1], levels[i])
+            walk, at = 0.0, prev[i]
+            for n in steps:
+                if n["spot"]:
+                    walk, at = walk + self.gap(at, n["spot"]), n["spot"]
+            places.append((walk + (self.gap(at, nxt[i]) - self.gap(prev[i], nxt[i]) if nxt[i] else 0.0), i))
+        over = []
+        for _, i in sorted(places):
+            took = self.clock_s(steps, levels[i])
             if took <= q["limit"]:
-                route[:] = trial
+                route[i:i] = steps
                 return True
             over.append(took)
-        why = ("clock", q["limit"], min(over)) if over else ("way",) if off_way \
-            else self.level_stop(levels, lo, len(route), need, top)
-        return self.misfit(q, why)
+        return self.misfit(q, ("clock", q["limit"], min(over)) if over else self.level_stop(levels, lo, len(route), need, top))
 
     def sides(self, route):
         prev, nxt = [self.anchor], [None] * (len(route) + 1)
@@ -1013,14 +1013,6 @@ class QuestPlan(Epic):
         for k in range(len(route) - 1, -1, -1):
             nxt[k] = route[k].get("spot") or nxt[k + 1]
         return prev, nxt
-
-    def passes(self, route, n, prev, nxt, reach, inside):
-        out, found = [None] * (len(route) + 2), None
-        for p in range(len(route), -1, -1):
-            if p not in inside and (not n["spot"] or plansteps.detour(prev[p], n["spot"], nxt[p], self.gap) <= reach[p]):
-                found = p
-            out[p] = found
-        return out
 
     def clock_s(self, window, level=None):
         if self.seconds:
@@ -1494,7 +1486,7 @@ class QuestPlan(Epic):
         after = self.after_timed(plan)
         quests = [q for q in everything if q["id"] not in after]
         waiting = self.place_all(route, [q for q in quests if q["id"] not in self.late], placed, plan, nodes)
-        self.place_all(route, [q for q in quests if q.get("type") in GROUP_TYPES], placed, plan, nodes)
+        self.place_all(route, [q for q in quests if group_work(q, self.mob_rank, self.guards_near)], placed, plan, nodes)
         waiting += self.place_all(route, [q for q in quests if q["id"] in self.late and q["id"] not in placed], placed, plan, nodes)
         self.pruned = self.prune(route, {k: q for k, q in plan.items() if k not in after}, waiting)
         for s in self.stops:
@@ -1565,7 +1557,7 @@ class QuestPlan(Epic):
     def target_of(q, step):
         same = [t for t in q.get("targets", []) if step.get("target") in (t["name"], t.get("title"))
                 and step.get("get") == t.get("get")]
-        return next((t for t in same if t.get("text") == step.get("text")), same[0] if same else None)
+        return next((t for t in same if stepwords.objective(q, t, quest_sentence) == step.get("text")), same[0] if same else None)
 
     def place_all(self, route, pending, placed, plan, nodes):
         tied = {}
@@ -1638,8 +1630,6 @@ class QuestPlan(Epic):
             if why[0] == "clock":
                 return f"the quest gives you {duration(why[1] * 1000)} to finish it, and the plan reckons it takes " \
                        f"{duration(why[2] * 1000)}"
-            if why[0] == "way":
-                return "the quest is timed, and the plan picks up a timed quest only when it's going that way anyway"
             if tied.get(q["id"]) or any(q["id"] in before for before in tied.values()):
                 return "the quest has no place in the order that the quests tied to it need"
             return "the quests that must come before and after it leave it no place in the order"
@@ -1649,8 +1639,47 @@ class QuestPlan(Epic):
             out.append((q, first_needs(r["name"], own(r)) if r else own(q) or stopped(q)))
         return out
 
+    def reasons(self, steps):
+        pickups = {s["quest"]: s for s in steps if s.get("kind") == "pickup"}
+        far = lambda a, b: not (a and b) or a[0] != b[0] or math.hypot(a[1] - b[1], a[2] - b[2]) > ELSEWHERE
+        towns = self.towns
+        for k, s in enumerate(steps):
+            q = self.by_id.get(s.get("quest"))
+            if not q or s.get("kind") not in ("pickup", "turnin", "objective"):
+                continue
+            here = spot_of(s)
+            run = self.dungeon_of(q) if self.dungeon_of else None
+            if s["kind"] in ("pickup", "turnin"):
+                for bid, pick in pickups.items():
+                    b = self.by_id.get(bid)
+                    if b and bid != q["id"] and q["id"] in self.pre_of(b) and pick.get("npc") != s.get("npc") \
+                            and far(here, spot_of(pick)):
+                        stepwords.give(s, "opens", quest=b["name"], npc=pick.get("npc"), place=stepwords.place(pick, towns))
+                        break
+                g = self.giver(q.get("start" if s["kind"] == "pickup" else "end")) or {}
+                if run and g.get("inside"):
+                    stepwords.give(s, "within", dungeon=run[1], **({"npc": g.get("name")} if g.get("npc") else {}))
+            if s["kind"] == "pickup":
+                end = self.giver(q.get("end")) or {}
+                turn = next((t for t in steps if t.get("kind") == "turnin" and t.get("quest") == q["id"]), None)
+                if not run and not q.get("targets") and end.get("name") and end["name"] in (q.get("objective") or "") and turn:
+                    stepwords.give(s, "message", npc=end["name"], place=stepwords.place(turn, towns))
+                ts = q.get("targets") or ()
+                carried = run and any(q["id"] in (t.get("quests") or ()) for t in steps if t.get("kind") == "dungeon") \
+                    and not any(t.get("kind") == "objective" and t.get("quest") == q["id"] for t in steps) \
+                    and not (ts and all(t.get("spots") for t in ts))
+                if carried:
+                    stepwords.give(s, "inside", dungeon=run[1])
+                work = next((j for j in range(k + 1, len(steps)) if steps[j].get("kind") != "pickup" and
+                             (steps[j].get("quest") == q["id"] or carried and q["id"] in (steps[j].get("quests") or ()))),
+                            None)
+                if work is not None and work - k >= EARLY_STEPS and far(here, spot_of(steps[work])):
+                    stepwords.give(s, "early", npc=s.get("npc"))
+            if q["id"] in self.late and group_work(q, self.mob_rank, self.guards_near):
+                stepwords.give(s, "group")
+
     def asks_for(self, q):
-        return if_offered(q) and (not level_guessed(q) or in_band(q, self.band))
+        return if_offered(q) and (not level_guessed(q) or in_band(q, self.band, self.band_level))
 
     def maybe_on_the_way(self, route, missing):
         placed = set()
@@ -1668,10 +1697,12 @@ class QuestPlan(Epic):
             at, who = self.place(q.get("start"))
             if at is None:
                 continue
-            text = f"Pick up {q['name']}" + (f" from {who}" if who else "") + (", if offered" if maybe else "")
+            text = stepwords.pickup(q["name"], who, self.thing(q.get("start")), maybe=maybe)
             step = self.mapped(self.step("pickup", q, text, at, npc=who, min=offered_at(q), **({"maybe": True} if maybe else {}),
                                          face=self.face(self.giver(q.get("start"))), **self.giver_ids(q.get("start"))),
                                q.get("start"))
+            if maybe:
+                stepwords.give(step, "offer", npc=who, quest=q["name"])
             marked = next((m["step"] for m in route if (m.get("step") or {}).get("giverAt")
                            and plansteps.own_with(m["step"], step)), None)
             if marked:
@@ -1737,10 +1768,14 @@ class QuestPlan(Epic):
                 key, name, door = n["dungeon"]
                 ids = n.get("quests", [])
                 names = [self.by_id[i].get("name") or f"quest {i}" for i in ids]
-                n["step"] = {"kind": "dungeon", "quest": None, "questName": name, "text": f"Do {name}: " + ", ".join(names),
+                n["step"] = {"kind": "dungeon", "quest": None, "questName": name, "text": stepwords.run(name),
+                             **({"forQuest": stepwords.names(names)} if names else {}),
                              "inst": door[0] if door else None, "at": [round(v, 1) for v in door[1:]] if door else None,
                              "quests": ids, "dungeon": key}
             n["step"]["lv"] = reckoned[k]
+            n["step"].pop("leadsTo", None)
+            if n["step"].get("quest") in self.leads:
+                n["step"]["leadsTo"] = self.leads[n["step"]["quest"]]
             steps.append(n["step"])
             if n["step"].get("at"):
                 near = (n["step"]["inst"], *n["step"]["at"][:2])
@@ -1753,6 +1788,7 @@ class QuestPlan(Epic):
         steps = [s for s in steps if id(s) not in aside] + [s for s in steps if id(s) in aside]
         for s in steps[len(steps) - len(aside):]:
             s["aside"] = True
+        self.reasons(steps)
         planreport.report(finds=planreport.step_finds(steps, self.log))
         wanted = [self.by_id[i] for i in dict.fromkeys(self.wanted) if i in self.by_id]
         return {"key": self.d["key"], "name": self.d["name"], "steps": steps, "levelTo": top, "grinds": grinds,
@@ -1854,8 +1890,9 @@ def open_now(q, side, race, class_id, done, log, cap=MAX_LEVEL, spells=None):
     return not (q.get("preAll") and not set(q["preAll"]) <= done or q.get("preAny") and not set(q["preAny"]) & done)
 
 
-def in_band(q, band):
-    return not band or opens_at(q) <= band[1] + BAND_ABOVE
+def in_band(q, band, level=None):
+    top = band[1] if band else level
+    return top is None or opens_at(q) <= top + BAND_ABOVE
 
 
 norm_words = plansteps.norm_words

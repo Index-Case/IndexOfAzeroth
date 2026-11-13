@@ -1,0 +1,10 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: kind, what
+
+kind.flight = flight path
+kind.zeppelin = zeppelin and airship
+kind.boat = boat
+routes = Routes
+routes.hide = Hide the {kind} routes
+routes.show = Show every {kind} route on the map as faint lines
+go = Starts the Navigation Guide to this {what}. Paste the line the page copies into the game's chat, as with every guide

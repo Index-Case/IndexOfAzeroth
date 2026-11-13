@@ -295,10 +295,10 @@
    ],
    "b": [
     2991,
-    1952.5,
-    1019.1
+    1952.1,
+    1017.1
    ],
-   "minutes": 2.9,
+   "minutes": 3.2,
    "worked": true,
    "aBoard": [
     -795.8,
@@ -306,8 +306,8 @@
     190.5
    ],
    "bBoard": [
-    1961.5,
-    1016.3,
+    1960.5,
+    1013.3,
     663.0
    ],
    "side": "Horde"
@@ -369,33 +369,6 @@
    "side": "Horde"
   },
   {
-   "dungeon": "The Deadmines",
-   "outside": [
-    0,
-    -11073.0,
-    1529.2
-   ],
-   "inside": [
-    36,
-    -14.6,
-    -385.5,
-    62.5
-   ],
-   "portal": [
-    0,
-    -11208.5,
-    1685.3,
-    25.8
-   ],
-   "front": [
-    0,
-    -11208.7,
-    1675.9,
-    24.6
-   ],
-   "underground": true
-  },
-  {
    "dungeon": "Wailing Caverns",
    "outside": [
     1,
@@ -419,6 +392,33 @@
     -738.5,
     -2217.8,
     16.9
+   ],
+   "underground": true
+  },
+  {
+   "dungeon": "The Deadmines",
+   "outside": [
+    0,
+    -11073.0,
+    1529.2
+   ],
+   "inside": [
+    36,
+    -14.6,
+    -385.5,
+    62.5
+   ],
+   "portal": [
+    0,
+    -11208.5,
+    1685.3,
+    25.8
+   ],
+   "front": [
+    0,
+    -11208.7,
+    1675.9,
+    24.6
    ],
    "underground": true
   },
@@ -530,56 +530,31 @@
    "underground": true
   },
   {
-   "dungeon": "Scarlet Monastery: Armory",
+   "dungeon": "Razorfen Kraul",
    "outside": [
-    0,
-    2819.3,
-    -699.2
+    1,
+    -4481.6,
+    -1724.3
    ],
    "inside": [
-    189,
-    1608.1,
-    -318.9,
-    18.7
+    47,
+    1942.3,
+    1544.2,
+    83.3
    ],
    "portal": [
-    0,
-    2878.0,
-    -839.3,
-    163.0
+    1,
+    -4456.7,
+    -1656.0,
+    86.1
    ],
    "front": [
-    0,
-    2886.0,
-    -835.8,
-    160.3
-   ]
-  },
-  {
-   "dungeon": "Scarlet Monastery: Cathedral",
-   "outside": [
-    0,
-    2819.3,
-    -699.2
+    1,
+    -4463.3,
+    -1664.3,
+    84.0
    ],
-   "inside": [
-    189,
-    853.2,
-    1319.2,
-    18.7
-   ],
-   "portal": [
-    0,
-    2925.2,
-    -820.5,
-    161.6
-   ],
-   "front": [
-    0,
-    2915.1,
-    -823.6,
-    160.3
-   ]
+   "underground": true
   },
   {
    "dungeon": "Scarlet Monastery: Graveyard",
@@ -634,58 +609,82 @@
    ]
   },
   {
-   "dungeon": "Maraudon",
+   "dungeon": "Scarlet Monastery: Armory",
    "outside": [
-    1,
-    -1421.6,
-    2925.0
+    0,
+    2819.3,
+    -699.2
    ],
    "inside": [
-    349,
-    1016.8,
-    -458.5,
-    -43.5
+    189,
+    1608.1,
+    -318.9,
+    18.7
    ],
    "portal": [
-    1,
-    -1182.0,
-    2861.9,
-    85.3
+    0,
+    2878.0,
+    -839.3,
+    163.0
    ],
    "front": [
-    1,
-    -1182.8,
-    2877.4,
-    85.9
-   ],
-   "underground": true
+    0,
+    2886.0,
+    -835.8,
+    160.3
+   ]
   },
   {
-   "dungeon": "Razorfen Kraul",
+   "dungeon": "Razorfen Downs",
    "outside": [
     1,
-    -4481.6,
-    -1724.3
+    -4731.6,
+    -2342.4
    ],
    "inside": [
-    47,
-    1942.3,
-    1544.2,
-    83.3
+    129,
+    2593.7,
+    1111.2,
+    51.0
    ],
    "portal": [
     1,
-    -4456.7,
-    -1656.0,
-    86.1
+    -4666.5,
+    -2536.8,
+    87.0
    ],
    "front": [
     1,
-    -4463.3,
-    -1664.3,
-    84.0
+    -4659.6,
+    -2524.2,
+    81.4
+   ]
+  },
+  {
+   "dungeon": "Scarlet Monastery: Cathedral",
+   "outside": [
+    0,
+    2819.3,
+    -699.2
    ],
-   "underground": true
+   "inside": [
+    189,
+    853.2,
+    1319.2,
+    18.7
+   ],
+   "portal": [
+    0,
+    2925.2,
+    -820.5,
+    161.6
+   ],
+   "front": [
+    0,
+    2915.1,
+    -823.6,
+    160.3
+   ]
   },
   {
    "dungeon": "Uldaman",
@@ -738,6 +737,140 @@
     -6620.0,
     -3765.7,
     266.3
+   ],
+   "underground": true
+  },
+  {
+   "dungeon": "Zul'Farrak",
+   "outside": [
+    1,
+    -6799.6,
+    -2889.0
+   ],
+   "inside": [
+    209,
+    1212.7,
+    842.0,
+    8.9
+   ],
+   "portal": [
+    1,
+    -6773.5,
+    -2889.8,
+    15.1
+   ],
+   "front": [
+    1,
+    -6795.6,
+    -2890.7,
+    8.9
+   ]
+  },
+  {
+   "dungeon": "Maraudon",
+   "outside": [
+    1,
+    -1421.6,
+    2925.0
+   ],
+   "inside": [
+    349,
+    1016.8,
+    -458.5,
+    -43.5
+   ],
+   "portal": [
+    1,
+    -1182.0,
+    2861.9,
+    85.3
+   ],
+   "front": [
+    1,
+    -1182.8,
+    2877.4,
+    85.9
+   ],
+   "underground": true
+  },
+  {
+   "dungeon": "The Temple of Atal'Hakkar",
+   "outside": [
+    0,
+    -10438.9,
+    -3826.2
+   ],
+   "inside": [
+    109,
+    -315.9,
+    100.2,
+    -131.8
+   ],
+   "portal": [
+    0,
+    -10162.7,
+    -3998.6,
+    -108.0
+   ],
+   "front": [
+    0,
+    -10176.6,
+    -3995.3,
+    -112.2
+   ],
+   "underground": true
+  },
+  {
+   "dungeon": "Blackrock Depths",
+   "outside": [
+    0,
+    -7778.9,
+    -1127.8
+   ],
+   "inside": [
+    230,
+    456.9,
+    34.1,
+    -68.1
+   ],
+   "portal": [
+    0,
+    -7176.6,
+    -937.7,
+    170.2
+   ],
+   "front": [
+    0,
+    -7178.4,
+    -922.2,
+    166.1
+   ],
+   "underground": true
+  },
+  {
+   "dungeon": "Blackrock Depths",
+   "outside": [
+    0,
+    -7368.8,
+    -1099.4
+   ],
+   "inside": [
+    230,
+    456.9,
+    34.1,
+    -68.1
+   ],
+   "portal": [
+    0,
+    -7176.6,
+    -937.7,
+    170.2
+   ],
+   "front": [
+    0,
+    -7178.4,
+    -922.2,
+    166.1
    ],
    "underground": true
   },
@@ -823,6 +956,33 @@
    "underground": true
   },
   {
+   "dungeon": "Lower Blackrock Spire",
+   "outside": [
+    0,
+    -7368.8,
+    -1099.4
+   ],
+   "inside": [
+    229,
+    78.4,
+    -226.8,
+    49.8
+   ],
+   "portal": [
+    0,
+    -7518.2,
+    -1239.1,
+    287.2
+   ],
+   "front": [
+    0,
+    -7524.7,
+    -1228.4,
+    287.2
+   ],
+   "underground": true
+  },
+  {
    "dungeon": "Dire Maul: North",
    "outside": [
     1,
@@ -901,30 +1061,31 @@
    ]
   },
   {
-   "dungeon": "Razorfen Downs",
+   "dungeon": "Scholomance",
    "outside": [
-    1,
-    -4731.6,
-    -2342.4
+    0,
+    1268.3,
+    -2580.4
    ],
    "inside": [
-    129,
-    2593.7,
-    1111.2,
-    51.0
+    289,
+    190.8,
+    126.3,
+    137.2
    ],
    "portal": [
-    1,
-    -4666.5,
-    -2536.8,
-    87.0
+    0,
+    1282.1,
+    -2548.7,
+    85.4
    ],
    "front": [
-    1,
-    -4659.6,
-    -2524.2,
-    81.4
-   ]
+    0,
+    1273.9,
+    -2553.1,
+    91.8
+   ],
+   "underground": true
   },
   {
    "dungeon": "Stratholme",
@@ -997,167 +1158,6 @@
     3233.1,
     -4048.3,
     108.4
-   ],
-   "underground": true
-  },
-  {
-   "dungeon": "Zul'Farrak",
-   "outside": [
-    1,
-    -6799.6,
-    -2889.0
-   ],
-   "inside": [
-    209,
-    1212.7,
-    842.0,
-    8.9
-   ],
-   "portal": [
-    1,
-    -6773.5,
-    -2889.8,
-    15.1
-   ],
-   "front": [
-    1,
-    -6795.6,
-    -2890.7,
-    8.9
-   ]
-  },
-  {
-   "dungeon": "Blackrock Depths",
-   "outside": [
-    0,
-    -7778.9,
-    -1127.8
-   ],
-   "inside": [
-    230,
-    456.9,
-    34.1,
-    -68.1
-   ],
-   "portal": [
-    0,
-    -7176.6,
-    -937.7,
-    170.2
-   ],
-   "front": [
-    0,
-    -7178.4,
-    -922.2,
-    166.1
-   ],
-   "underground": true
-  },
-  {
-   "dungeon": "Blackrock Depths",
-   "outside": [
-    0,
-    -7368.8,
-    -1099.4
-   ],
-   "inside": [
-    230,
-    456.9,
-    34.1,
-    -68.1
-   ],
-   "portal": [
-    0,
-    -7176.6,
-    -937.7,
-    170.2
-   ],
-   "front": [
-    0,
-    -7178.4,
-    -922.2,
-    166.1
-   ],
-   "underground": true
-  },
-  {
-   "dungeon": "Scholomance",
-   "outside": [
-    0,
-    1268.3,
-    -2580.4
-   ],
-   "inside": [
-    289,
-    190.8,
-    126.3,
-    137.2
-   ],
-   "portal": [
-    0,
-    1282.1,
-    -2548.7,
-    85.4
-   ],
-   "front": [
-    0,
-    1273.9,
-    -2553.1,
-    91.8
-   ],
-   "underground": true
-  },
-  {
-   "dungeon": "The Temple of Atal'Hakkar",
-   "outside": [
-    0,
-    -10438.9,
-    -3826.2
-   ],
-   "inside": [
-    109,
-    -315.9,
-    100.2,
-    -131.8
-   ],
-   "portal": [
-    0,
-    -10162.7,
-    -3998.6,
-    -108.0
-   ],
-   "front": [
-    0,
-    -10176.6,
-    -3995.3,
-    -112.2
-   ],
-   "underground": true
-  },
-  {
-   "dungeon": "Lower Blackrock Spire",
-   "outside": [
-    0,
-    -7368.8,
-    -1099.4
-   ],
-   "inside": [
-    229,
-    78.4,
-    -226.8,
-    49.8
-   ],
-   "portal": [
-    0,
-    -7518.2,
-    -1239.1,
-    287.2
-   ],
-   "front": [
-    0,
-    -7524.7,
-    -1228.4,
-    287.2
    ],
    "underground": true
   },
@@ -33636,7 +33636,7 @@
    [
     77,
     22,
-    3410,
+    3407,
     [
      [
       -2381.3,
@@ -33651,8 +33651,8 @@
       -1666.1
      ],
      [
-      -2279.5,
-      -1252.5
+      -2279.4,
+      -1250.4
      ],
      [
       -2291.5,
@@ -43228,8 +43228,8 @@
    ],
    "map": 1,
    "at": [
-    5137.6,
-    -1464.7
+    5128.8,
+    -1461.2
    ],
    "npc": "Caitir Flinthew"
   },
@@ -43265,6 +43265,81 @@
   },
   {
    "names": [
+    "Rog'mar",
+    "Riverglades"
+   ],
+   "binds": [
+    "Rog'mar"
+   ],
+   "map": 0,
+   "at": [
+    -7896.1,
+    -4669.3
+   ],
+   "npc": "Innkeeper Toka"
+  },
+  {
+   "names": [
+    "Rog'mar",
+    "Riverglades"
+   ],
+   "binds": [
+    "Rog'mar"
+   ],
+   "map": 0,
+   "at": [
+    -8014.5,
+    -4713.4
+   ],
+   "npc": "Innkeeper Toka"
+  },
+  {
+   "names": [
+    "Rog'mar",
+    "Riverglades"
+   ],
+   "binds": [
+    "Rog'mar"
+   ],
+   "map": 0,
+   "at": [
+    -7937.8,
+    -4733.8
+   ],
+   "npc": "Innkeeper Toka"
+  },
+  {
+   "names": [
+    "Rog'mar",
+    "Riverglades"
+   ],
+   "binds": [
+    "Rog'mar"
+   ],
+   "map": 0,
+   "at": [
+    -7953.4,
+    -4761.9
+   ],
+   "npc": "Innkeeper Toka"
+  },
+  {
+   "names": [
+    "Rog'mar",
+    "Riverglades"
+   ],
+   "binds": [
+    "Rog'mar"
+   ],
+   "map": 0,
+   "at": [
+    -7986.0,
+    -4778.4
+   ],
+   "npc": "Innkeeper Toka"
+  },
+  {
+   "names": [
     "Farholde Keep",
     "Riverglades"
    ],
@@ -43275,6 +43350,36 @@
    "at": [
     -9189.1,
     -5024.8
+   ],
+   "npc": "Barracks Master Harlan"
+  },
+  {
+   "names": [
+    "Farholde Keep",
+    "Riverglades"
+   ],
+   "binds": [
+    "Farholde Keep"
+   ],
+   "map": 0,
+   "at": [
+    -9133.2,
+    -4942.3
+   ],
+   "npc": "Barracks Master Harlan"
+  },
+  {
+   "names": [
+    "Farholde Keep",
+    "Riverglades"
+   ],
+   "binds": [
+    "Farholde Keep"
+   ],
+   "map": 0,
+   "at": [
+    -9121.2,
+    -5053.9
    ],
    "npc": "Barracks Master Harlan"
   },
@@ -43317,22 +43422,8 @@
    ],
    "map": 1,
    "at": [
-    -2856.7,
-    1151.7
-   ],
-   "npc": "Adarien"
-  },
-  {
-   "names": [
-    "Shen'dralas"
-   ],
-   "binds": [
-    "Shen'dralas"
-   ],
-   "map": 1,
-   "at": [
-    -2888.9,
-    1123.0
+    -2881.7,
+    1125.9
    ],
    "npc": "Adarien"
   },
@@ -43348,21 +43439,6 @@
    "at": [
     2731.3,
     -3905.9
-   ],
-   "npc": "Berdun Cliffbrew"
-  },
-  {
-   "names": [
-    "Talrendis Point",
-    "Azshara"
-   ],
-   "binds": [
-    "Talrendis Point"
-   ],
-   "map": 1,
-   "at": [
-    2753.7,
-    -3868.3
    ],
    "npc": "Berdun Cliffbrew"
   },
@@ -43387,8 +43463,8 @@
    "binds": [],
    "map": 0,
    "at": [
-    258.7,
-    273.7
+    256.2,
+    273.2
    ],
    "npc": "Amisi Azuregaze"
   },
@@ -43400,8 +43476,8 @@
    "binds": [],
    "map": 0,
    "at": [
-    256.8,
-    279.3
+    261.5,
+    285.2
    ],
    "npc": "Afsaneh Asrar"
   },
@@ -43413,21 +43489,8 @@
    "binds": [],
    "map": 0,
    "at": [
-    275.5,
-    268.1
-   ],
-   "npc": "Afsaneh Asrar"
-  },
-  {
-   "names": [
-    "Dalaran",
-    "Alterac Mountains"
-   ],
-   "binds": [],
-   "map": 0,
-   "at": [
-    260.5,
-    441.7
+    261.3,
+    445.7
    ],
    "npc": "Isirami Fairwind"
   },

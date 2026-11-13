@@ -319,7 +319,7 @@ function R.Training(steps, me, data, moneyAt, atLevel, anchor, skippedUpto, junk
       local again = false
       if sold == nil and #o > 0 and cheapestOf(o) <= moneyAt(i) + junk then
         local at = R.Fit(steps, i, i + R.TRAIN_WITHIN, R.Places(data.vendors, R.MERCHANT, me.side), anchor, function(p)
-          local s = R.Step("sell", "sell", "Sell your junk at " .. p.name, p, { junk = true })
+          local s = R.Step("sell", "sell", ns.Word("both.chore.sell", { npc = p.name }), p, { junk = true })
           s.gain = junk
           return s
         end)
@@ -377,7 +377,7 @@ function R.Training(steps, me, data, moneyAt, atLevel, anchor, skippedUpto, junk
         if sold and not named then
           for k = 1, at do
             if steps[k] == sold then
-              sold.text = "Sell your junk at " .. sold.npc .. ", then train: " .. what
+              sold.text = ns.Word("both.chore.sell-train", { npc = sold.npc }) .. ": " .. what
               named = true
               break
             end
@@ -408,10 +408,14 @@ function R.Coins(copper)
   for _, v in ipairs({ { g, "g" }, { s, "s" }, { c, "c" } }) do if v[1] ~= 0 then out[#out + 1] = v[1] .. v[2] end end
   return #out > 0 and table.concat(out, " ") or "0c"
 end
+function R.VendorPrice(copper, me)
+  if copper == nil then return nil end
+  return copper * (100 + (me.bartering or 0)) / 100
+end
 function R.RestockBuy(prices, thing, level, me)
   if thing == "ankh" then
     if prices.ankh == nil then return nil end
-    return nil, prices.ankh
+    return nil, R.VendorPrice(prices.ankh, me)
   end
   local kind, held = me.ammoKind, (me.grades or {})[thing] or 0
   local best
@@ -421,7 +425,7 @@ function R.RestockBuy(prices, thing, level, me)
     end
   end
   if not best then return nil end
-  return best[3], best[2]
+  return best[3], R.VendorPrice(best[2], me)
 end
 function R.RestockText(warning, item, npc)
   local name = item and ns.RestockItems and ns.RestockItems[item] or R.RESTOCK[warning][1]
@@ -448,7 +452,7 @@ function R.CampBuy(me, camp)
   local items, wood, tool = camp.items or {}, me.campWood, me.campTool
   local n = (ns.Rules.restock.camp_stock - me.camps) * tonumber(fire[4])
   local function Name(i) return items[i] and items[i].name or ("item " .. i) end
-  local function Price(i) return items[i] and items[i].price or 0 end
+  local function Price(i) return items[i] and R.VendorPrice(items[i].price, me) or 0 end
   local words = tool and ns.Rules.Line("heads", "camp_wood_tool", { n = n, wood = Name(wood), tool = Name(tool) })
     or ns.Rules.Line("heads", "camp_wood", { n = n, wood = Name(wood) })
   local need = { items = { { wood, (me.campHave or 0) + n } } }
@@ -520,10 +524,12 @@ function R.Plan(stepsIn, me, data, anchor)
   end
   if repair or sell then
     local what = repair and "repair" or "sell"
-    local words = (sell and repair) and "Sell and repair" or sell and "Sell" or "Repair"
     local need = { durability = repair and (R.DURABILITY_LOW + 1) or nil, bags = sell and (R.BAGS_LOW + 1) or nil }
     R.Fit(steps, 0, R.SOON, R.Places(data.vendors, repair and { repair = true } or R.MERCHANT, me.side), anchor, function(p)
-      local s = R.Step(what, what, words .. " at " .. p.name, p, need)
+      local fill = { npc = p.name }
+      local words = (sell and repair) and ns.Word("both.chore.sell-repair", fill)
+        or sell and ns.Word("both.chore.sell", fill) or ns.Word("both.chore.repair", fill)
+      local s = R.Step(what, what, words, p, need)
       if sell and junk ~= 0 then s.gain = junk end
       return s
     end)
@@ -627,6 +633,7 @@ function C.Me()
   me.campHave = me.campWood and (Plain(Call(C_Item.GetItemCount, me.campWood, false, false)) or 0) or nil
   me.ammoKind = nums.ammoKind
   me.grades = { ammo = nums.ammoGrade or 0, water = nums.waterGrade or 0 }
+  me.bartering = tonumber(ns.LegacyNodes and ns.LegacyNodes().bartering) or nil
   local quiet = type(IndexOfAzerothShared) == "table" and type(IndexOfAzerothShared.quiet) == "table" and IndexOfAzerothShared.quiet
   for key in pairs(quiet and type(quiet.chores) == "table" and quiet.chores or {}) do me.silenced[key] = true end
   local data = ns.ClassTrainers and ns.ClassTrainers.classes and ns.ClassTrainers.classes[class]

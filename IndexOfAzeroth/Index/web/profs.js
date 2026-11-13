@@ -40,11 +40,11 @@ function levelKey(p) {
 }
 
 const LEVEL_WAYS = {
-  gather: { label: () => word("page.profepics.gather"), tip: () => word("page.profepics.gather.tip") },
+  cheap: { label: () => word("page.profepics.cheap"), tip: () => word("page.profepics.cheap.tip") },
   buy: { label: () => word("page.profepics.buy"), tip: () => word("page.profepics.buy.tip") },
   both: { label: () => word("page.profepics.both"), tip: () => word("page.profepics.both.tip") },
 };
-const levelAsk = { line: null, way: "both", to: null };
+const levelAsk = { line: null, way: "cheap", to: null };
 const levelTop = (p) => Math.max(...(p.walls || []).map((w) => w.cap), p.cap || 0, p.target || 0);
 function levelAskHtml(p) {
   if (levelAsk.line !== p.line) return "";
@@ -131,7 +131,7 @@ function profClicked(e) {
     if (p?.offer) showGatherLayer(p.offer);
     else if (p?.gathering) startEpic({ key: `prof:${p.line}`, name: `${p.name} epic`, label: `the ${p.name} epic` });
     else if (p) {
-      Object.assign(levelAsk, levelAsk.line === p.line ? { line: null } : { line: p.line, way: "both", to: null });
+      Object.assign(levelAsk, levelAsk.line === p.line ? { line: null } : { line: p.line, way: "cheap", to: null });
       renderProfPanels();
     }
     return true;

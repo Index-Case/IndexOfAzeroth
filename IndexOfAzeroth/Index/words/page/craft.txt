@@ -1,8 +1,11 @@
 # The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
-# placeholders: item, running, epic, count, have, vendor, zone, quest, coins, name, from, to, colour, first, second
+# placeholders: item, running, epic, count, have, vendor, zone, quest, coins, name, from, to, colour, first, second, bank
 
 title = {item} Crafting epic
 label = the {item} crafting epic
+way.title = Craft {item}
+way.ask = How should the plan get the materials for {item}? The hover on each answer says what the plan then does.
+way.no = Not now
 back = Back to {epic}
 back.tip = This closes the profession epic and opens {epic} again where you were, with its plan and progress.
 back.done = {epic} is back where you were. Type /reload in game to pick it up there
@@ -11,6 +14,7 @@ materials = Materials
 route = Crafts
 route.row = {from} to {to}: Craft about {count} {item}, which is {colour} for you.
 row.need = You need {count} {item} and you have {have}.
+row.need.bank = You need {count} {item} and you have {have}. {bank} of them are in your bank.
 row.pattern = You need {item} to learn the recipe.
 row.vendor = The plan buys {item} from {vendor}.
 row.auction = Buy {count} {item} at the auction house. That costs about {coins}.
@@ -35,13 +39,13 @@ side.no = Not now
 side.full = Two profession epics run side by side already: {first} and {second}. Close one of them to start {epic} side by side.
 side.started = {epic} started side by side. The Index is writing the plan for the game now
 side.ready = The plan for {epic} is ready for the addon. Type /reload in game to show its window
-side.writing = The Index is writing the plan for {epic}.
 side.fold.tip = This folds the {epic} panel to its heading.
 side.open.tip = This opens the {epic} panel again.
-side.close.tip = This closes {epic} on the page and in game. Its plan and your progress are kept, and Reopen opens it again where you were.
-side.closed = {epic} is closed. Its plan and your progress are kept.
-side.reopen = Reopen
-side.reopen.tip = This opens {epic} again where you were, with its plan and progress.
-side.reopened = {epic} is open again. Type /reload in game to show its window
+side.replan.tip = This plans {epic} afresh from where you stand and what the game says now. Then type /reload in game.
+side.close = Close
+side.close.tip = This closes {epic} on the page and in game. Its plan and your progress are kept, and starting {epic} again opens it where you were.
+side.closing = {epic} closed. Its plan and your progress are kept, and starting it again opens it where you were. To close {epic} in game, close its window or do a /reload
+side.stillin = {epic} is closed on the page but its window still shows in game. To close the window there, close it with its x or type /reload
+side.reopened = {epic} is open again where you were. Type /reload in game to show its window
 side.failed = The profession epic could not be changed
 side.reload = Type /reload in game to show {epic} in its window.

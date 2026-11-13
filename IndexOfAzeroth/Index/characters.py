@@ -5,6 +5,7 @@ import re
 import statistics
 import threading
 import time
+import legacynodes
 import store
 import storewriter
 from facts import MAX_LEVEL, RUN_SPEED
@@ -15,6 +16,7 @@ STATE = os.path.join(ROOT, "data", "characters.json")
 RATE = 0.05 / 8
 AWAY_RATE = RATE / 4
 CAP = 1.5
+WELL_RESTED, WELL_RESTED_RATE, WELL_RESTED_CAP = 1225478, 0, 1
 CALIBRATE_AFTER = 1800
 TICKING = frozenset({"lastSeen", "seenAt", "played", "levelPlayed"})
 SAVE_EVERY = 15
@@ -33,15 +35,19 @@ _REGION_SHOWN = {"EU": "EU", "NA": "NA", "US": "NA"}
 _TYPE_WORDS = {"pvp": {"pvp"}, "pve": {"pve"}, "rp": {"rp"}, "rppvp": {"rp", "pvp"}, "rppve": {"rp", "pve"}}
 
 
+def realm_type(realm):
+    kinds = set().union(*(_TYPE_WORDS.get(w.lower(), set()) for w in re.split(r"[\s_\-]+", realm or "")))
+    if {"pvp", "pve"} <= kinds:
+        return None
+    return ("RP PvP" if {"rp", "pvp"} <= kinds else "RP" if "rp" in kinds else "PvP" if "pvp" in kinds
+            else "PvE" if "pve" in kinds else None)
+
+
 def realm_label(realm):
     words = re.split(r"[\s_\-]+", realm or "")
     regions = {_REGION_SHOWN[w[:2].upper()] for w in words if _REGION_WORD.fullmatch(w)}
-    kinds = set().union(*(_TYPE_WORDS.get(w.lower(), set()) for w in words))
-    if len(regions) != 1 or {"pvp", "pve"} <= kinds:
-        return realm or ""
-    kind = ("RP PvP" if {"rp", "pvp"} <= kinds else "RP" if "rp" in kinds else "PvP" if "pvp" in kinds
-            else "PvE" if "pve" in kinds else None)
-    return f"{regions.pop()} {kind}" if kind else realm
+    kind = realm_type(realm)
+    return f"{regions.pop()} {kind}" if len(regions) == 1 and kind else (realm or "")
 
 
 def beta_realm(realm):
@@ -119,8 +125,15 @@ def key_named(chars, name, guid=None):
     return found[0] if len(found) == 1 else None
 
 
+def rested_terms(char):
+    faster = 1 + legacynodes.value(char, WELL_RESTED, WELL_RESTED_RATE) / 100
+    return {"rate": RATE * faster, "awayRate": AWAY_RATE * faster,
+            "cap": CAP * (1 + legacynodes.value(char, WELL_RESTED, WELL_RESTED_CAP) / 100)}
+
+
 def rested_gain(char, hours, factor=1.0):
-    return char.get("xpMax", 0) * (RATE if char.get("resting") else AWAY_RATE) * hours * factor
+    terms = rested_terms(char)
+    return char.get("xpMax", 0) * (terms["rate"] if char.get("resting") else terms["awayRate"]) * hours * factor
 
 
 def cap_of(char):
@@ -128,7 +141,7 @@ def cap_of(char):
 
 
 def projected(char, now, factor=1.0):
-    cap = char.get("xpMax", 0) * CAP
+    cap = char.get("xpMax", 0) * rested_terms(char)["cap"]
     hours = max(0.0, now - char.get("lastSeen", now)) / 3600
     return min(cap, char.get("rested", 0) + rested_gain(char, hours, factor)), cap
 
@@ -269,6 +282,11 @@ class Characters:
         with self.lock:
             return {k: char_entry(c) for k, c in {**self.data.get("removed", {}), **self.data["chars"]}.items()}
 
+    def legacies(self):
+        with self.lock:
+            return {k: {"legacy": copy.deepcopy(c["legacy"])}
+                    for k, c in {**self.data.get("removed", {}), **self.data["chars"]}.items() if c.get("legacy")}
+
     def playing(self):
         with self.lock:
             return copy.deepcopy(self.data["chars"].get(self.current)) if self.current else None
@@ -391,6 +409,24 @@ class Characters:
             self.data["chars"][self.current].setdefault("profTrainers", {})[profession] = {"npc": npc, "at": at, "ranks": ranks}
             self.save()
 
+    def trainer_refused(self, refused):
+        with self.lock:
+            record = self.confirmed()
+            if not record:
+                return
+            caps = {p.get("name"): p.get("max") or 0 for p in record.get("professions") or ()}
+            ranks = {p.get("name"): p.get("rank") or 0 for p in record.get("professions") or ()}
+            kept, changed = record.setdefault("refused", {}), False
+            for r in refused:
+                had = kept.get(str(r["npc"]))
+                if had and (had.get("at") or 0) >= r["at"]:
+                    continue
+                kept[str(r["npc"])] = {"spells": r["spells"], "prof": r["prof"], "max": caps.get(r["prof"], 0),
+                                       "rank": ranks.get(r["prof"], 0), "at": r["at"]}
+                changed = True
+            if changed:
+                self.save()
+
     def prof_epic(self, name, do, key=None, now=None):
         with self.lock:
             record = self.confirmed() if key is None else self.data["chars"].get(self._resolve(key))
@@ -459,6 +495,9 @@ class Characters:
                 self.data["legacy"], moved = {**account, "at": now}, True
             me = self.confirmed()
             if me is not None and any(v is not None for v in mine.values()):
+                nodes = data.get("nodes") if data.get("nodes") is not None else (me.get("legacy") or {}).get("nodes")
+                if nodes is not None:
+                    mine["nodes"] = [list(n) for n in nodes]
                 if {k: v for k, v in (me.get("legacy") or {}).items() if k != "at"} != mine:
                     me["legacy"], moved = {**mine, "at": now}, True
             if moved:
@@ -570,9 +609,11 @@ class Characters:
     def calibrate(self, before, after, now):
         if not before.get("xpMax") or before.get("level") != after.get("level") or (after.get("level") or 0) >= cap_of(after):
             return
+        if not legacynodes.known(before):
+            return
         hours = (now - before["lastSeen"]) / 3600
         expected = rested_gain(before, hours)
-        cap = before["xpMax"] * CAP
+        cap = before["xpMax"] * rested_terms(before)["cap"]
         actual = (after.get("rested") or 0) - (before.get("rested") or 0)
         if expected < before["xpMax"] * 0.01 or (after.get("rested") or 0) >= cap * 0.98 or actual < 0:
             return
@@ -599,11 +640,14 @@ class Characters:
 
     def snapshot(self):
         with self.lock:
-            return {"chars": copy.deepcopy(self._board(self.data["chars"])), "current": self.current, "factor": self.factor(),
-                    "warband": copy.deepcopy(self.data.get("warband")),
-                    "legacy": copy.deepcopy(self.data.get("legacy")),
-                    "removed": {k: {"name": r.get("name"), "surname": r.get("surname", ""), "realm": r.get("realm", ""),
-                                    "level": r.get("level"), "className": r.get("className"), "removedAt": r.get("removedAt"),
-                                    "played": r.get("played")}
-                                for k, r in self._board(self.data.get("removed", {})).items()},
-                    "samples": len(self.data["samples"]), "rate": RATE, "awayRate": AWAY_RATE, "cap": CAP, "maxLevel": MAX_LEVEL}
+            out = {"chars": copy.deepcopy(self._board(self.data["chars"])), "current": self.current, "factor": self.factor(),
+                   "warband": copy.deepcopy(self.data.get("warband")),
+                   "legacy": copy.deepcopy(self.data.get("legacy")),
+                   "removed": {k: {"name": r.get("name"), "surname": r.get("surname", ""), "realm": r.get("realm", ""),
+                                   "level": r.get("level"), "className": r.get("className"), "removedAt": r.get("removedAt"),
+                                   "played": r.get("played")}
+                               for k, r in self._board(self.data.get("removed", {})).items()},
+                   "samples": len(self.data["samples"]), "maxLevel": MAX_LEVEL}
+        for c in out["chars"].values():
+            c["restedTerms"] = rested_terms(c)
+        return out

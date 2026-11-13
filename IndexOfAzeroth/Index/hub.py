@@ -5,7 +5,7 @@ import time
 from dungeons import Dungeons, share_stars
 from layers import WorldLayers, lay_gathered, service_names
 from indoors import Indoors
-from characters import Characters
+from characters import Characters, realm_type
 import nav
 from routes import Routes
 from respawns import Respawns
@@ -32,6 +32,7 @@ import realign
 import ticks
 import camping
 import legacy
+import legacynodes
 import crates
 import errands
 import epicwatch
@@ -41,7 +42,11 @@ from serverlog import log_error, start_thread
 from levelreport import LevelReports, unlocks
 from talentplan import TalentRanks
 from dayrecord import DayRecord
+from enemies import EnemiesSeen
+from pvp import Fights
+import gamedata
 import game
+import storedonly
 
 
 class Hub:
@@ -92,6 +97,13 @@ class Hub:
                                    chars=self.characters.records)
         self.dayrecord.reports = self.levelreports
         self.dayrecord.spell_levels = lambda key: class_spell_levels(self, key)
+        self.enemies = EnemiesSeen()
+        self.pvp = Fights(self.dayrecord, self.enemies, self.levelreports, spells=lambda: self.class_spells,
+                          racials=races.racial_spells, races=known_races,
+                          has_icon=lambda name: name in gamedata.icon_names(), icons=gamedata.spell_icons,
+                          battlegrounds=gamedata.battleground_icons, facts=gamedata.spell_facts,
+                          prices=lambda key, ids: house_values(self, key, ids),
+                          classes=lambda key: ((self.characters.data.get("chars") or {}).get(key) or {}).get("classId"))
         self.respawns = Respawns(realm_now=self.characters.realm)
         self.questpois = QuestPois()
         self.offers = GiverAnswers()
@@ -100,6 +112,7 @@ class Hub:
         self.paths.populated_of = lambda inst: self.world.populated(inst)
         self.paths.room_indoors = lambda inst, n, w, z: room_indoors(self, inst, n, w, z)
         self.zone_levels = {}
+        self.zone_pvp = {}
         self.city_areas = None
         self.zone_inputs = None
         self.zones_set = threading.Event()
@@ -167,6 +180,7 @@ class Hub:
                          "started": STARTED,
                          "character": current,
                          "who": who,
+                         "realmType": realm_type(who["realm"]) if who else None,
                          "was": was,
                          "lastSeen": self.characters.last_seen(mapzones.zone_map_named) if not body["state"] or self.strip_lost(body["link"])
                          else None,
@@ -175,7 +189,8 @@ class Hub:
                          "options": self.characters.options(),
                          "stars": self.dungeons.stars_of(current),
                          "plan": {**sh.brief(), "playing": who,
-                                  "advice": getattr(getattr(self, "watch", None), "advice", None)}
+                                  "advice": getattr(getattr(self, "watch", None), "advice", None),
+                                  "sideAdvice": getattr(getattr(self, "watch", None), "side_advice", dict)()}
                                  if sh else None,
                          "pending": pd.brief() if pd else None,
                          "realign": realign.state(body.get("data")),
@@ -223,6 +238,21 @@ def logs_or_none():
         return game.logs_dir()
     except game.GameNotFound:
         return None
+
+
+def house_values(hub, key, ids):
+    c = (hub.characters.data.get("chars") or {}).get(key) or {}
+    if not c.get("realm") or not c.get("faction"):
+        return {}
+    got = hub.auction.prices([str(i) for i in ids], f"{c['realm']}|{c['faction']}")["items"]
+    return {int(k): v["value"] for k, v in got.items() if v.get("value")}
+
+
+def known_races():
+    try:
+        return races.playable()
+    except (storedonly.NotStored, OSError, ValueError, KeyError, game.GameNotFound):
+        return []
 
 
 def open_world_map(map_id):
@@ -300,6 +330,26 @@ def reload_data(hub):
         share_watch(hub)
     except OSError:
         log_error("writing the watch list into Shared.lua")
+    share_nodes(hub)
+
+
+_sharing_nodes = threading.Lock()
+
+
+def share_nodes(hub):
+    if getattr(hub, "shared", None):
+        start_thread("Legacy nodes into Shared.lua", _share_nodes, (hub,))
+
+
+def _share_nodes(hub):
+    with _sharing_nodes:
+        if legacynodes.tables(wait=True) is None:
+            return
+        terms = {key: errands.legacy_terms(c) for key, c in hub.characters.legacies().items()}
+        try:
+            hub.shared.set_nodes({key: t for key, t in terms.items() if t})
+        except OSError:
+            log_error("writing the Legacy nodes' terms into Shared.lua")
 
 
 def crate_lines(hub, status):

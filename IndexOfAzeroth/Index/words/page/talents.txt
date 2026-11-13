@@ -1,0 +1,16 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: name, who
+
+build = Build: {name}
+build.tip = Pick the build the talent planner follows
+reset = Reset
+reset.tip = Let your pick go: the build for the tree you spend the most in comes back
+title = Talents
+lit = Your build's talents are lit, each with the level its ranks are taken at
+lit.who = {who}, {name}. Your build's talents are lit, each with the level its ranks are taken at
+close.tip = Close (Escape)
+none = The talent trees come from the game's own tables once the game has said who's playing.
+none.class = The game's tables have no talent trees for {name}.
+reload = Your talents reach the Index with the addon's next /reload.
+hover = Your build
+failed = your talent build

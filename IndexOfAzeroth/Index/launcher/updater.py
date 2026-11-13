@@ -13,6 +13,7 @@ import zlib
 from collections import namedtuple
 
 import ed25519
+import layout
 
 REPO = "Index-Case/IndexOfAzeroth"
 LATEST_URL = f"https://api.github.com/repos/{REPO}/releases/latest"
@@ -26,6 +27,9 @@ CHUNK = 1 << 20
 MAX_LIST = 64 << 20
 HEX64 = re.compile(r"[0-9a-f]{64}")
 OURS = (MANIFEST_NAME, SIGNATURE_NAME, WORK)
+INSTALLER = layout.FOLDER + ".zip"
+INSTALLER_URL = f"https://github.com/{REPO}/releases/latest/download/{INSTALLER}"
+FOLDER_PART = "folder"
 VERSION = re.compile(r"(\d+)\.(\d+)\.(\d+)(?:-([a-z]+))?")
 VERSION_READ = re.compile(r"\s*v?(\d+(?:\.\d+)*)(?:-([A-Za-z]+))?")
 
@@ -53,13 +57,14 @@ class GameRunning(Exception):
 
 
 class Manifest:
-    def __init__(self, version, changes, files, raw, signature, packs):
+    def __init__(self, version, changes, files, raw, signature, packs, installer=None):
         self.version = version
         self.changes = changes
         self.files = files
         self.packs = packs
         self.raw = raw
         self.signature = signature
+        self.installer = installer or {}
 
     @staticmethod
     def total_size(items):
@@ -110,7 +115,12 @@ def verify_manifest(raw, signature, public_key=PUBLIC_KEY):
         if not (_safe_path(path) and _sized(f) and isinstance(f.get("pack"), str) and f["pack"] in packs):
             raise UpdateRefused(f"the update list's entry for {path!r} is malformed")
         files[path] = Entry(path, f["size"], f["sha256"], f["pack"])
-    return Manifest(body["version"], body["changes"], files, raw, sig, packs)
+    installer = body.get("installer", {})
+    if not (isinstance(installer, dict) and all(isinstance(part, str) and part and isinstance(said, str)
+                                                and (said == FOLDER_PART or HEX64.fullmatch(said))
+                                                for part, said in installer.items())):
+        raise UpdateRefused("the update list's installer is malformed")
+    return Manifest(body["version"], body["changes"], files, raw, sig, packs, installer)
 
 
 def _sized(f):
@@ -147,6 +157,39 @@ def _matches(file, entry):
     return os.path.isfile(file) and os.path.getsize(file) == entry.size and _sha256(file) == entry.sha256
 
 
+def installer_parts(listed, digest):
+    python = f"{layout.INDEX}/{layout.PYTHON}"
+    looks = (("", lambda name, folder: True), (python, lambda name, folder: not folder),
+             (f"{python}/{layout.SITE}", lambda name, folder: folder and name.endswith(".dist-info")))
+    parts = {}
+    for where, taken in looks:
+        for name, folder in listed(where):
+            if taken(name, folder):
+                path = f"{where}/{name}" if where else name
+                parts[path] = FOLDER_PART if folder else digest(path)
+    return parts
+
+
+def installer_lacks(need, have):
+    return sorted(part for part, said in need.items() if have.get(part) != said)
+
+
+def install_parts(install_dir):
+    top = layout.install_of(install_dir)
+
+    def listed(where):
+        try:
+            with os.scandir(os.path.join(top, *where.split("/")) if where else top) as entries:
+                return [(e.name, e.is_dir()) for e in entries]
+        except OSError:
+            return []
+    return installer_parts(listed, lambda path: _sha256(os.path.join(top, *path.split("/"))))
+
+
+def too_old(install_dir, manifest):
+    return installer_lacks(manifest.installer, install_parts(install_dir)) if manifest.installer else []
+
+
 def installed_manifest(install_dir, public_key=PUBLIC_KEY):
     try:
         with open(os.path.join(install_dir, MANIFEST_NAME), "rb") as f:
@@ -156,6 +199,11 @@ def installed_manifest(install_dir, public_key=PUBLIC_KEY):
         return verify_manifest(raw, signature, public_key)
     except (OSError, UpdateRefused):
         return None
+
+
+def shipped(install_dir, public_key=PUBLIC_KEY):
+    manifest = installed_manifest(install_dir, public_key)
+    return set(manifest.files) if manifest else set()
 
 
 def files_to_fetch(install_dir, manifest, public_key=PUBLIC_KEY):

@@ -3,7 +3,7 @@
 ## Title: The Index of Azeroth
 ## Notes: Dungeon journal and guide arrow, and the feed for the local web page (a pixel strip in the top left corner).
 ## Author: IndexCase
-## Version: 0.1.7-alpha
+## Version: 0.1.8-alpha
 ## SavedVariables: IndexOfAzerothDB
 ## SavedVariablesPerCharacter: IndexOfAzerothCharDB
 ## IconTexture: Interface\AddOns\IndexOfAzeroth\Media\icon
@@ -19,6 +19,7 @@ Arbiter.lua
 Collect.lua
 Status.lua
 Kills.lua
+Enemies.lua
 Objectives.lua
 Ranks.lua
 Entrances.lua
@@ -33,6 +34,7 @@ ClassTrainers.lua
 Vendors.lua
 Chores.lua
 PathLines.lua
+Declutter.lua
 Options.lua
 Lfg.lua
 Card.lua

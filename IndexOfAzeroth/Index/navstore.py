@@ -19,6 +19,8 @@ CACHE = os.environ.get("DGG_NAVCACHE") or os.path.join(ROOT, "data", "navcache")
 PACK = os.environ.get("DGG_NAVPACK") or mainstores.path("navpack")
 BASE = os.environ.get("DGG_NAVBASE") or None
 KEEP_BYTES = 256 << 20
+MARKS = "checked"
+COMPACT = 2
 
 _lock = threading.Lock()
 _index = [None, None]
@@ -46,6 +48,11 @@ class Index:
         self.names = sorted(files)
         rows = np.array([files[n] for n in self.names], np.int64).reshape(-1, 3)
         self.group, self.size, self.ns = rows[:, 0], rows[:, 1], rows[:, 2]
+        self.checked = {}
+        self.marks_seen = None
+        self.marks_read = None
+        self.mark_lines = 0
+        self.marks_lock = threading.Lock()
 
     def file(self, gid):
         return group_file(self.run, gid)
@@ -54,7 +61,7 @@ class Index:
         i = bisect.bisect_left(self.names, name)
         if i == len(self.names) or self.names[i] != name:
             return None
-        return int(self.group[i]), int(self.size[i]), int(self.ns[i])
+        return int(self.group[i]), int(self.size[i]), max(int(self.ns[i]), self.checked.get(name, 0))
 
     def __iter__(self):
         return iter(self.names)
@@ -63,8 +70,9 @@ class Index:
         return len(self.names)
 
     def items(self):
+        checked = self.checked
         for i, n in enumerate(self.names):
-            yield n, (int(self.group[i]), int(self.size[i]), int(self.ns[i]))
+            yield n, (int(self.group[i]), int(self.size[i]), max(int(self.ns[i]), checked.get(n, 0)))
 
 
 def index(pack=None):
@@ -73,6 +81,7 @@ def index(pack=None):
     key = (_key(pack), store.stamp(path))
     got = _index[:]
     if got[0] == key:
+        read_marks(pack, got[1])
         return got[1]
     raw = {}
     if key[1] is not None:
@@ -82,9 +91,52 @@ def index(pack=None):
     if files and not isinstance(next(iter(files.values())), list):
         raise ValueError(f"{path}: an index without each file's size and time, pack it again")
     made = Index(files, raw.get("run"))
+    read_marks(pack, made)
     with _lock:
         _index[:] = [key, made]
     return made
+
+
+def marks_path(pack, run):
+    return os.path.join(pack, MARKS, f"{run or 'pack'}.tsv")
+
+
+def read_marks(pack, made):
+    path = marks_path(pack, made.run)
+    try:
+        st = os.stat(path)
+        seen = (st.st_ino, st.st_size)
+    except OSError:
+        seen = None
+    if seen == made.marks_seen:
+        return
+    with made.marks_lock:
+        if seen == made.marks_seen:
+            return
+        if seen is None:
+            made.checked, made.marks_read, made.mark_lines, made.marks_seen = {}, None, 0, None
+            return
+        try:
+            with open(path, "rb") as f:
+                st = os.fstat(f.fileno())
+                at = made.marks_read
+                again = at is None or at[0] != st.st_ino or st.st_size < at[1]
+                start = 0 if again else at[1]
+                f.seek(start)
+                data = f.read()
+        except OSError:
+            return
+        whole = data[:data.rfind(b"\n") + 1]
+        checked, lines = ({}, 0) if again else (made.checked, made.mark_lines)
+        for line in whole.splitlines():
+            name, _, ns = line.partition(b"\t")
+            if name and ns.isdigit():
+                n, v = name.decode("utf-8", "replace"), int(ns)
+                if v > checked.get(n, 0):
+                    checked[n] = v
+                lines += 1
+        made.checked, made.mark_lines = checked, lines
+        made.marks_read, made.marks_seen = (st.st_ino, start + len(whole)), (st.st_ino, st.st_size)
 
 
 def packed(path):
@@ -233,6 +285,46 @@ def load_json(path, default, under=True):
     data = base_bytes(path) if under else None
     data = packed_bytes(path) if data is None else data
     return default if data is None else json.loads(data.decode("utf-8"))
+
+
+def touch(path, at):
+    if not os.path.exists(path) and not based(path) and packed(path) is not None and not mainstores.in_main(PACK):
+        mark(os.path.basename(path), round(at * 1e9))
+        return
+    make_loose(path)
+    os.utime(path, (at, at))
+
+
+def mark(name, ns):
+    made = index()
+    path = marks_path(PACK, made.run)
+    line = f"{name}\t{ns}\n".encode("utf-8")
+    with store.locked(path):
+        first = not os.path.exists(path)
+        with open(path, "a+b") as f:
+            f.seek(0, os.SEEK_END)
+            if f.tell():
+                f.seek(-1, os.SEEK_END)
+                if f.read(1) != b"\n":
+                    line = b"\n" + line
+            f.write(line)
+        if first and index().run == made.run:
+            own = os.path.basename(path)
+            for other in os.listdir(os.path.dirname(path)):
+                if other not in (own, own + ".lock"):
+                    try:
+                        os.remove(os.path.join(os.path.dirname(path), other))
+                    except OSError:
+                        pass
+        read_marks(PACK, made)
+        if made.mark_lines > COMPACT * max(len(made), 1):
+            with made.marks_lock:
+                data = b"".join(f"{n}\t{v}\n".encode("utf-8") for n, v in sorted(made.checked.items()))
+            try:
+                store.write_bytes(path, data)
+            except PermissionError:
+                return
+            read_marks(PACK, made)
 
 
 def make_loose(path):

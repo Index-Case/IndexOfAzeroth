@@ -1,0 +1,158 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: n, of, skill, layer, key, pct, zone, name, money, list, last, level, leathers, tip, what, item, loop, text, where, levels, spawns, lap, respawn, kinds, s
+
+title = Overlays and Loops
+menu.all = All
+menu.none = None
+group.grinding = Grinding
+group.gathering = Gathering
+
+name.xp = XP grinding
+name.gold = Gold grinding
+name.gold-all = Gold grinding, all levels
+name.skinning = Skinning
+name.mining = Mining
+name.herbalism = Herbalism
+name.fishing = Fishing
+name.treasure = Treasure
+
+row.xp = XP an hour at the character's level
+row.gold = gold an hour: coin, loot and skins
+note.skinning = leathers, hides and scales
+note.mining = ore veins
+note.herbalism = herbs
+note.fishing = fish schools and wreckage
+note.treasure = chests, footlockers and strongboxes
+
+whole.skinning = Every beast the character's skill can skin
+whole.mining = All mining nodes
+whole.herbalism = All herbalism nodes
+whole.fishing = All fishing nodes
+whole.treasure = All treasure nodes
+
+shown = {n} of {of}
+here = {n} here
+needs = needs {skill}
+none.area = None in this area.
+none.map = None on this map.
+
+all = All levels
+all.gold = every level and no risk, for planning
+all.gather = every resource counted whatever the skill, for planning
+
+ask.area = the area's resources
+ask.map = the map's layers
+ask.zones = the zones' numbers
+
+on-map = {layer} is on the map. The {key} key under the zone name starts a loop
+
+key.grind = Grind here
+key.grind.tip = Finds the best camp for the character's level in the area in view and a loop round the camp that keeps clear of anything too strong. Zoomed out, the page asks before it searches
+key.farm = Farm here
+key.farm.tip = Finds the camp worth the most gold an hour for the character's level in the area in view and a loop round the camp that keeps clear of anything too strong. Zoomed out, the page asks before it searches
+key.skin = Skin here
+key.skin.tip = Finds the best beasts to skin for the character's Skinning in the area in view and a loop round them that keeps clear of anything too strong. The beasts that still raise the skill come first. Zoomed out, the page asks before it searches
+key.skin.tip.all = All levels, for planning. Finds the best beasts to skin in the area in view at any level and whatever the skill, each counted as a character of its own level would kill it. The beasts that would raise the skill come first, and the loop round them doesn't check for anything too strong. Zoomed out, the page asks before it searches
+key.skin.leathers = {tip}. The loop goes only to the beasts that give {leathers}
+key.gather = Gather here
+key.gather.tip = Makes a loop through where the resources shown here that the character can gather are thickest in the area in view, with one stop in the middle of each cluster. While the character can gather none of them yet, the loop goes through all the resources shown here
+key.loop = loop
+key.loop.tip = Makes a loop through where {name} grows or spawns thickest in the area in view, with one stop in the middle of each cluster
+aoe = AOE
+aoe.tip = AOE finds the camp with the densest packs of mobs at the character's level or below, for pulls of several at once. Casters and shooters count against a camp
+ah = Include AH prices
+ah.tip = Counts gold an hour with the loot at what it sells for in the auction house. The page uses what an item sold for lately where the scans saw it. Without a sale the page uses the middle price the item is listed at, and without a listing what a vendor pays. With Skinning, the skins of the beasts the character can skin count too
+daredevil = Daredevil
+daredevil.tip = With Daredevil on, the loop avoids no mob. The loop keeps every spawn point and its legs go straight through, whatever stands near. With Daredevil off, the loop avoids every mob that would attack except the ones grey to the character. The loop then leaves out the points in a mob's reach and goes round the mob
+
+aoe.warn = You are not an AOE spec. {list} are AOE specs. The page counts the packs for {n} mobs a pull
+aoe.spec = {name} from level {level}
+aoe.mage = a Frost Mage
+aoe.paladin = a Protection Paladin
+and = {list} and {last}
+
+skin-for = {layer} for {leathers}
+no-skinning = You don't have Skinning
+nothing.area = Nothing in this area is worth it
+nothing.map = Nothing on this map is worth it
+legend.none.area = None in this area
+legend.none.map = None on this map
+value.xp = {n} XP/h
+value.gold = {money}/h
+value.spawns = {n} spawns
+value.kill = {n} XP
+lit.zone = Lights {zone} on the map. Click to go into {zone}
+lit.mob = Lights where {name} spawns on the map
+measured.share = From {n} of your kills, Forever gives {pct}% of Classic's XP
+measured = The page counts Classic's XP until your kills show Forever's ({n} kills so far)
+pace.measured = The page counts your pace of {s} s a kill at your level, from {n} of your kills
+pace = The page counts {s} s a kill at your level until it has timed 10 of your kills
+
+tip.xp = {n} XP an hour
+tip.gold = {money} an hour
+tip.skin = {n} beasts to skin
+tip.skin.any = {text} at any level
+tip.raise = {n} still raise your skill
+tip.nodes = {n} nodes
+tip.up = about {n} up at a time
+tip.kinds.more = {list} and {n} more
+
+node.stack = One of these spawns here at a time:
+node.up = This spawn is up about {pct} of the time, because the zone keeps only so many up
+
+scout.title = Scouting
+scout.stop = Stop
+scout.stop.tip = Stop looking
+scout.grind = A camp to grind
+scout.farm = A camp to farm for gold
+scout.skin = Beasts to skin
+scout.item = The best place to farm {item}
+scout.zones = {what} in {n} zones
+scout.zone = {what} in {zone}
+scout.line.1 = A troll hunter is counting the camps in reach
+scout.line.2 = A dwarf rifleman is weighing each camp's bounty against the walk
+scout.line.3 = The guards are telling a gnome where the beasts gather. The gnome is taking notes
+scout.line.4 = An orc grunt is sharpening his axe while the scouts report back
+scout.line.5 = A goblin quartermaster is working out what each camp is worth to you
+scout.line.6 = A night elf sentinel is marking the camps on the map one by one
+scout.line.7 = A Tauren hunter is following the spoor to the richest grounds
+scout.line.8 = A Defias lookout is counting heads at every camp. He has his own reasons
+scout.line.9 = A goblin surveyor is sizing up the hunting grounds and naming a price
+scout.line.10 = Hemet Nesingwary is counting the camps. He only wants to know where the big heads are
+scout.stopped = Scouting stopped
+runs-on = {text}. {loop} runs on as it was
+found.none.item = The Index found no place where you can farm {item} at your level
+found.none = The Index found no camp worth {what} {where}
+found.none.level = The Index found no camp worth {what} for your level {where}
+found.skin = skinning
+found.farm = farming
+found.grind = grinding
+found.again = in the area the loop was found in
+found.area = in the area in view
+found.zone = in this zone
+loop.failed = The page couldn't start the loop
+
+loop.grind = Grind {name}
+loop.farm = Farm {name}
+loop.skin = Skin {name}
+loop.from = {what} from {name}
+loop.in = {name} in {zone}
+sub.count = levels {levels}, {spawns} spawns, about {n} {what} an hour
+sub.gold = levels {levels}, {spawns} spawns, about {money} an hour
+sub.xp = levels {levels}, {spawns} spawns, about {n} XP a kill
+sub.skins = skins
+sub.leather = pieces of leather
+sub.at-level = at their level
+sub.ah = at auction house prices
+sub.pack = AOE packs of about {n}
+sub.per-hour = ({n} an hour)
+sub.cut = the best camp walked before the search ran out of time
+lap.back = a lap about {lap} (back in {respawn})
+lap.short = a lap about {lap}, shorter than the {respawn} respawn, but this is the longest lap this map has
+up = {n} nodes
+up.one = {n} node
+up.none = no
+
+prospecting = Prospecting {kinds}
+prospecting.zone = Prospecting {kinds} in {zone}
+gather.none = No {layer} resource is shown on the map, so there is nothing to make a loop through

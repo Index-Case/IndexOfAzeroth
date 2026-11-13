@@ -20,13 +20,14 @@ from layers import CAMP_CELL, CAMP_CLEAR, KILL_REACH, MARGIN as MAP_MARGIN, RESP
 from facts import RUN_SPEED
 from geo import height_of, line_reach
 from objectives import ObjectiveIndex
-from errands import ANY_NPC, HERE, LAND_REACH, TODO_LINES, Errands, addon_chores, camp_buy, landed_pick, planned_kinds
+from errands import ANY_NPC, HERE, LAND_REACH, TODO_LINES, Errands, addon_chores, bartering, camp_buy, landed_pick, planned_kinds
 import carried
 import game
 import nav
 from routes import RIDE_WORDS, name_hash
-from epic import closed_by, discrete_spots, heat_patches, if_offered, walks_alone
+from epic import ELITE_RANKS, closed_by, discrete_spots, heat_patches, if_offered, quest_progress, walks_alone
 import plansteps
+import stepwords
 import planunits
 import planlead
 import planrepair
@@ -52,6 +53,8 @@ from serverlog import log_error, start_thread
 import storedonly
 from gamedata import ITEM_TIPS, TRAINER_PRICES, client_table, item_name, load_class_spells, recipe_prices, silenced_todos, stat_weights
 from shared import plan_notes
+from shared import epic_notes, page_step
+from epicwatch import step_done
 from shared import placed_step
 from shared import WAY_MOST
 from shared import ride_of
@@ -318,8 +321,30 @@ def errands_of(hub):
                                                                   walkers=hub.world.walking(),
                                                                   sellers=lambda item: camping.load().sellers(item),
                                                                   camp=lambda: camping.restock(camping.load(), hub.world.services),
-                                                                  item_name=item_name, walled=hub.world.walled))
+                                                                  item_name=item_name, walled=hub.world.walled,
+                                                                  reach=chore_reach(hub)))
     return _errands["errands"]
+
+
+REACH_KEPT = 60.0
+
+
+def chore_reach(hub):
+    kept = {}
+
+    def reach(a, b):
+        straight = plansteps.gap(a, b)
+        if not a or not b or straight <= WAY_MOST:
+            return straight
+        now = time.monotonic()
+        if not kept or now - kept["at"] > REACH_KEPT:
+            kept.update(at=now, travel=route_travel(hub))
+        try:
+            seconds = kept["travel"](a, b)
+        except Exception:
+            seconds = None
+        return straight if seconds is None else seconds * (hub.characters.travel_speed() or questplan.RUN)
+    return reach
 
 
 SKIP_KINDS = {1: "train", 2: "bind", 3: "flightpath", 4: "sell", 5: "repair", 6: "restock",
@@ -360,7 +385,10 @@ def camp_state(hub, facts=None, money=None):
             "caps": {SKILL_LINES[p["name"]]: p["max"] for p in profs if p.get("max")},
             "known": facts.get("recipes") or {}, "items": facts.get("items"), "auras": facts.get("auras") or {},
             "cooldowns": facts.get("cooldowns") or {}, "colours": colours, "skipped": camp_skipped(hub), "now": time.time(),
-            "npc": npc, "camped": me.get("camped"), "money": money, "prices": seen_prices(hub)}
+            "npc": npc, "camped": me.get("camped"), "money": money, "prices": seen_prices(hub),
+            "refused": camping.refusals(me),
+            "legacy": me.get("legacy"),
+            "bartering": bartering(me)}
 
 
 def grade_state(hub):
@@ -393,7 +421,8 @@ def errand_state(hub):
             "silenced": sorted(silenced_todos() & set(TODO_LINES.values())),
             "junk_value": nums.get("bagJunkValue"),
             "addon_chores": addon_chores(nums.get("addonChores")),
-            "camps": nums.get("camps"), "camp_wood": nums.get("campWood"), "camp_tool": nums.get("campTool")}
+            "camps": nums.get("camps"), "camp_wood": nums.get("campWood"), "camp_tool": nums.get("campTool"),
+            "bartering": bartering(me)}
 
 
 def camp_purchase(hub):
@@ -540,6 +569,15 @@ def note_profession_trainer(hub, npc, profession, services, now=None):
     hub.characters.profession_trainer(profession, npc, [s for s in services if "rank" in s], now)
 
 
+def note_trainer_refused(hub, refused):
+    cd = camping.load()
+    trainers = cd.data.get("trainers") or {}
+    named = [{**r, "prof": cd.names.get((trainers.get(str(r["npc"])) or {}).get("prof"))} for r in refused]
+    named = [r for r in named if r["prof"]]
+    if named:
+        hub.characters.trainer_refused(named)
+
+
 def profession_summary(hub):
     me = hub.characters.playing() or {}
     books, trainers = me.get("recipes") or {}, me.get("profTrainers") or {}
@@ -606,6 +644,12 @@ def glow_index(hub):
 def spawn_finder(hub, side=None):
     index = glow_index(hub)
     return lambda kind, oid: index.world_spawns(kind, oid, side)
+
+
+def zone_sides(hub):
+    own = {int(mapzones.MAPS[m]["area"]): kind for m, kind in (getattr(hub, "zone_pvp", None) or {}).items()
+           if kind in ("Alliance", "Horde") and m in mapzones.MAPS and mapzones.MAPS[m].get("area")}
+    return own.get
 
 
 SPAWN_POINTS_REACH = 2500.0
@@ -685,7 +729,8 @@ def escort_of(hub, steps, st):
         return None
     walks = [e for e in hub.world.escorts.get(who, ()) if e["map"] == at[0]
              and math.hypot(e["pts"][0][0] - at[1], e["pts"][0][1] - at[2]) <= ESCORT_NEAR]
-    return min(walks, key=lambda e: math.hypot(e["pts"][0][0] - at[1], e["pts"][0][1] - at[2])) if walks else None
+    walk = min(walks, key=lambda e: math.hypot(e["pts"][0][0] - at[1], e["pts"][0][1] - at[2])) if walks else None
+    return walk and {**walk, "who": who}
 
 
 TALK_KINDS = ("pickup", "turnin", "errand")
@@ -857,6 +902,7 @@ def walk_escorts(hub, steps):
         if walk:
             st["escort"], st["escortNpc"] = walk["pts"], walk["entry"]
             st["at"] = list(walk["pts"][-1])
+            stepwords.said(st, stepwords.escort(walk["who"]))
     return steps
 
 
@@ -962,9 +1008,27 @@ def camp_heights(hub, inst, spawns, mobs):
     return [(n, w, z) for (n, w), z in zip(spots, best)]
 
 
+def epic_started(hub, key):
+    sh = getattr(hub, "shared", None)
+    epic = sh.epic_of(key, playing_char(hub) if sh.profs else None)[0] if sh else None
+    return epic or {}
+
+
 def epic_close(hub, key):
-    epic = ((hub.shared.data or {}).get("epic") or {}) if getattr(hub, "shared", None) else {}
-    return bool(epic.get("close")) if epic.get("key") == key else False
+    return bool(epic_started(hub, key).get("close"))
+
+
+def quest_levels_of(key, ranges):
+    out = []
+    for r in ranges or ():
+        if not isinstance(r, (list, tuple)) or len(r) != 2:
+            raise TypeError(f"a level range: {r!r}")
+        out.append((int(r[0]), None if r[1] is None else int(r[1])))
+    return tuple(sorted(out, key=lambda r: r[0])) if key.startswith("zone:") else ()
+
+
+def in_levels(level, ranges):
+    return any(lo <= level and (hi is None or level <= hi) for lo, hi in ranges)
 
 
 def game_unknown(hub):
@@ -988,9 +1052,48 @@ def objectives_unknown(hub):
     return None
 
 
-def build_epic(hub, key, anchor, parked=(), close=None):
+def asked_epic(hub, key, anchor, parked=(), close=None, quest_levels=None):
+    return (None if parked else written_epic(hub, key, anchor, close, quest_levels)) \
+        or build_epic(hub, key, anchor, parked=parked, close=close, quest_levels=quest_levels)
+
+
+def written_epic(hub, key, anchor, close=None, quest_levels=None):
+    sh = getattr(hub, "shared", None)
+    data = (sh.data or {}) if sh else {}
+    epic = data.get("epic") or {}
+    if epic.get("key") != key or epic.get("closed") or not same_char(epic.get("char"), playing_char(hub)):
+        return None
+    spot = lambda a: [a[0], *(round(float(v), 1) for v in a[1:3])] if a else None
+    if spot(anchor) != spot(epic.get("anchor")):
+        return None
+    if close is not None and bool(close) != bool(epic.get("close")):
+        return None
+    levels = lambda rs: [list(r) for r in rs or ()]
+    if quest_levels is not None and levels(quest_levels) != levels(epic.get("questLevels")):
+        return None
+    done, log = quest_state(hub)
+    names = {}
+    for s in epic.get("steps") or ():
+        for i in s.get("ids") or ():
+            names.setdefault(i, s.get("name"))
+    out = {"key": key, "name": epic.get("name"), "written": data.get("version"),
+           "steps": [page_step(s) for s in epic.get("steps") or () if not step_done(s, done, log)],
+           "quests": [{"id": i, "name": n, "state": quest_progress(i, done, log)} for i, n in names.items()],
+           "later": [{**m, "missing": True} for m in epic.get("missing") or ()]
+           + [{"id": q["id"], "name": q["name"], "skill": [q["line"], q["need"]], "skillName": q.get("skill"), "inLog": True}
+              for q in epic.get("skillShort") or ()],
+           "next": epic.get("next"), "questLevels": epic.get("questLevels"), **epic_notes(epic)}
+    made = craft_tree(hub, key, anchor, running=True) if craft_item(key) is not None or prof_line(key) is not None else None
+    if made:
+        out["craft"], out["materials"] = made, material_rows(made)
+        if "route" in made:
+            out["route"] = made["route"]
+    return out
+
+
+def build_epic(hub, key, anchor, parked=(), close=None, quest_levels=None):
     try:
-        sig = built_sig(hub, key, anchor, parked, close)
+        sig = built_sig(hub, key, anchor, parked, close, quest_levels)
     except Exception:
         log_error("an epic's signature")
         sig = None
@@ -999,16 +1102,16 @@ def build_epic(hub, key, anchor, parked=(), close=None):
         return copy.deepcopy(hit[1])
     shared = getattr(hub, "shared", None)
     if not hasattr(shared, "plan_report") or getattr(shared, "working", None) == key or planreport.reporting_now():
-        return worked_epic(hub, key, anchor, parked, close, sig)
+        return worked_epic(hub, key, anchor, parked, close, sig, quest_levels)
     with planreport.reporting(lambda *said: shared.plan_report(key, *said)):
         try:
-            return worked_epic(hub, key, anchor, parked, close, sig)
+            return worked_epic(hub, key, anchor, parked, close, sig, quest_levels)
         finally:
             shared.plan_done(key)
 
 
-def worked_epic(hub, key, anchor, parked, close, sig):
-    epic = plan_epic(hub, key, anchor, parked, close)
+def worked_epic(hub, key, anchor, parked, close, sig, quest_levels=None):
+    epic = plan_epic(hub, key, anchor, parked, close, quest_levels=quest_levels)
     if epic is not None and not epic.get("waiting"):
         epic = dress_epic(hub, key, epic, anchor or here_now(hub))
     if sig and epic is not None and not epic.get("waiting"):
@@ -1023,10 +1126,11 @@ BUILT_KEPT = 8
 _built = {}
 
 
-def built_sig(hub, key, anchor, parked, close):
+def built_sig(hub, key, anchor, parked, close, quest_levels=None):
     s = hub.state or {}
     done, log = quest_state(hub)
-    facts = [key, list(anchor) if anchor else None, sorted(parked or ()), close, craft_kept(hub, key).get("craft"),
+    facts = [key, list(anchor) if anchor else None, sorted(parked or ()), close,
+             None if quest_levels is None else [list(r) for r in quest_levels], craft_kept(hub, key).get("craft"),
              epic_inputs(hub, done, log), who_now(hub), s.get("level"), s.get("xp"), s.get("rested"),
              (hub.extra or {}).get("auras"), None if anchor else here_now(hub), hub.characters.current,
              hub.characters.max_level(), ticks.game_facts(hub), getattr(hub, "data_version", 0)]
@@ -1121,8 +1225,8 @@ def promote_along(steps):
 seg_yards = line_reach
 
 
-def plan_epic(hub, key, anchor, parked=(), close=None, kept=None):
-    epic = plan_quests(hub, key, anchor, parked, close, kept)
+def plan_epic(hub, key, anchor, parked=(), close=None, kept=None, quest_levels=None):
+    epic = plan_quests(hub, key, anchor, parked, close, kept, quest_levels)
     if epic and not epic.get("waiting"):
         if key.startswith("zone:"):
             epic["steps"] = class_trips(hub, epic["steps"], anchor or here_now(hub), parked, close)
@@ -1174,6 +1278,37 @@ def mob_levels(hub):
         m = hub.world.mobs.get(str(npc))
         return (m[1] + m[2]) / 2 if m else None
     return mob_level
+
+
+def mob_ranks(hub):
+    def mob_rank(npc):
+        m = hub.world.mobs.get(str(npc))
+        return m[3] if m else None
+    return mob_rank
+
+
+GUARD_REACH = 60.0
+
+
+def guards_near(hub):
+    rows = None
+
+    def near(spots):
+        nonlocal rows
+        if rows is None:
+            mobs, at = hub.world.mobs, hub.world.mob_spots()
+            rows = np.array([(s[2], s[0], s[1], m[6]) for k, m in mobs.items() if m[3] in ELITE_RANKS
+                             for s, _ in at.get(k) or ()], float).reshape(-1, 4)
+        found = set()
+        for map_id, x, y in spots:
+            w = world_pos(map_id, x / 100, y / 100)
+            if not w or not len(rows):
+                continue
+            inst, north, west = w[0], w[1], w[2]
+            hit = (rows[:, 0] == inst) & (np.hypot(rows[:, 1] - north, rows[:, 2] - west) <= GUARD_REACH)
+            found |= {int(v) for v in rows[hit, 3]}
+        return found
+    return near
 
 
 def quest_opens(hub):
@@ -1267,12 +1402,14 @@ def log_entries(hub):
     return ql.get("entries") or []
 
 
-def plan_quests(hub, key, anchor, parked=(), close=None, kept=None):
+def plan_quests(hub, key, anchor, parked=(), close=None, kept=None, quest_levels=None):
     close = epic_close(hub, key) if close is None else close
+    quest_levels = quest_levels_of(key, epic_started(hub, key).get("questLevels") if quest_levels is None else quest_levels)
     waiting = planned_blind(hub) or objectives_unknown(hub)
     if waiting:
         return {"waiting": waiting}
-    return quest_epic(hub, key, anchor, parked, close, given_offers(hub, quest_state(hub)[0]), kept=kept)
+    return quest_epic(hub, key, anchor, parked, close, given_offers(hub, quest_state(hub)[0]), kept=kept,
+                      quest_levels=quest_levels)
 
 
 def bag_items(me):
@@ -1411,10 +1548,16 @@ def grind_first(steps):
     return steps
 
 
+def errand_kinds(key, main):
+    if prof_epic(key) and main and main != key:
+        return set()
+    return {"train"} if key.startswith(("log:", classtrip.KEY, f"{CRAFT_EPIC}:")) else None
+
+
 def dress_epic(hub, key, epic, at, chores=True, landed=False, leave=None):
     d = None if ":" in key else hub.dungeons.by_key.get(key)
-    only = planned_kinds({"train"} if key.startswith(("log:", classtrip.KEY, f"{CRAFT_EPIC}:")) else None,
-                         addon_chores(((hub.status or {}).get("nums") or {}).get("addonChores")))
+    main = (((getattr(hub, "shared", None) and hub.shared.data) or {}).get("epic") or {}).get("key")
+    only = planned_kinds(errand_kinds(key, main), addon_chores(((hub.status or {}).get("nums") or {}).get("addonChores")))
     step_coin(hub, epic["steps"])
     ways = plan_ways(hub) if chores else None
     shown = set()
@@ -1433,8 +1576,10 @@ def dress_epic(hub, key, epic, at, chores=True, landed=False, leave=None):
         planreport.report("chores")
         step_places(hub, epic["steps"], at)
         me = {**errand_state(hub), "game": ticks.game_facts(hub)}
-        notes = camp_chores(hub, key, epic, at, me) + prof_chores(hub, key, epic, at, me) + fish_chores(hub, key, epic, at, me) \
-            + craft_chores(hub, key, epic, at, me)
+        camp_chores(hub, key, epic, at, me)
+        notes = prof_chores(hub, key, epic, at, me)
+        fish_chores(hub, key, epic, at, me)
+        craft_chores(hub, key, epic, at, me)
         epic["steps"], more = errands_of(hub).plan(epic["steps"], None, me, at, only=only)
         epic["errandNotes"] = notes + more
         chores_shown()
@@ -1607,10 +1752,8 @@ def camp_chores(hub, key, epic, at, errand):
         steps, later = chores.plan(epic["steps"], epic.get("camp"), epic.get("later") or ())
         wall = chores.wall_step(steps)
         epic["steps"], epic["campLater"] = steps + ([wall] if wall else []), later
-        return chores.notes
-    if key.startswith(("zone:", "log:", classtrip.KEY)):
+    elif key.startswith(("zone:", "log:", classtrip.KEY)):
         epic["steps"] = camping.make_camp(epic["steps"], cd, me, errands_of(hub))
-    return []
 
 
 _prof_data = {"camp": None, "data": None}
@@ -1679,8 +1822,8 @@ def prof_chores(hub, key, epic, at, errand):
     pd, me, notes = prof_data(), prof_state(hub, errand.get("game"), money=errand.get("money")), []
     if line is not None:
         epic["steps"], epic["profChores"] = profepics.own_plan(epic["steps"], pd, me, errands_of(hub), at,
-                                                               profepics.status(pd, line, me), notes)
-        return notes
+                                                               profepics.status(pd, line, me))
+        return []
     statuses = [profepics.status(pd, pd.by_name[n], me) for n in riding if n in pd.by_name]
     epic["steps"], epic["profChores"] = profepics.ride_along(epic["steps"], pd, me, errands_of(hub), at, statuses, notes)
     return notes
@@ -1688,11 +1831,10 @@ def prof_chores(hub, key, epic, at, errand):
 
 def fish_chores(hub, key, epic, at, errand):
     line, riding = prof_epics_in(hub, key)
-    pd, me, notes = prof_data(), prof_state(hub, errand.get("game"), money=errand.get("money")), []
+    pd, me = prof_data(), prof_state(hub, errand.get("game"), money=errand.get("money"))
     fish = pd.by_name.get(profepics.FISHING)
     fishing = profepics.status(pd, fish, me) if fish is not None and (line == fish or profepics.FISHING in riding) else None
-    epic["steps"] = profepics.fish_gear(epic["steps"], pd, me, errands_of(hub), at, fishing, own=line == fish, notes=notes)
-    return notes
+    epic["steps"] = profepics.fish_gear(epic["steps"], pd, me, errands_of(hub), at, fishing, own=line == fish)
 
 
 def prof_inputs(hub):
@@ -1835,8 +1977,10 @@ def epic_label(hub, key):
     if prof_line(key) is not None:
         name = prof_data().cd.names.get(prof_line(key))
         return name and f"{name} epic"
-    if kind in (ITEM_EPIC, CRAFT_EPIC):
+    if kind == ITEM_EPIC:
         return item_name(int(rest)) if rest.isdigit() else None
+    if kind == CRAFT_EPIC:
+        return item_name(craft_item(key)) if craft_item(key) is not None else None
     return "Your quests" if kind == "log" else None
 
 
@@ -1845,14 +1989,21 @@ ITEM_EPIC = "item"
 CRAFT_EPIC = "craft"
 
 
-def craft_item(key):
+def craft_of(key):
     kind, _, rest = key.partition(":")
-    return int(rest) if kind == CRAFT_EPIC and rest.isdigit() else None
+    item, _, way = rest.partition(":")
+    if kind != CRAFT_EPIC or not item.isdigit() or way and way not in crafting.MODES:
+        return None
+    return int(item), way or None
+
+
+def craft_item(key):
+    got = craft_of(key)
+    return got and got[0]
 
 
 def craft_kept(hub, key):
-    epic = hub.shared.epic_of(key, playing_char(hub))[0] if getattr(hub, "shared", None) else None
-    return epic or {}
+    return epic_started(hub, key)
 
 
 def craft_tree(hub, key, anchor, picks=None, running=False):
@@ -1864,21 +2015,37 @@ def craft_tree(hub, key, anchor, picks=None, running=False):
     kept = table.get("craft") or {}
     picks = kept.get("picks") if picks is None else picks
     carry = hub.characters.bags_now() or {}
+    seen = hub.characters.game_said()[2] or {}
+    bank = seen.get("items")
     start = table.get("anchor") or anchor
     here = tuple(start[:3]) if start else here_now(hub)
-    pd = prof_data()
+    pd, me = prof_data(), prof_state(hub)
     src = crafting.Sources(itemsources.lookup(hub), pd, known=spells_of(me_record(hub)) or (), here=here,
-                           quest_seconds=lambda i, q: quest_seconds(hub, i, here), talk=STEP_TALK)
+                           quest_seconds=lambda i, q: quest_seconds(hub, i, here), talk=STEP_TALK, me=me)
     if level:
         line, to, way = level
-        up = crafting.levelling(pd, src, prof_state(hub), line, to, way, picks)
-        made = crafting.materials(up["goals"], carry, src, picks, way)
-        return {**made, "walls": up["walls"], "route": up["route"], "line": line, "to": to, "way": way}
+        up = crafting.levelling(pd, src, me, line, to, way, picks)
+        goals, ups = crafting.skill_ups(pd, src, me, up["goals"], carry, picks, way, bank)
+        made = crafting.materials(goals, carry, src, picks, way, bank)
+        tree_finds(hub, made, pd)
+        return {**made, "walls": up["walls"], "route": ups + up["route"], "line": line, "to": to, "way": way,
+                "bankAt": seen.get("at")}
     have = carry.get(item, 0)
     total = kept["total"] if kept.get("total") and (running or kept["total"] > have) else have + 1
-    up = crafting.craft_goals(pd, src, prof_state(hub), item, total, carry, picks)
-    made = crafting.materials(up["goals"], carry, src, picks)
-    return {**made, "walls": up["walls"], "route": up["route"], "item": item, "total": total}
+    way = craft_of(key)[1] or crafting.BOTH
+    up = crafting.craft_goals(pd, src, me, item, total, carry, picks, way)
+    goals, ups = crafting.skill_ups(pd, src, me, up["goals"], carry, picks, way, bank)
+    made = crafting.materials(goals, carry, src, picks, way, bank)
+    tree_finds(hub, made, pd)
+    return {**made, "walls": up["walls"], "route": ups + up["route"], "item": item, "total": total, "way": way,
+            "bankAt": seen.get("at")}
+
+
+def tree_finds(hub, made, pd):
+    if not planreport.reporting_now():
+        return
+    bank = hub.characters.game_said()[2]
+    planreport.report(finds=planreport.material_finds(made["rows"], pd.cd.item, (bank or {}).get("items")))
 
 
 def quested_for(made):
@@ -1901,38 +2068,65 @@ def carried_now(hub, epic):
     bags = chars.bags_now() if epic and hasattr(chars, "bags_now") else None
     if bags is None:
         return epic
-    made = epic.get("craft")
-    if made and made.get("rows") and epic.get("materials"):
-        total = {}
-        for r in made["rows"]:
-            if r["kind"] != "goal" and not r.get("level"):
-                total[r["item"]] = total.get(r["item"], 0) + r["need"]
+    if epic.get("materials"):
         rows = []
+        bank = (chars.game_said()[2] or {}).get("items") or {} if hasattr(chars, "game_said") else {}
         for r in epic["materials"]:
-            need, have = total.get(r["item"], r["need"]), bags.get(r["item"], 0)
+            banked = min(r.get("banked") or 0, bank.get(r["item"], 0))
+            need, have = r.get("total", r["need"]), bags.get(r["item"], 0) + banked
             if have >= need:
                 continue
             cost = int(round(r["cost"] * (need - have) / r["short"])) if r["short"] else r["cost"]
-            rows.append({**r, "need": need, "have": have, "short": need - have, "cost": cost})
+            rows.append({**{k: v for k, v in r.items() if k != "banked"}, "need": need, "have": have, "short": need - have,
+                         "cost": cost, **({"banked": banked} if banked else {})})
         epic["materials"] = rows
     name = prof_data().cd.item_name
     for s in epic.get("steps") or ():
+        rows = step_progress(s, bags, name)
+        if rows:
+            s["objs"] = rows
         if s.get("what") != "supplies":
             continue
-        left = [(name(int(i)), int(n) - bags.get(int(i), 0)) for i, n in (s.get("need") or {}).get("items") or ()
-                if int(n) > bags.get(int(i), 0)]
+        need, key = s.get("need") or {}, str(s.get("key") or "")
+        sell = camping.SELL_KEY in key
+        left = ([(name(int(e[0])), bags.get(int(e[0]), 0) - int(e[1])) for e in need.get("most") or ()
+                 if bags.get(int(e[0]), 0) > int(e[1])] if sell else
+                [(name(int(i)), int(n) - bags.get(int(i), 0)) for i, n in need.get("items") or () if int(n) > bags.get(int(i), 0)])
         if left:
-            auction = str(s.get("key") or "").endswith(":auction")
-            s["text"] = camping.buy_line(left, None if auction else s.get("npc"))
+            auction = ":auction" in key
+            s["text"] = camping.buy_line(left, None if auction else s.get("npc"), key.endswith(camping.BANK_KEY), sell, s.get("seen"))
             if "questName" in s:
                 s["questName"] = s["text"]
     return epic
+
+
+def step_progress(s, bags, name):
+    if s.get("what") not in ("supplies", "farm", "craft"):
+        return []
+    need = s.get("need") or {}
+    sell = s.get("what") == "supplies" and camping.SELL_KEY in str(s.get("key") or "")
+    rows = need.get("most") if sell else [s["made"]] if s.get("what") == "craft" and s.get("made") else need.get("items")
+    out = []
+    for e in rows or ():
+        item, mark, have = int(e[0]), int(e[1]) if len(e) > 1 else 0 if sell else 1, bags.get(int(e[0]), 0)
+        done, total = min(have, mark), mark
+        if len(e) > 2:
+            n = int(e[2])
+            done, total = n - max(0, min(n, have - mark if sell else mark - have)), n
+        out.append({"text": s.get("target") if s.get("what") == "farm" and s.get("target") else name(item),
+                    "done": done, "need": total, "finished": done >= total})
+    return out
 
 
 def material_rows(made):
     import market
     table = item_table()
     out, rows, merged = [], made["rows"], {}
+    total, banked = {}, {}
+    for r in rows:
+        if r["kind"] != "goal" and not r.get("level"):
+            total[r["item"]] = total.get(r["item"], 0) + r["need"]
+            banked[r["item"]] = banked.get(r["item"], 0) + (r.get("banked") or 0)
     for r in rows:
         if r["kind"] == "goal" or not r["short"]:
             continue
@@ -1954,6 +2148,8 @@ def material_rows(made):
         out.append({"item": r["item"], "name": r["name"], "q": row[1] if len(row) > 1 else 1,
                     "icon": icon or "inv_misc_questionmark", "iconStored": bool(icon) and market.icon_stored(icon),
                     "kind": r["kind"], "depth": r["depth"], "need": r["need"], "have": r["have"], "short": r["short"],
+                    "total": total.get(r["item"], r["need"]),
+                    **({"banked": banked[r["item"]]} if banked.get(r["item"]) else {}),
                     "pick": r["pick"], "cost": r["cost"], "vendor": vendor, "quest": quest,
                     "zone": (mapzones.MAPS.get(str(spot.get("map"))) or {}).get("name") if spot else None,
                     "keys": {"grind": "grind" if ways.get("grind") else "gather" if ways.get("gather") else None, "quest": quest,
@@ -1965,13 +2161,11 @@ def material_rows(made):
 def craft_chores(hub, key, epic, at, errand):
     made, item = epic.get("craft"), craft_item(key)
     if not made or item is None and prof_line(key) is None:
-        return []
+        return
     pd, me = prof_data(), prof_state(hub, errand.get("game"), money=errand.get("money"))
     chores = profepics.Chores(pd, me, errands_of(hub), at, own=True)
-    own, label = ((key, made["rows"][made["goals"][-1]]["name"]) if item is not None
-                  else (profepics.epic_key(made["line"]), pd.cd.names.get(made["line"], "")))
-    epic["steps"] = crafting.chores(epic["steps"], made, chores, pd, me, own, label)
-    return chores.notes
+    own = key if item is not None else profepics.epic_key(made["line"])
+    epic["steps"] = crafting.chores(epic["steps"], made, chores, pd, me, own)
 
 
 def item_quest(hub, rest):
@@ -1989,7 +2183,7 @@ def flight_model(hub):
                                    hub.routes.fly)
 
 
-def quest_epic(hub, key, anchor, parked=(), close=False, offered=(), at_level=None, quests=None, kept=None):
+def quest_epic(hub, key, anchor, parked=(), close=False, offered=(), at_level=None, quests=None, kept=None, quest_levels=()):
     b = questplan.book()
     kind, _, rest = key.partition(":")
     d = None if ":" in key else hub.dungeons.by_key.get(key)
@@ -2001,6 +2195,10 @@ def quest_epic(hub, key, anchor, parked=(), close=False, offered=(), at_level=No
         if not z:
             return None
         wanted, name, follow, band = z["quests"], f"{z['name']} quest epic", False, hub.zone_levels.get(rest)
+        if quest_levels:
+            wanted = [i for i in wanted if in_levels((b.quests.get(i) or {}).get("level") or 1, quest_levels)]
+            if not wanted:
+                return None
     elif kind == "log":
         wanted = [int(x) for x in rest.split(".") if x.isdigit()]
         if not wanted:
@@ -2084,14 +2282,16 @@ def quest_epic(hub, key, anchor, parked=(), close=False, offered=(), at_level=No
         level_now, xp_now = at_level, 0
     plan = questplan.QuestPlan(key, name, wanted, b, to_world, level_now, xp_now,
                                side, race, st.get("classId"), skills, done, log, anchor, parked, faces=hub.dungeons,
-                               follow=follow, kill_xp=measured, mob_level=mob_level, bags=bags, dungeon_of=dungeon_of,
-                               band=band, travel=travel, ways=plan_ways(hub), seconds=run_seconds(hub),
+                               follow=follow, kill_xp=measured, mob_level=mob_level, mob_rank=mob_ranks(hub),
+                               guards_near=guards_near(hub), bags=bags,
+                               dungeon_of=dungeon_of, band=band, travel=travel, ways=plan_ways(hub), seconds=run_seconds(hub),
                                close=close, objectives=objectives, levels=log_levels(hub),
                                pois=hub.questpois.world(lambda m, x, y: world_pos(m, x / 100, y / 100)),
                                spawns_of=spawn_finder(hub, side), danger_of=camp_danger(hub, side), counts=hub.questpois.counts(),
-                               rested=s.get("rested") or 0, inside={d.get("instance") for d in hub.dungeons.list},
+                               zone_side=zone_sides(hub), rested=s.get("rested") or 0, inside={d.get("instance") for d in hub.dungeons.list},
                                cap=cap, offered=offered, with_gets=questitems.adder(glow_index(hub), bags, side, hub.world.mobs),
                                found_in=found_inside(hub), spells=spells, kept=kept or (),
+                               towns=hearth.towns(hub.routes.data.get("inns", ())),
                                heights_of=lambda inst, spots, mobs: camp_heights(hub, inst, spots, mobs),
                                log_most=(st.get("nums") or {}).get("questsMax"),
                                closed={k: (hub.dungeons.by_key.get(k) or {}).get("name") or k
@@ -2119,6 +2319,8 @@ def quest_epic(hub, key, anchor, parked=(), close=False, offered=(), at_level=No
     if plan and kind == "camp":
         plan["camp"] = area and {"zone": area["zone"], "camper": area["camper"], "at": list(area["at"]),
                               "enders": area["enders"]}
+    if plan and kind == "zone" and quest_levels:
+        plan["questLevels"] = [list(r) for r in quest_levels]
     return plan
 
 
@@ -2129,6 +2331,7 @@ def camp_opens():
 def quest_zones(hub):
     b = questplan.book()
     st = hub.status or {}
+    level = (hub.state or {}).get("level") or 1
     me = me_record(hub)
     side, cls = (st.get("strs") or {}).get("faction", ""), st.get("classId")
     race = races.bit_of(me.get("race"), side)
@@ -2139,7 +2342,7 @@ def quest_zones(hub):
         band = hub.zone_levels.get(str(mid))
         mine = [i for i in z["quests"] if not questplan.open_to(b.quests[i], side, race, cls, in_log=i in log, cap=cap,
                                                                 spells=None if i in done else spells)
-                and (i in log or questplan.in_band(b.quests[i], band))]
+                and (i in log or questplan.in_band(b.quests[i], band, level))]
         if mine:
             out.append({"id": mid, "name": z["name"], "quests": len(mine), "done": sum(1 for i in mine if i in done),
                         "missing": sum(1 for i in mine if if_offered(b.quests[i]) and i not in done)})
@@ -2245,28 +2448,30 @@ def side_lines(hub):
     return {s.get("line") for s in (sh.profs if sh else ()) if not s.get("closed") and same_char(s.get("char"), me)}
 
 
-def start_fresh(hub, key, anchor, mode, close=False, parked=(), asked=None, side=False):
+def start_fresh(hub, key, anchor, mode, close=False, parked=(), asked=None, side=False, quest_levels=()):
     if side and not prof_epic(key):
         return None
-    epic = build_epic(hub, key, anchor, parked=parked, close=close)
+    epic = build_epic(hub, key, anchor, parked=parked, close=close, quest_levels=quest_levels)
     if epic is None or epic.get("waiting"):
         return epic and False
     place = side_of(key, epic) if side else None
     if side and place is None:
         return None
     if place:
-        room, running = hub.shared.side_room(playing_char(hub), place["line"])
+        room, running = hub.shared.side_room(playing_char(hub), key)
         if not room:
             raise NoRoom(*running)
     meta = {"name": epic_label(hub, key), "char": playing_char(hub),
             "side": place,
             "close": bool(close) or None,
+            "questLevels": epic.get("questLevels"),
             "anchor": list(anchor) if anchor else None, "mode": mode,
             "fresh": True, "start": True,
             "parked": sorted(parked) or None,
             "maybe": epic.get("maybe"),
             "next": epic.get("next"),
             "asked": asked,
+            "materials": epic.get("materials"), "route": epic.get("route"),
             "craft": {**({"total": epic["craft"]["total"]} if epic["craft"].get("total") else {}),
                       "picks": craft_picks(epic["craft"])} if epic.get("craft") else None,
             "aside": aside_of(hub, key),
@@ -2297,7 +2502,7 @@ def replan_asked(hub, asked):
         return start_fresh(hub, key, here, mode, close, asked="game")
     if asked.get("mode") == "here" and epic.get("key"):
         parked = {int(q) for q in ((hub.extra or {}).get("epic") or {}).get("parked") or ()}
-        return start_fresh(hub, epic["key"], here, mode, close, parked, asked="game")
+        return start_fresh(hub, epic["key"], here, mode, close, parked, asked="game", quest_levels=epic.get("questLevels") or ())
     return None
 
 
@@ -2305,9 +2510,8 @@ def epic_stop_or_start(hub, report):
     sh = hub.shared
     if not sh:
         return
-    data, v = sh.data or {}, report.get("version")
-    epic = ((data if v == data.get("version") else sh.history.get(v)) or {}).get("epic")
-    if data.get("epic") and epic and (report.get("stopped") or report.get("running")):
+    epic = sh.written(report.get("version"))
+    if (sh.data or {}).get("epic") and epic and (report.get("stopped") or report.get("running")):
         sh.game_guide(epic["key"], bool(report.get("running")))
 
 
@@ -2316,10 +2520,9 @@ def side_stop_or_start(hub, sides):
     if not sh:
         return
     me = playing_char(hub)
-    written = {s.get("written"): s for s in sh.profs if same_char(s.get("char"), me)}
     for side in sides:
-        epic = written.get(side["version"])
-        if epic and (side["running"] or side["closed"]):
+        epic = sh.written(side["version"])
+        if epic and same_char(epic.get("char"), me) and (side["running"] or side["closed"]):
             sh.game_guide(epic["key"], side["running"], char=me)
 
 
@@ -2471,15 +2674,19 @@ def epic_context(hub):
     return {"me": playing_char(hub), "here": here_now(hub), "inside": bool(flags.get("instance")),
             "flying": bool(flags.get("taxi")), "dead": bool(flags.get("dead") or flags.get("ghost")),
             "live": hub.extra.get("epic"), "loaded": nums.get("sharedVersion"), "done": done, "log": log,
+            "sides": (hub.extra.get("sides") or {}).get("sides") or [],
             "clocks": [e["id"] for e in log_entries(hub) if e.get("id") is not None and e.get("ends")],
-            "inputs": epic_inputs(hub, done, log), "facts": facts,
+            "inputs": epic_inputs(hub, done, log), "inputs_of": lambda steps: epic_inputs(hub, done, log, steps),
+            "facts": facts,
             "errand": {**errand_state(hub), "game": facts},
             "who": who_now(hub),
             "worn": worn_text(hub),
             "built": fill.state().get("counts") if fill else None}
 
 
-def epic_inputs(hub, done, log):
+def epic_inputs(hub, done, log, steps=None):
+    if steps is None:
+        steps = ((getattr(getattr(hub, "shared", None), "data", None) or {}).get("epic") or {}).get("steps")
     chores = {k: v for k, v in errand_state(hub).items() if k != "schedule"}
     me = hub.characters.playing() or {}
     items = (me.get("bags") or {}).get("items") or {}
@@ -2490,8 +2697,7 @@ def epic_inputs(hub, done, log):
              hub.characters.travel_speed(), len(getattr(hub, "zone_levels", None) or {}), game_unknown(hub), objectives_unknown(hub),
              getattr(getattr(hub, "offers", None), "version", 0),
              prof_inputs(hub),
-             ticks.inputs(hub, named=ticks.named_items(((getattr(getattr(hub, "shared", None), "data", None) or {}).get("epic")
-                                                        or {}).get("steps"))),
+             ticks.inputs(hub, named=ticks.named_items(steps)),
              camp_skipped(hub) is not None]
     return json.dumps(facts, sort_keys=True, default=lambda o: sorted(map(repr, o)) if isinstance(o, (set, frozenset)) else repr(o))
 
