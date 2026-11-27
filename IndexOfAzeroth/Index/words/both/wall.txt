@@ -1,0 +1,16 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: level, skill, rank, step
+
+level = Grind to {level} now
+skill = Raise {skill} to {rank} now
+
+instead = Quest instead
+instead.tip = The guide leads the quests in your quest log that wait for a higher level. Some of them are above your level. {step} still waits for level {level} and leads again when you reach it.
+instead.tip.skill = The guide leads the quests in your quest log that wait for a higher level. Some of them are above your level. {step} still waits until you raise {skill} to {rank} and leads again when you reach it.
+questing = Questing until level {level}
+questing.skill = Questing until you raise {skill} to {rank}
+questing.detail = You chose to quest instead of grinding to level {level}. Grind instead takes you back to the grind.
+questing.detail.skill = You chose to quest instead of grinding until you raise {skill} to {rank}. Grind instead takes you back to the grind.
+grind = Grind instead
+grind.tip = The guide stops leading the quests in your quest log and shows the grind to level {level} again.
+grind.tip.skill = The guide stops leading the quests in your quest log and shows the grind until you raise {skill} to {rank} again.

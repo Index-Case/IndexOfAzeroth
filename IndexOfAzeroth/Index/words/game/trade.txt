@@ -1,0 +1,87 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: item, n, done, price, limit, total, coins, duration, hours, q, call, id, lowest, at, floor, have
+
+title = Shopping list
+close = Close
+
+head.closed = Open the auction house to use the keys.
+head.left = {n} steps left.
+head.left.one = 1 step left.
+head.done = Every step on the list is done.
+
+step.buy = Buy {n} {item}
+step.buy.part = Buy {n} more {item} ({done} bought)
+step.post = Post {n} {item}
+step.post.part = Post {n} more {item} ({done} posted)
+step.cancel = Cancel {n} {item}
+step.vendor = Sell {n} {item} to a vendor
+step.bought = Bought {n} {item}
+step.posted = Posted {n} {item}
+
+detail.buy = Up to {limit} each
+detail.buy.hours = Up to {limit} each, looking for the item for the next {hours} hours
+detail.post = At {price} each for {duration}
+detail.cancel = The auction at {price} each
+detail.vendor = At {price} each from any vendor
+
+duration.1 = the short duration
+duration.2 = the medium duration
+duration.3 = the long duration
+
+item.loading = Item {id}
+item.variant = {item} (a specific variant)
+
+key.search = Search
+key.buy = Buy
+key.confirm = Confirm
+key.post = Post
+key.cancel = Cancel
+key.match = Match
+key.undercut = Undercut
+
+note.search-first = Search to see what the auction house asks now.
+note.searching = Searching the auction house.
+note.found = Lowest buyout {price} each. {n} at or under the limit.
+note.found.one = Lowest buyout {price} each. 1 at or under the limit.
+note.found.none = Nothing is at or under the limit now. The lowest buyout is {price} each.
+note.found.empty = The auction house has none of this item now.
+note.cheapest = Lowest buyout {price} each.
+note.asking = Asking the auction house for the price of {n}.
+note.quoted = The auction house asks {total} for {n}. Click Confirm to buy them.
+note.refused = The price went up since the search. The auction house asked {total} for {n}, and nothing was bought. Search again for the new prices.
+note.no-price = The auction house gave no price for this item, and nothing was bought.
+note.buying = Buying.
+note.bought = Bought {n}.
+note.buy-failed = The buy didn't go through, and nothing was bought.
+note.stack-big = The lowest buyout at or under the limit is for {q} units, more than the {n} units left on this step.
+note.no-bags = None of this item is in your bags.
+note.status-unknown = The game hasn't said yet how this item is listed. Try again in a moment.
+note.stacked = Post this item by hand in the auction house. The add-on posts this kind of item only from a bag slot that holds a single unit.
+note.deposit = Deposit {coins}.
+note.posting = Posting.
+note.posted = Posted {n}.
+note.post-failed = The post didn't go through.
+note.cancel = Cancel this auction by hand in the auction house's Auctions tab.
+note.vendor = Every vendor pays this price, and the price does not change with the market.
+note.missing = Do this step by hand in the auction house. This game client gives add-ons no {call}.
+note.busy = The auction house is still answering the last request. Try again in a moment.
+note.done = Done.
+
+note.counted = This recommendation counted on {n} at or under the limit. Only {have} are there now.
+note.counted.gone = This recommendation counted on {n} at or under the limit.
+note.counted.gone.one = This recommendation counted on 1 at or under the limit.
+note.scanned.minutes = It rests on a scan from {n} minutes ago.
+note.scanned.minutes.one = It rests on a scan from 1 minute ago.
+note.scanned.hours = It rests on a scan from {n} hours ago.
+note.scanned.hours.one = It rests on a scan from 1 hour ago.
+
+note.search-post = Search first to see the lowest buyout before you post.
+note.lower = The lowest buyout is now {lowest} each, under your price of {price}. Post keeps your price.
+note.lower.match = Match posts at {at} each, the same as the lowest buyout.
+note.lower.undercut = Undercut posts at {at} each, a copper under the lowest buyout.
+note.lower.floor = The lowest buyout is now {lowest} each, under {floor}, the least this post should take. Under {floor} a vendor pays you more than the auction house. Post keeps your price of {price}, or you can leave this step.
+
+paste.bad = The add-on couldn't read this shopping list's line. Copy it from the page again and paste it.
+paste.format = This shopping list's line is newer than the add-on in game. Type /reload, then paste the line again.
+paste.none = No shopping list has been pasted yet. Copy the shopping list's line on the page and paste it here.
+restart = Restart the game once to load the shopping list.

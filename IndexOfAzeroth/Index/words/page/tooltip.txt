@@ -1,0 +1,14 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: rank, most, names
+
+none = No tooltip is known for this
+missing = The tooltip isn't stored yet
+rank = Rank {rank}/{most}
+rank.next = Next Rank:
+sum.unknown = ?
+sum.unknown.why = A number marked ? depends on your stats, which the game hasn't given the Index yet.
+equipped = Equipped
+classic = This is Classic data, because the game's tables don't hold this item
+compare = Hold Ctrl to compare with {names}
+compare.worn = what's worn
+compare.and = and

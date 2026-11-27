@@ -1,0 +1,10 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = Next upgrades
+ranking = Ranking
+ranking.p1 = Next upgrades lists the best upgrades from the dungeons, or from the raids. Clear upgrades come first, then weak upgrades and then debatable upgrades, and among upgrades of the same kind the ones that are big and easy to get come first.
+rare = Rare drops
+rare.p1 = <b>Rare</b> marks a drop from a rare mob, which is not there on every run. Where it is known how often the rare is up, the mark shows it, such as <b>Rare, up about 1 run in 5</b>.
+where = Where to run
+where.p1 = Where to run recommends a dungeon for gear only for upgrades a run there can be counted on to give. A dungeon with nothing on the list is not recommended, and nor is one whose upgrades drop only from a rare or only very seldom. Such a dungeon can still be run.

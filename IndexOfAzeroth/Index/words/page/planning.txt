@@ -1,0 +1,43 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: after, stage, count, k, n, of
+
+head.lines = Lines
+head.marks = Steps
+line.kill = Kill mobs
+line.collect = Collect items
+line.use = Use an item
+line.talk = Talk, deliver or go somewhere
+line.handin = Walk to hand in
+line.chain = Next quest in a chain
+line.order = Order of the plan
+mark.pickup = Pick up a quest
+mark.turnin = Hand in a quest
+mark.objective = Kill
+mark.loot = Loot from mobs
+mark.grab = Pick up items
+mark.use = Use something
+mark.talk = Talk to someone
+mark.heal = Heal someone
+mark.event = Take part in an event
+mark.explore = Go to a place
+mark.escort = Escort someone
+mark.vendor = Buy from a vendor
+mark.pickpocket = Pick a pocket
+mark.dungeon = Run a dungeon
+mark.train = Train or learn
+mark.bank = Repair or sell
+mark.inn = Set your hearth
+mark.flight = Learn a flight path
+mark.camp = Make camp
+mark.warning = Steps for later
+tip.chain = This quest comes after {after} in its chain.
+stage.log = Your quest log
+stage.offers = Gathering quests
+stage.order = Ordering the stops
+stage.polish = Polishing the route
+stage.chores = Fitting in the errands
+stage.ways = Measuring the legs
+line = {stage}, {count}
+count.stop = stop {k} of {n}
+count.round = round {n} of {of}
+count.way = leg {k} of {n}

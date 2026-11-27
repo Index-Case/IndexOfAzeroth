@@ -1,0 +1,17 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = Financials
+intro.p1 = Financials shows where a character's money came from and where it went, and how much gold the character had on hand over time.
+scope = Scope and time
+scope.p1 = The keys at the top show one character or every character on the Alts panel together. The range keys set the time span for every panel. Dragging across a time chart sets a custom span.
+views = Chart, Diagram and Table
+views.p1 = Each panel switches between a chart, a diagram and a table. The table holds every value the chart shows.
+gaps = Days with no data
+gaps.p1 = A day the game reported no money is hatched and has no figure. Gold on hand is never drawn across such a day.
+causes = Sources
+causes.p1 = The add-on records the source of each change of money: grinding, loot, a party share, quests, vendors, repairs, training, flights, auctions, mail and trades.
+earners = Top income and expenses
+earners.p1 = Top income and expenses ranks the sources that brought in or took the most money. Repairs after a death, lost deposits, auction purchases resold at a loss and vendor sales under auction prices count as waste. Any source of expenses can be marked as waste in the table.
+unexplained = Unknown source
+unexplained.p1 = Money with no recorded source counts as Unknown source and shows grey and hatched. The Unknown source panel lists each such change with the windows that were open.

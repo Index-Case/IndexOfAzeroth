@@ -1,0 +1,10 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: n
+
+title = Damage meter
+close.tip = Close (Escape)
+loading = The Index is reading your fights.
+failed = The Index couldn't read your fights just now.
+empty = A dwarf with a tally stick is waiting for your first fight. He has sharpened the stick twice already.
+building = The Index is still reading your older fights: {n} days to go. The fights read so far are in the list.
+building.one = The Index is still reading your older fights: 1 day to go. The fights read so far are in the list.

@@ -1,0 +1,7 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: n
+
+seen = The add-on has seen {n} enemy players since you logged in.
+seen.one = The add-on has seen one enemy player since you logged in.
+waiting = The add-on still has {n} sightings to send to the Index.
+waiting.one = The add-on still has one sighting to send to the Index.

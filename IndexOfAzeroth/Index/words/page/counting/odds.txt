@@ -1,0 +1,96 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: ago, scans, days, gap, longest, n, needs, share, low, high, lo, hi, set, figure, error, state, sells, sellsof, sellscapped, one, oneof, onecapped, edge, span, came, gained, lost, net
+
+title = Prediction accuracy
+latest = replayed on the scans up to {ago}
+loading = The Index is reading the replay of past scans.
+summarising = The Index is still working through the scans of this auction house. The replay is made when the Index is done.
+none = No replay of the scans of this auction house is made yet. The replay is made after each full scan, once two full scans are worked out.
+none.flavour = The goblin with the abacus wants two scans before he says what one of them would have told him.
+
+intro = At every past scan, each figure was worked out again from that scan and the scans before it, then checked against the next scan. A 90% range should hold about 9 times in 10.
+density = The replay covers {scans} full scans over {days} days. The median gap between two scans is {gap}, and the longest gap is {longest}.
+measured = These chances are measured on past scans. They are no promise about the next scan.
+
+figure.price = Market price
+figure.sales = Sales per day
+set.all = All items
+set.high = High confidence
+set.medium = Medium confidence
+set.low = Low confidence
+
+verdict.holds = Holds
+verdict.holds.tip = The range held about 9 times in 10, as claimed.
+verdict.fails = Holds less often than claimed
+verdict.fails.tip = The range held less often than 9 times in 10, by more than chance explains. Read this range as too narrow.
+verdict.over = Holds more often than claimed
+verdict.over.tip = The range held more often than 9 times in 10. The range is wider than it needs to be.
+verdict.thin = Too few to say
+verdict.thin.tip = There are fewer than 50 checks, which is too few to say whether the range holds.
+
+chart.ranges = How often each 90% range held on past scans
+chart.ranges.key = Each bar is the share of checks where the next scan fell inside the range. A range that holds as claimed sits near 90%.
+legend.fails = Holds less often than claimed
+legend.rest = Holds as claimed, holds more often or too few to say
+legend.share = 90% range of the share
+chart.row = {figure}, {set}: held {share} of {n} checks ({low} to {high}).
+
+col.figure = Figure
+col.set = Items
+col.n = Checks
+col.n.tip = Predictions checked against the next scan.
+col.held = Range held
+col.held.tip = The share of checks where the next scan fell inside the 90% range shown.
+col.interval = 90% range of the share
+col.verdict = Verdict
+col.error = Median error
+col.error.tip = Half the checks missed by less than this figure, and half missed by more. For the market price, the miss is against the price of the next scan.
+cell.error.price = {error}
+cell.error.sales = {error} per day
+
+states = Market states at the next scan
+states.tip = A market state describes the price now against the 30 day average. Here each market state is checked against the next scan of the same item, for all items in that state, then separately for items shown as sure and items marked uncertain.
+state.sure = {state} (sure)
+col.state = Market state
+col.same = Same state at the next scan
+col.side = Same side of the 30 day average
+
+picks = Recommendations replayed on past scans
+picks.tip = At every past scan, the Index worked out the chance that one auction posted at the lowest buyout would sell, the same way the recommendations work it out. Where that scan is still kept whole, it also worked out each Buy recommendation as made then: the auctions bought and their relist at its price. Each chance was then checked against what the later scans judged sold at the listing's price or dearer. A check counts only where no two full scans during the listing were more than {edge} apart, which is the gap the sales pace is measured at. Listings under 1.05 times the lowest buyout are shown here. Dearer relists are checked apart, so a chance checked at the lowest buyout never rates them. In a band of the chance where the model's chance was off, or where the share sold on earlier scans came closer to what sold, the band shows that share. Every other band shows the model's chance. No band shows a higher chance than a band of a higher chance shows.
+picks.tip.any = At every past scan, the Index worked out the chance that one auction posted at the lowest buyout would sell, the same way the recommendations work it out. Where that scan is still kept whole, it also worked out each Buy recommendation as made then: the auctions bought and their relist at its price. Each chance was then checked against what the later scans judged sold at the listing's price or dearer. Listings under 1.05 times the lowest buyout are shown here. Dearer relists are checked apart, so a chance checked at the lowest buyout never rates them. In a band of the chance where the model's chance was off, or where the share sold on earlier scans came closer to what sold, the band shows that share. Every other band shows the model's chance. No band shows a higher chance than a band of a higher chance shows.
+picks.range = {low} to {high} times the lowest buyout
+picks.range.top = {low} times the lowest buyout and more
+picks.level = Relists at {span} are checked apart: {n} checked, {came} sold.
+picks.level.thin = Relists at {span} are not checked yet: {n} settled of the 50 needed, so the recommendations show the model's chance for them. Buy recommendations are replayed only on the last 40 scans, which the Index keeps whole.
+picks.flips = Buy recommendations replayed whole: {n} settled, {gained} made gold, {lost} lost gold, {net} in all.
+picks.use = For selling before the last listing ends, {sells} of {sellsof} bands of the chance show the share that sold on past scans, and {sellscapped} bands show the model's chance capped at the band above. For selling within one listing, {one} of {oneof} bands show the share that sold, and {onecapped} bands show the model's chance capped at the band above. The other bands show the model's chance.
+picks.key = Each dot is a group of replayed listings. Across is the chance, and up is the share that sold.
+picks.set.sells.before = Sold before the last listing ended, the model's chance
+picks.set.sells.after = Sold before the last listing ended, the corrected chance
+picks.set.sells.shown = Sold before the last listing ended, the chance the recommendations show
+picks.set.one.before = Sold within one listing, the model's chance
+picks.set.one.after = Sold within one listing, the corrected chance
+picks.set.one.shown = Sold within one listing, the chance the recommendations show
+picks.n.tip = Listings replayed and checked against the scans after them, each only where no two full scans during the listing were more than {edge} apart. A corrected chance counts only once the earlier scans settled enough listings to correct the chance.
+picks.n.tip.any = Listings replayed and checked against the scans after them. A corrected chance counts only once the earlier scans settled enough listings to correct the chance.
+col.predicted = Chance shown
+picks.verdict.holds = Sold as often as shown
+picks.verdict.holds.tip = The listings sold about as often as the chance shown.
+picks.verdict.low = Sold less often than shown
+picks.verdict.low.tip = The listings sold less often than the chance shown, by more than chance explains. Read the chance to sell in the recommendations as too high.
+picks.verdict.high = Sold more often than shown
+picks.verdict.high.tip = The listings sold more often than the chance shown, by more than chance explains. Read the chance to sell in the recommendations as too low.
+picks.verdict.thin = Too few to say
+picks.verdict.thin.tip = There are fewer than 50 checks, which is too few to say whether the chance holds.
+
+record = Your finished auctions
+record.thin = {n} of your auctions have finished and been scored against the chance the Index gave them. The chart of your finished auctions needs {needs}.
+record.how = A finished auction counts once the game confirms that the auction sold or expired. Each finished auction is given the chance the Index would have shown from the scans before you posted it. A cancelled auction is left out, because the auction ended before the time ran out.
+record.thin.flavour = The bookkeeper will not draw a curve through no points at all. He has seen it done, and it ended badly.
+record.key = Each dot is a group of predictions. Across is the chance predicted, and up is the share that came true.
+legend.diagonal = Where chances that hold sit
+legend.group = A group of predictions
+legend.few = Fewer than 10 predictions
+record.bin = {low} to {high}: {n} predictions, {share} came true ({lo} to {hi}).
+col.bin = Chance predicted
+col.came = Came true

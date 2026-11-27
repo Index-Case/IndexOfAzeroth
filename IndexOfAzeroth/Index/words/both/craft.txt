@@ -1,0 +1,32 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: item, count, items, station, skill, need, have, recipe, colour, to, at, cap, rank, n, rest, last, age
+
+name = {item} crafting epic
+grind = Grind until you have {count} {item}.
+skin = Kill and skin beasts until you have {count} {item}.
+herbalism = Gather herbs until you have {count} {item}.
+mining = Mine until you have {count} {item}.
+auction = Buy {items} at the auction house.
+buy = Buy {items}.
+bank = Take {items} from your bank
+bank.old = Take {items} from your bank. The Index last saw your bank {age} ago.
+age = {n} days
+age.one = a day
+sell = Sell {items}.
+sold = You sold what a later step needs. Buy back {items}.
+sold.tip = Click to close this warning. The Index then plans the craft of what you sold again.
+got = {n} {item}
+got.one = a {item}
+list = {rest} and {last}
+craft = Craft {item}.
+craft.station = Craft {item} at {station}.
+craft.some = Craft {count} {item}.
+craft.some.station = Craft {count} {item} at {station}.
+level = Craft about {count} {item}, which is {colour} for you, to reach {to} {skill}.
+level.station = Craft about {count} {item} at {station}, which is {colour} for you, to reach {to} {skill}.
+skill = Needs {skill} {need}, you have {have}
+none = Get {count} {item}. The Index knows no way for you to get {item} yet.
+unlearnt = No source says yet where you learn {recipe}, and the Index asks again every day
+stuck = No recipe you know or a trainer teaches gives {skill} points at {at} yet.
+top = No rank of {skill} goes past {cap} yet.
+unsaid = You are at the cap, and no source says yet what skill {rank} asks for.

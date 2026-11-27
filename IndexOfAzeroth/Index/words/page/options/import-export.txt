@@ -1,0 +1,21 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: size, path, n, kept, message
+
+name = Import/Export
+export = Export
+export.text = Saves your records into one file in your Downloads folder, so you can take them to another PC. The file holds your characters, kills, runs, wish list, to-do, settings and the ground you walked. The Index's data comes with every install, so the file leaves it out
+export.key = Export to Downloads
+import = Import
+import.text = Reads an exported file on the other PC. The box takes the file's full path. The import brings back only your records, and the Index's data stays as this install has it. Your records go in place when you restart the Index, and a file on this PC that is newer than its copy in the export stays as it is
+import.box = The exported file, like D:\IndexOfAzeroth-data-2026-09-26.zip
+import.key = Import
+exporting = Exporting
+importing = Importing
+exported = Saved {size} GB as {path}
+exported.mb = Saved {size} MB as {path}
+imported = Imported {n} files and kept the {kept} newer files already on this PC. Restart the Index to put the files in place
+imported.one = Imported {n} file and kept the {kept} newer files already on this PC. Restart the Index to put the file in place
+failed = The export or import failed: {message}
+busy = The Index is already making or reading an export
+export.failed = The export didn't start
+import.failed = The import didn't start

@@ -1,0 +1,6 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = Dungeon run
+intro.p1 = A dungeon run pauses when the player walks out and goes on when the player is back inside. The run ends when the player goes into another dungeon, when the dungeon is reset or after half an hour spent outside and alive.
+intro.p2 = The dungeon map doesn't show the player's position inside.

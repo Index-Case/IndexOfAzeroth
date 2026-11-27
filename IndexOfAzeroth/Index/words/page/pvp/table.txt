@@ -1,0 +1,49 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: n, ours, theirs, name, level, spell, zone
+
+when = When
+you = You
+result = Result
+opponent = Opponent
+kb = Killing blow
+time = Time
+where = Where
+honour = Honour
+
+won = Won
+won.tip = You won: your side killed the opponent.
+lost = Lost
+lost.tip = You lost: you died in this fight.
+guards = Guards
+guards.tip = Guards killed the opponent. This counts as neither a win nor a loss.
+fled = You got away
+fled.tip = You got away and nobody died. This counts as neither a win nor a loss.
+escaped = They got away
+escaped.tip = The opponent got away and nobody died. This counts as neither a win nor a loss.
+duel.won = Duel won
+duel.lost = Duel lost
+duel.tip = A duel never counts as a fight won or lost.
+
+one = 1 v 1
+one.tip = One against one: the fights that matter most
+count = {ours} v {theirs}
+count.you.tip = {theirs} players attacked you
+count.them.tip = {ours} players of your side fought your opponent
+skull.you.tip = You were far above them: they were grey to you, so a kill of them was dishonourable
+skull.them.tip = They were far above you: you were grey to them
+revenge.you.tip = Revenge: you beat the player who killed you last time
+revenge.them.tip = Their revenge: they killed you after you beat them last time
+mob.tip = They attacked you while you were fighting a mob
+level.floor = {level}+
+level.floor.tip = Level {level} at least, from the spells this player used. The add-on never saw their level.
+level.skull = ??
+level.skull.tip = Level {level} at least: ten or more above you when the add-on saw them
+level.none = ?
+level.none.tip = The add-on never saw this player's level and their spells don't tell it
+kb.you = You
+kb.guards = Guards
+kb.fall = A fall
+kb.melee = melee
+seconds = {n} s
+honour.value = +{n}
+bg.tip = A battleground fight in {zone}

@@ -1,0 +1,16 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = Places
+guide-me = Guide me
+guide-me.p1 = <b>Guide me</b> on a line starts a guide to the nearest place of that type on the character's continent, even if the map doesn't show that place.
+travel = Travel
+travel.p1 = Hover over a flight master, zeppelin master or dock to light the routes from that place. A click keeps the routes lit and named, and the place's <b>Guide me</b> key starts a guide there. Red routes are for the Horde and blue routes are for the Alliance.
+groups-places = Groups of places
+groups-places.p1 = When places stand too close to tell apart, the map shows them as one stacked icon with the number of places on it. Hover over the group to list the places, and click the group to zoom in.
+other-sides = Horde and Alliance
+other-sides.p1 = The Horde and Alliance boxes choose whose places show. The character's faction starts ticked. With neither ticked, only places both factions can use show. The other side's NPCs glow in its colour and never serve you.
+focused = Focused
+focused.p1 = Untick <b>Focused</b> to see the picked places in every zone on the map in view.
+dungeon-entrances = Dungeon entrances
+dungeon-entrances.p1 = When a dungeon's way in runs on down a tunnel or into a cave, a portal icon marks where that way ends. A portal underground only shows on its cave's map while you are in the cave.

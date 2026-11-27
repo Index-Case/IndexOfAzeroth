@@ -1,0 +1,13 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = My Next Upgrades
+intro.p1 = My Next Upgrades lists the best upgrades for each gear slot from quests, vendors, mob drops, dungeons, crafting and the auction house. A slot lists only pieces that can be worn now or within two levels.
+ranking = Ranking
+ranking.p1 = An upgrade ranks higher the bigger it is, the longer it will be worn and the less effort it takes. The effort is the walk there, the quests before it, its price against the character's gold and how many kills or runs a drop takes. An upgrade far from the character, such as one on another continent, ranks below every upgrade close by.
+wear = How long a piece is worn
+wear.p1 = While levelling, a piece that better gear soon replaces counts for less than its stats say. At level 60 every upgrade counts in full.
+rare = Rare drops
+rare.p1 = <b>Rare</b> marks a drop from a rare mob, which is not there every time. Where it is known how often the rare is up, the mark shows it, such as <b>Rare, up about 1 run in 5</b>.
+keys = Keys
+keys.p1 = The keys on each row work as they do in the search. The <b>+</b> beside a slot shows all of its upgrades.

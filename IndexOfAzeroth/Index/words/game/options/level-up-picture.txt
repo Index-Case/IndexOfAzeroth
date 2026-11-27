@@ -1,0 +1,7 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+heading = Level-up picture
+heading.help = After a level-up, once the level-up glow fades and you're out of combat, the add-on hides the interface for a moment and takes a screenshot. The level report on the page shows the screenshot as a Polaroid. The picture also goes to the Screenshots folder.
+take = Take the picture
+try = Type /ioa polaroid to take a test picture now.

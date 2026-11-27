@@ -1,0 +1,17 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = Damage meter
+intro.p1 = The damage meter graphs the character's fights over time.
+graph = The graph
+graph.p1 = Each dot is one fight. The line is the median DPS of the nine fights around each one.
+graph.p2 = The wheel zooms and a drag zooms into a stretch. Zoomed in, a drag pans and <b>Shift</b> with a drag zooms in. A double-click shows all fights.
+kinds = Single and multi enemy
+kinds.p1 = A multi enemy fight is one where the character damaged two or more enemies. Every view compares only the fights the keys over the graph pick.
+kinds.p2 = Enemies hit per cast is how many enemies one cast of a spell struck on average.
+normalize = Normalize
+normalize.p1 = Normalize shows each fight as a percentage of the median DPS at its level. 100% is the typical DPS at that level.
+normalize.p2 = The faint line is the median DPS without Normalize. A level with under 8 fights has no baseline, and its fights show as hollow rings.
+spells = Spells
+spells.p1 = DPS with / without compares the fights with a spell against those without it once each side has 8 fights. Procs are the auras that came and went within fights.
+spells.p2 = A click on a spell plots it fight by fight and splits its hits by aura.

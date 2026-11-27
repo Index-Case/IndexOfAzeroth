@@ -1,0 +1,29 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: name, when, share, secs
+
+back = Back
+back.tip = Back to the recent fights
+heading = {name}, {when}
+spell = Spell
+damage = Damage done
+share = % of damage
+share.value = {share}%
+hits = Hits
+crits = Crits
+misses = Misses
+percast = Enemies hit per cast
+percast.tip = How many enemies one cast of the spell struck on average, shown where the spell hit more than one enemy
+enemies.title = Damage done by enemy
+spells.title = Damage done by spell
+enemy = Enemy
+died = Died
+died.tip = The seconds into the fight each enemy died
+died.value = {secs} s
+died.none.tip = This enemy didn't die in the fight.
+kind.boss = Boss
+kind.elite = Elite
+auto = Auto Attack
+unknown = Unknown spell
+loading = The Index is reading this fight.
+failed = The Index couldn't read this fight just now.
+none = No damage by spell was recorded for this fight.

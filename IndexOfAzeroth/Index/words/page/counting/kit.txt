@@ -1,0 +1,49 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: n, ago, span, word, lost
+
+age.min = {n} min
+age.h = {n} h
+age.d = {n} d
+age.tip = The scan behind this figure was made {ago}.
+
+confidence.high = High
+confidence.medium = Medium
+confidence.low = Low
+confidence.scans = Scans used: {n}
+confidence.newest = Last scan: {ago}
+confidence.gap = Longest gap between scans: {span}
+confidence.sales = Sales seen: {n}
+
+view.chart = Chart
+view.chart.tip = Show this panel as a chart.
+view.diagram = Diagram
+view.diagram.tip = Show this panel as a diagram.
+view.table = Table
+view.table.tip = Show this panel as a table with every value the chart shows.
+
+range.24h = 24h
+range.7d = 7d
+range.30d = 30d
+range.90d = 90d
+range.all = All
+range.tip = Sets the time span for every panel. Dragging across a time chart sets a custom span.
+range.picked = Custom
+range.picked.tip = This custom span comes from dragging across a time chart. Press 24h, 7d, 30d, 90d or All to go back to a set range.
+
+card.age = Scan age: {span}
+card.count = Scans behind this figure: {n}
+card.confidence = Confidence: {word}
+
+sort.tip = Sorts the table by this column. A second click reverses the order.
+
+col.reposts = Reposted
+col.reposts.tip = How often you posted this item again after an auction of the item ended unsold, and the deposits the game kept from your unsold auctions of the item.
+reposts.tip = You posted this item again {n} times after an auction of the item ended unsold.
+reposts.tip.one = You posted this item again once after an auction of the item ended unsold.
+reposts.lost.tip = The game kept {lost} in deposits from your unsold auctions of this item.
+reposts.many.tip = Gold makers advise reposting an item no more than twice. After two reposts, post the item at a lower price, sell it to a vendor or disenchant it.
+
+legend.noscan = No scan
+legend.noscan.tip = No scan covers this stretch of time.
+legend.scan = Scan
+legend.range = 90% range

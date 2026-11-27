@@ -1,0 +1,18 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: name, money, in, out, net
+
+title = Financials
+week = The last 7 days
+held.tip = The gold on hand at the end of each of the last 30 days. A day the game reported no money is left out.
+top = Top income source
+top.tip = The source that brought in the most money in the last 7 days.
+drain = Biggest expense
+drain.tip = The source that took the most money in the last 7 days.
+none = No source was seen in the last 7 days.
+open = Open Financials
+open.tip = Opens the Financials window, which shows where this character's money came from and where it went.
+
+alts.row = Financials
+alts.line = In the last 7 days {in} came in and {out} went out, a net of {net}.
+alts.open = Financials for all characters
+alts.open.tip = Opens the Financials window for every character on the Alts panel together.

@@ -1,0 +1,37 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: state, n, most, name
+
+line = Group finder: {state}
+minutes = {n} min
+state.match = Group found
+state.invite = Invited
+state.queued = Queued
+state.listed = Listed
+state.applied = Asked to join
+
+size = {n} in it
+size.most = {n} in it of {most}
+found = GROUP FOUND
+found.line = The dungeon finder has a group. Accept the group in game
+found.line.for = The dungeon finder has a group for {name}. Accept the group in game
+invite = GROUP INVITE
+invite.listing = A group you asked to join invites you. Answer the invite in game
+invite.listing.named = {name} invites you. Answer the invite in game
+invite.line = Someone invites you to a group. Answer the invite in game
+invite.line.named = {name} invites you to a group. Answer the invite in game
+formed = GROUP FORMED
+joined.invite = You're in {name}'s group
+joined = You joined {name}
+joined.group = You joined a group
+formed.line = The dungeon finder's group is ready
+formed.line.for = The dungeon finder's group for {name} is ready
+full = GROUP FULL
+full.line = Your group is full
+full.line.for = Your group for {name} is full
+
+gone.finder = The dungeon finder's group fell through
+gone.finder.queued = The dungeon finder's group fell through. You're back in the queue
+gone.listing = A group you asked to join turned you down, or your ask ran out
+gone.listing.named = {name} turned you down, or your ask ran out
+gone.invite = The group invite ran out or was taken back
+gone.invite.from = The group invite from {name} ran out or was taken back

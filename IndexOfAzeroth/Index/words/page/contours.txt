@@ -1,0 +1,6 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+label = Contours
+tip = Shows contour lines on the detailed map, one line for each step in the ground's height. Click again to hide the lines.
+none = Contour lines show on the detailed map while Map lighting is on in Options.

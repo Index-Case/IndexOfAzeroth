@@ -1,0 +1,55 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: epic, running, n, done, all, names, lo, hi, levels, level, inn, place
+
+title.start = Start {epic}
+title.replan = Re-plan {epic}
+
+closed = The Index kept your plan for {epic}.
+left = The plan has {n} steps still to do.
+left.one = The plan has 1 step still to do.
+done = You had done {done} of its {all} steps.
+done.now =You have done {done} of its {all} steps.
+running = {epic} is running.
+aside = The Index set your plan for {epic} aside when {running} started.
+parts = A Re-plan of {epic} would keep these parts of the plan:
+parts.parked = Your {n} parked quests stay parked: {names}.
+parts.parked.one = Your parked quest stays parked: {names}.
+parts.levels = The plan keeps the quest levels it was started with.
+
+way.safe = The plan was made with Safest.
+way.fight = The plan was made with Grinding.
+way.any = The plan was made with neither Safest nor Grinding.
+now.safe = You have Safest ticked now.
+now.fight = You have Grinding ticked now.
+now.any = You have neither Safest nor Grinding ticked now.
+levels = The plan takes quests of {levels}.
+levels.all = The plan takes quests of every level.
+now.levels = The colours you have ticked now take quests of {levels}.
+now.levels.all = The colours you have ticked now take quests of every level.
+range = levels {lo} to {hi}
+range.one = level {lo}
+range.up = level {lo} and up
+
+skips = The errands you skipped stay skipped: {names}.
+skips.one = The errand you skipped stays skipped: {names}.
+skip.train = training for level {level}
+skip.bind = binding your Hearthstone at {inn}
+skip.flightpath = the flight path at {place}
+skip.sell = selling your grey items
+skip.repair = repairing your gear
+skip.restock.water = buying water
+skip.restock.ammo = buying ammo
+skip.restock.ankh = buying Ankhs
+skip.restock.camp = buying wood for campfire kits
+
+carry = Carry on
+fresh = Start fresh
+not-now = Not now
+carry.closed = This opens your kept plan for {epic} where you were, with the settings it was made with.
+carry.running = This keeps {epic} running as it is.
+carry.aside = This puts {epic} back where it was and stops {running}.
+carry.replan = This plans {epic} afresh from where you stand and keeps its parked quests parked and its quest levels.
+carry.replan.parked = This plans {epic} afresh from where you stand and keeps its parked quests parked.
+carry.replan.levels = This plans {epic} afresh from where you stand and keeps the quest levels it was started with.
+fresh.tip = This plans {epic} from zero, from where you stand and what the game says now, with the settings you have ticked now. Nothing from the plan before is used.
+fresh.aside = This plans {epic} from zero, from where you stand and what the game says now, with the settings you have ticked now. Nothing from the plan before is used, and {running} stops.

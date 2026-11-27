@@ -1,0 +1,9 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = Status
+intro.p1 = Check here first when something looks stuck.
+updates = Updates
+updates.p1 = An addon update waits until the game is closed. While a red arrow shows on the Status key, what the page shows may be out of date.
+moving-another = Moving to another PC
+moving-another.p1 = Use <b>Export to Downloads</b> here, then <b>Import</b> on the other PC.

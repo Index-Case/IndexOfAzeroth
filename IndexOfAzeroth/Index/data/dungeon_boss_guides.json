@@ -1,0 +1,92 @@
+{
+  "pairs": [
+    {
+      "dungeon": "The Hall of Thanes",
+      "encounter": "Infurnus",
+      "boss": "Magmatus",
+      "checked": "the guide lists four bosses, Magmatus second, and no Infurnus. The client's encounters put Infurnus second of four"
+    },
+    {
+      "dungeon": "Ruins of Lordaeron",
+      "encounter": "The Butcher",
+      "boss": "The Baron",
+      "checked": "the guide names The Baron the second boss of the run and no Butcher. The client's encounters put The Butcher second"
+    },
+    {
+      "dungeon": "The Drowned City",
+      "encounter": "Deathless Guardians",
+      "boss": "Deathless Marrow",
+      "checked": "the guide lists Deathless Marrow as a boss beside the Primeval Elemental and no Deathless Guardians. The client's encounters have the Primeval Elemental apart"
+    },
+    {
+      "dungeon": "Krol'dok Stronghold",
+      "encounter": "Handler Ashka",
+      "boss": "War Handler Ashka",
+      "checked": "the guide lists War Handler Ashka among the bosses and no Handler Ashka"
+    },
+    {
+      "dungeon": "Krol'dok Stronghold",
+      "encounter": "Overseer Mugg",
+      "boss": "Overlord Mugg",
+      "checked": "the guide names Overlord Mugg the leader and no Overseer Mugg"
+    },
+    {
+      "dungeon": "The Shaper's Terrace",
+      "encounter": "Ravasaur Hunters",
+      "boss": "Izha'Rel and Tor'Rel",
+      "checked": "the guide lists Izha'Rel and Tor'Rel as two raptors fought together and no Ravasaur Hunters. Ravasaurs are Un'Goro's raptors. No guide names the encounter itself"
+    }
+  ],
+  "levels": [
+    {
+      "dungeon": "The Drowned City",
+      "boss": "Zul'Alai",
+      "level": 37
+    },
+    {
+      "dungeon": "The Drowned City",
+      "boss": "Var'Taka",
+      "level": 38
+    },
+    {
+      "dungeon": "The Drowned City",
+      "boss": "Captain Dreadrise",
+      "level": 38
+    },
+    {
+      "dungeon": "The Drowned City",
+      "boss": "Deathless Marrow",
+      "level": 39
+    },
+    {
+      "dungeon": "The Drowned City",
+      "boss": "Primeval Elemental",
+      "level": 38
+    },
+    {
+      "dungeon": "The Drowned City",
+      "boss": "Min'loth the Serpent",
+      "level": 40
+    },
+    {
+      "dungeon": "The Drowned City",
+      "boss": "Umbra",
+      "level": 38
+    },
+    {
+      "dungeon": "The Drowned City",
+      "boss": "Gill",
+      "level": 38
+    },
+    {
+      "dungeon": "The Drowned City",
+      "boss": "\"Pyromancer\" Braxton",
+      "level": 38
+    },
+    {
+      "dungeon": "Krol'dok Stronghold",
+      "boss": "War Handler Ashka",
+      "level": 43
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: name, zone, zones, to, n
+
+hunt.1 = A dwarf is reading the bounty board
+hunt.2 = SI:7 is asking around for a name
+hunt.3 = A hunter is casting Track Humanoids
+hunt.4 = A guard is pinning up a Wanted poster
+hunt.5 = A Ravenholdt informant wants paying
+hunt.6 = A tracker is following prints in the mud
+hunt.7 = A hunter is placing Hunter's Mark
+hunt.8 = The guards are asking who passed by
+hunt.9 = The innkeeper will gossip for an ale
+hunt.10 = Your pet has gone ahead on the scent
+
+box = Find an NPC or mob by name
+full.tip = This is the full search. It allows more letters off and also searches the titles and zones
+failed = The trail went cold. The search didn't go through
+found = {n} found, with the nearest at the top
+found.more = {n} found, with the nearest at the top. Press Enter to search further
+none = No one goes by that name
+none.more = No one goes by that name. Press Enter to search further
+search.failed = No search
+
+inside = {name} is inside {zone}. Guide me leads to the entrance of {zone}
+nowhere = We have no information yet on where {name} stands
+also = {name} is also in {zones}
+to.entrance = the entrance of {zone}
+to.spawn = the nearest spawn of {name}
+zone.unknown = Unknown
+go = Guide me
+go.tip = This starts the Navigation Guide to {to} and copies the line for the in-game arrow
+target = Target
+target.tip = This puts the Target key for {name} in the game. The key shows beside the add-on button after the next /reload, and its line is copied too
+both = Both
+both.tip = This does both. It starts the Navigation Guide to {to} and puts the Target key for {name} beside the add-on button
+
+target.copied = The Target key for {name} shows beside the add-on button after your next /reload. Its line is copied for a paste too
+target.kind = Target key
+both.copied = The guide to {name} is copied. The Target key for {name} shows after your next /reload

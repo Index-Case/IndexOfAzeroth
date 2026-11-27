@@ -1,0 +1,10 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = NPCs, Monsters and Rares
+search = Search
+search.p1 = The search finds a name from the start of any word, so <b>fang</b> finds Mother Fang. It also finds a name typed with a letter or two wrong, so <b>hoger</b> finds Hogger. Press <b>Enter</b> to search titles and zones too (<b>wolf westfall</b>).
+target = Target
+target.p1 = <b>Target</b> sets up the Target key in game for what the search found. The key shows after the next /reload, or at once when the copied line is pasted. Right-click the key or type <b>/ioa target off</b> to put it away.
+respawn-timers = Respawn timers
+respawn-timers.p1 = A respawn timer starts when you see a rare die, or a mob with few others of the same type around. A corpse found already dead starts no timer. A ~ before a time means the time is a guess.

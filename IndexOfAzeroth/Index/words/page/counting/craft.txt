@@ -1,0 +1,76 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: ago, n, cut, low, high, name, names, coins, count, each, item
+
+title = Crafting
+latest = from the market prices of the last scan {ago}
+latest.older = from the market prices of the scan {ago} ago
+loading = The Index is reading the recipes and their prices.
+none = This auction house has no market prices yet. Market prices are worked out after each full scan.
+none.flavour = A dwarf smith tried to price a breastplate before anyone had bought one and is still glaring at the ledger.
+known = Known recipes
+known.tip = Only the recipes your characters on this realm and faction know.
+all = All recipes
+all.tip = Every recipe whose crafted item has a market price on this auction house.
+empty.known = No character on this realm and faction has a recipe that makes something yet. The game shows the recipes of a character when you open the profession window on that character.
+empty.known.flavour = The tailor's apprentice has threaded the needle and is waiting for a pattern.
+empty.all = No recipe makes an item with a market price on this auction house yet.
+
+fees.before = Every figure is before the AH cut and the deposit. The game shows the AH cut in the mail of a sale on this auction house and the deposit when you post an auction here.
+fees.after = Every figure has the AH cut of {cut} and the deposit for one listing taken off, at the rates the game showed on this auction house.
+odds = The chance that a crafted item sells is not worked out yet. Each recommendation compares market prices only, and its confidence rests on the scans behind those prices.
+ranges = Each figure has a 90% range, worked out from the 90% ranges of the market prices.
+prices = Each reagent is counted at the lower of the price a vendor sells it for and its market price. A reagent with no market price is counted at its vendor price. Tools are kept, so their cost is not counted.
+
+chart = Gain from crafting per craft
+chart.key = Each bar is what the items of one craft sell for, minus what the reagents sell for. Click a bar to see the reagents of the recipe.
+legend.gain = Crafting gains
+legend.loss = Crafting loses
+chart.more = The {n} largest gains and losses show here. The table shows more.
+chart.row = {name}: {coins} per craft, from {low} to {high}
+chart.none = No recipe here has prices for its item and every reagent yet.
+table.more = The {n} recipes with the largest gains and losses from crafting show.
+
+diagram = Reagents of {name}
+diagram.pick = Click a recipe in the chart or the table to see its reagents here.
+diagram.makes = Makes {count}
+diagram.value = Sells for {coins}
+diagram.vendor = Vendor, {each} each
+diagram.auction = Auction house, {each} each, from {low} to {high}
+diagram.no-way = No vendor sells this reagent, and the reagent has no market price.
+diagram.sell.vendor = This reagent has no market price, so the reagent counts at the vendor price of {each} each.
+diagram.tool = Tool, kept: {item}
+
+col.recipe = Recipe
+cell.who = Known by {names}
+col.who.none = Known by nobody here
+col.who.none.tip = No character on this realm and faction knows this recipe.
+col.cost = Crafting cost
+col.cost.tip = What the reagents of one craft cost, each at the lower of the price a vendor sells it for and the market price, with a 90% range.
+col.value = Market value
+col.value.tip = What the items of one craft sell for at the market price, with a 90% range.
+col.profit = Profit
+col.profit.before = Profit before fees
+col.profit.tip = The market value minus the crafting cost, with a 90% range.
+col.reagents = Reagents sell for
+col.reagents.tip = What the reagents of one craft sell for, each at the market price or else at the vendor price, with a 90% range.
+col.gain = Gain from crafting
+col.gain.tip = The market value minus what the reagents sell for, with a 90% range. Above zero, the crafted items sell for more than the reagents.
+col.rec = Recommendation
+col.rec.tip = Craft when the crafted items sell for more than the reagents. Otherwise, sell the reagents. The Confidence column rates each recommendation.
+col.sold = Sold per day
+col.sold.tip = Units of the crafted item sold per day, an estimate from scans with a 90% range.
+col.confidence = Confidence
+col.confidence.tip = How far the gain from crafting can be trusted, rated High, Medium or Low by the width of the 90% range. The age of the last scan behind the prices shows under the rating.
+cell.range = {low} to {high}
+cell.makes = makes {count}
+cell.missing = No price
+cell.missing.product = The crafted item has no market price on this auction house.
+cell.missing.way = {item} has no market price, and no vendor sells the item.
+cell.missing.sell = {item} has no market price and no vendor price.
+cell.sold.none = No pair of scans yet
+rec.craft = Craft
+rec.craft.tip = Crafting brings {coins} more per craft than selling the reagents, with a 90% range of {low} to {high}.
+rec.craft.loss = At the low end of that range, crafting brings {coins} less than selling the reagents.
+rec.sell = Sell the reagents
+rec.sell.tip = Selling the reagents brings {coins} more per craft than crafting, with a 90% range of {low} to {high}.
+rec.sell.loss = At the high end of that range, crafting brings {coins} more than selling the reagents.

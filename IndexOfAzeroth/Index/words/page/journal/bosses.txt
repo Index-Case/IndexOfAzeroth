@@ -1,0 +1,16 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: n
+
+title = Bosses
+trash = Trash
+trash.note = Drops from the other mobs in the dungeon.
+rare = Rare
+rare.small = rare
+rare-spawn = Rare spawn
+down = DOWN
+none = No bosses recorded yet.
+loot = Loot
+loot.count = {n} items
+loot.count.one = {n} item
+loot.none = No loot data for this boss yet.
+pin.click = Click for the boss and its loot

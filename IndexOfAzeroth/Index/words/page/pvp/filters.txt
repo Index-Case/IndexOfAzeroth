@@ -1,0 +1,13 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+all = All
+one = One-on-one
+group = Group
+wins = Wins
+losses = Losses
+away = Got away
+search = Search names, classes, races, levels or zones
+bgs = Include battlegrounds
+bgs.tip = Battleground fights stay out of the table and every stat until this is ticked, so world PvP stays readable
+nothing = No fight matches.

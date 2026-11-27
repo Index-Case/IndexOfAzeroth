@@ -1,0 +1,13 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: back, fast, next, play, prev
+
+title = Replay your day
+intro.p1 = The replay plays back a recorded day on the map. The Replay switch under Options, Map shows the replay's controls at the foot of the map.
+playing-day = Playing a day
+playing-day.p1 = <b>{play}</b> plays and pauses, <b>{back}</b> plays backwards and <b>{fast}</b> plays faster, up to 10,000 times. While paused, <b>{prev}</b> and <b>{next}</b> step one event at a time. With Next day lit, the replay plays on into the next day or, backwards, the day before.
+timeline = The timeline
+timeline.p1 = The icons mark what happened. The band under the icons shows what the character was doing. Point at an icon or the band to see what happened and when.
+timeline.p2 = Click the timeline to jump to that moment, or drag the gold playhead. A click on an end of the timeline goes to the day before or after. With Next day lit, a drag past an end carries on into that day.
+timeline.p3 = The mouse wheel zooms around the pointer. When zoomed in, drag to move along the day and hold <b>Shift</b> while dragging to zoom into a stretch. A double-click shows the whole day.
+map = On the map
+map.p1 = Spells fly out as their icons, and what hits the character flies in. Chat shows in bubbles, and a line that names the character has a gold edge.

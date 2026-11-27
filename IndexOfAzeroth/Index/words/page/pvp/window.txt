@@ -1,0 +1,8 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = PvP
+close.tip = Close (Escape)
+loading = The Index is reading your fights out of the combat log.
+empty = Nobody from the other side has picked a fight with you yet. Word is they're drawing up a list.
+failed = The Index couldn't read your fights just now.

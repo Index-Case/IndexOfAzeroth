@@ -1,0 +1,14 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = Overlays and Loops
+all-levels = All levels
+all-levels.p1 = <b>All levels</b>, the red box with the skull, counts every resource, beast and mob as within reach, whatever the character's skill or level. Use it to plan ahead.
+showing-some = Showing only some
+showing-some.p1 = Switch a group off and tick the entries you want under that group. Only the ticked entries show.
+skinning-leather = Skinning for one type of leather
+skinning-leather.p1 = Open <b>Skinning</b> to see the types of leather, hide and scale that the beasts in the area give. Tick one type of leather to show only the beasts that give that leather. The beasts most likely to give that leather glow brightest. <b>Skin here</b> then makes a loop round the best of those beasts for the character's skill, and the loop is named for that leather.
+gold = Gold
+gold.p1 = The gold layer is coloured against the best spot on screen, so a low-level zone shows as clearly as a high-level zone.
+gathered-nodes = Gathered nodes
+gathered-nodes.p1 = With <b>Find Minerals</b> or <b>Find Herbs</b> on and the minimap in view, a node spot passed often enough without a dot on it leaves the gathering loops. The spot comes back when a dot shows there again.

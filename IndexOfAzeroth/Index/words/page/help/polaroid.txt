@@ -1,0 +1,11 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = Polaroid on the level report
+intro.p1 = The Polaroid is a picture of where the character was at a level-up, pinned on that level's report.
+how-picture = How the picture is taken
+how-picture.p1 = A few seconds after a level-up, once the level-up glow has gone and the character is out of combat, the addon hides the interface for a moment and takes a screenshot. The screenshot goes into the game's Screenshots folder like any other.
+seeing-it = Seeing the picture
+seeing-it.p1 = Click the Polaroid to see the picture large. Level reports from before the Polaroid have no picture.
+turning-it = Turning the Polaroid off
+turning-it.p1 = Switch the Polaroid off here to hide the picture on the reports. To stop the addon taking the picture, open the addon's options, pick <b>Level-up picture</b> and switch <b>Take the picture</b> off, or type <b>/ioa polaroid off</b> in game. Type <b>/ioa polaroid</b> to take a picture now and see how the picture looks.

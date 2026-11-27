@@ -1,0 +1,5 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: n
+
+nokey = {n} auctions of gear came without their random suffix, so the Index left them out of the prices and counts no sale of those items between this scan and the scan before it.
+nokey.one = 1 auction of gear came without its random suffix, so the Index left it out of the prices and counts no sale of that item between this scan and the scan before it.

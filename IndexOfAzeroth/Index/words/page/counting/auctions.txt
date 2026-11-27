@@ -1,0 +1,72 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: ago, name, n, coins, units, when, deposit
+
+title = Your auctions
+latest = last scan {ago}
+latest.older = from the scan {ago} ago
+loading = The Index is reading your auctions.
+none = No auctions of your characters on this auction house are known yet.
+none.how = The game lists your auctions when you open the auction house. Open the auction house once on each character that has auctions up.
+none.flavour = The auctioneer swears your stall was here a minute ago. He has not checked behind the counter.
+read = The game showed the auctions of {name} {ago}.
+read.none = Your characters on this auction house have no auctions up.
+style.commodity = On this auction house the newest auction at one price sells first, so only units listed below your buyout sell before yours.
+style.stack = On this auction house the cheapest auctions sell first, so units listed at or below your buyout sell before yours.
+style.none = Whether the newest or the cheapest auction sells first on this auction house is not known yet, so units listed at or below your buyout count as selling before yours.
+deposit = The deposit that some undercut auctions lose on a cancel is not known yet. The Index records the deposit when you post an auction.
+scan.old = The last scan is older than some of these auctions. A new scan of the auction house shows who undercut you since.
+
+col.item = Item
+col.who = Character
+col.units = Units
+col.price = Your buyout
+col.price.tip = Your buyout per unit.
+col.other = Lowest buyout
+col.other.tip = The lowest buyout per unit from other sellers in the last scan. Your auctions on all characters are left out.
+col.under = Undercut by
+col.under.tip = How much lower the lowest buyout is than your buyout, per unit.
+col.ahead.at = Units at or below
+col.ahead.below = Units below
+col.ahead.tip = The units of this item in the last scan that sell before yours.
+col.match = Price to match
+col.match.tip = The price per unit that matches the lowest buyout from other sellers.
+match.deposit.tip = Matching the price means cancelling this auction and posting the auction again. The game keeps the deposit of {deposit} when you cancel.
+col.left = Time Left
+col.left.tip = The time left that the game showed when the game last listed your auctions, and the hours left now.
+
+cell.sold = Sold
+cell.sold.tip = The game listed this auction as sold. The money is in your mailbox.
+cell.no = No
+cell.no.tip = No other seller listed this item cheaper than you in the last scan.
+cell.none = None listed
+cell.none.tip = No other seller listed this item in the last scan.
+cell.unpriced = Not known
+cell.unpriced.tip = The game did not say whether this buyout is a unit price or a total price, and no auction in the last scan shows which.
+cell.unscanned = Not scanned
+cell.unscanned.tip = The last scan of this auction house holds no listing of this item.
+cell.bid = Bid only
+cell.bid.tip = This auction has no buyout.
+cell.ended = Ended
+cell.ended.tip = The time on this auction ran out after the game last listed the auction. The auction sold or expired.
+cell.hours = {n} h
+band.0 = Short
+band.1 = Medium
+band.2 = Long
+band.3 = Very Long
+
+diagram.pick = Item
+diagram.key = Listings by price. Each bar is one price per unit with the units listed at that price, the lowest price at the top.
+legend.yours = Price with your auctions
+legend.others = Price with other auctions only
+legend.ahead = Units that sell before yours
+diagram.yours = {coins}: {units} of yours
+diagram.step = {coins}: {units} units in {n} auctions
+diagram.step.one = {coins}: {units} units in 1 auction
+diagram.step.yours = Yours: {units} units
+diagram.more = The {n} lowest unit prices and your unit prices are shown.
+
+chart.title = Units that sell before yours, scan by scan
+chart.none = This chart needs a scan made after the Index first saw one of these auctions.
+chart.point = {when}: {n} units sell before yours
+chart.from = Each line starts when the Index first saw the auction, because the game does not say when the auction was posted.
+chart.title.one = {name}, {units} at {coins}

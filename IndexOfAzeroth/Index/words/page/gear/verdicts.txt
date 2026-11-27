@@ -1,0 +1,20 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: verdict, who, gains, losses, stats, order, source, fixes, stat, ours, pawn, after
+
+head = {verdict} for {who}: {gains}
+weak.offstats = {verdict} for {who}: {gains}, in stats {who} values less than the ones {who} prioritizes
+weak.trade = {verdict} for {who}: {gains}, but gives up {losses}
+weak.slight = {verdict} for {who}: {gains}, better but not by much
+gives-up = This piece gives up {losses}
+gives-up-only = This piece gives up only {losses}
+holder = Most of this piece's gain is weapon damage. {who} fights with another weapon, so this weapon only holds stats
+barely = This piece's gain is in stats {who} barely uses
+others = The piece's {stats} are for other classes. Roll on the piece only if nobody else wants it
+others.one = The piece's {stats} is for other classes. Roll on the piece only if nobody else wants it
+you = you
+
+prio = The page weighs stats for {who}: {order}.
+prio.leveling = The page weighs stats for {who} (the usual leveling spec until a tree has {after} points): {order}.
+prio.source = The weights come from {source}.
+prio.source.fixed = The weights come from {source}, with our corrections: {fixes}.
+prio.fix = {stat} {ours} (Pawn {pawn})

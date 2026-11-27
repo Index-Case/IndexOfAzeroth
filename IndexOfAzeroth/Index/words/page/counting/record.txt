@@ -1,0 +1,129 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: n, sold, expired, cancelled, open, parts, pct, coins, units, name, span, chance, when, money, what
+
+title = Auction history
+loading = The Index is reading your auction history.
+none = No auction of yours on this auction house is on record yet. Auctions show here from the first auction the add-on records you posting.
+none.flavour = A goblin clerk opened the auction ledger, found it empty and charged you for the look.
+
+summary = Auctions in this time span: {sold} sold, {expired} expired, {cancelled} cancelled and {open} still open.
+summary.ended = {n} auctions ran out of time, and no notice or mail about them was seen yet.
+summary.ended.one = 1 auction ran out of time, and no notice or mail about it was seen yet.
+more = How sure the sales are, the AH cut and the deposit
+sure.line = Of the sales, {parts}.
+sure.n.certain = {n} are certain
+sure.n.certain.one = 1 is certain
+sure.n.invoice = {n} have their invoice read with the money still in the mailbox
+sure.n.invoice.one = 1 has its invoice read with the money still in the mailbox
+sure.n.known = {n} were named by the game, and their mail has not come yet
+sure.n.known.one = 1 was named by the game, and its mail has not come yet
+sure.n.guess = {n} are guesses
+sure.n.guess.one = 1 is a guess
+and = and
+theta.none = Each guess rests on the rule that buyers take the cheapest auction first. How strongly buyers on this auction house follow that rule is not known until your mail confirms a guessed sale.
+theta = Each guess rests on the rule that buyers take the cheapest auction first, weighed by {n} guessed sales your mail confirmed. Going by those sales, the cheaper of two auctions sells first {chance}.
+theta.one = Each guess rests on the rule that buyers take the cheapest auction first, weighed by 1 guessed sale your mail confirmed. Going by that sale, the cheaper of two auctions sells first {chance}.
+cut = The AH cut here is {pct} of the sale price, as the mail of your last sale showed it ({n} sales read).
+cut.one = The AH cut here is {pct} of the sale price, as the mail of your sale showed it.
+cut.none = The AH cut here is not known yet. The game shows the AH cut in the mail of a sale.
+deposit = The deposit was {coins} for {units} {name} the last time you posted an auction lasting {span}.
+deposit.any = The deposit was {coins} for {units} {name} the last time you posted an auction.
+deposit.none = The deposit here is not known yet. The game shows the deposit when you post an auction.
+
+outcome.sold = Sold
+outcome.partly = Partly sold
+outcome.expired = Expired
+outcome.cancelled = Cancelled
+outcome.removed = Removed
+outcome.open = Open
+outcome.ended = Time ran out
+outcome.ended.tip = The time of this auction ran out, and no notice or mail about the auction was seen yet. The auction either expired or sold while the game did not show the sale.
+
+sure.guess = Guess
+sure.guess.tip = The chat said an auction of this item sold, and this auction is the most likely one. The sale stays a guess until the mail of the sale is read.
+sure.known = Known auction
+sure.known.tip = The game named this auction as sold. The money for the sale is still in the mail.
+sure.invoice = Invoice seen
+sure.invoice.tip = The mail of the sale was read without opening the mail. The money is still in the mailbox, so the money counts in no total yet.
+sure.certain = Certain
+sure.certain.tip = The money was taken from the mailbox, or the game showed the auction expire or be cancelled.
+sure.open = {chance} it sold
+sure.open.tip = The chat said an auction of this item sold. This auction could be the one, but another auction is more likely. The mail of the sale settles which auction sold.
+chance = {n} in 10
+chance.low = under 1 in 10
+
+col.posted = Posted
+col.posted.seen.tip = First seen in your auctions list. This auction was posted before the add-on recorded your posts.
+col.char = Character
+col.item = Item
+col.units = Units
+col.price = Buyout
+col.price.tip = The buyout of the auction for all of its units.
+col.outcome = Outcome
+col.sure = How sure
+col.sure.tip = Guess, Known auction, Invoice seen or Certain: how much of the outcome the game has shown.
+col.gold = Gold
+col.gold.tip = The money taken from the mail for a sale. Money still in the mailbox is grey and counts in no total.
+col.fees = Fees
+col.fees.tip = The AH cut of a sale, and the deposit lost on an auction that expired or was cancelled.
+col.took = Time to sell
+col.took.tip = The time from the post to the sale notice.
+
+guess.row = {chance} that this auction sold when the chat said {name} sold at {when}.
+guess.candidates = The auctions that notice could name:
+guess.candidate = {units} at {coins}, posted {when}: {chance}
+guess.none = {chance} that it was an auction not on record.
+
+items.title = By item
+items.sold = Sold
+items.expired = Expired
+items.cancelled = Cancelled
+items.rate = Sale rate
+items.rate.tip = The share of finished auctions that sold, out of all auctions sold, expired and cancelled. Each auction counts once.
+items.since = Expired since the last sale
+items.took = Average time to sell
+items.took.tip = The average time from the post to the sale, over the sales whose auction is known.
+items.took.n = {span}, from {n} sales
+items.took.n.one = {span}, from 1 sale
+
+sales.title = Sales with no auction on record
+sales.note = The mail shows these sales, but no auction of yours on record matches them. These auctions were posted before the add-on recorded your posts, or from another computer.
+sales.when = Seen in the mail
+sales.pending = Sale pending
+
+bids.title = Your bids
+bids.outbid = Outbid
+bids.won = Won
+bids.open = Bid placed
+bids.bought = Bought
+bids.paid = Paid
+bids.refund = Returned
+
+chart.title = Auctions finished per day
+chart.sold = Sold
+chart.sold.known = Sold, invoice seen or named by the game
+chart.sold.guess = Sold, a guess
+chart.expired = Expired
+chart.cancelled = Cancelled
+chart.bar = {when}: {n} {what}
+chart.gold = Gold taken from the mail per day
+chart.gold.bar = {when}: {money} taken from the mail
+chart.gold.none = No sale's money was taken from the mail in this time span.
+chart.gold.key = Gold taken from the mail
+
+diagram.flow = Where your auctions went
+diagram.posted = Posted
+diagram.middle = Auctions
+diagram.sold = {n} auctions sold for certain, {money} taken from the mail
+diagram.sold.one = 1 auction sold for certain, {money} taken from the mail
+diagram.took = Time to sell
+diagram.took.median = The median time to sell is {span}, from {n} sales whose auction is known. Guessed sales are left out.
+diagram.took.median.one = The time to sell is {span}, from the one sale whose auction is known. Guessed sales are left out.
+diagram.took.none = No sale whose auction is known has a time to sell yet.
+diagram.took.bin = {span} or less
+diagram.took.bin.more = More than {span}
+diagram.took.bar = {n} auctions sold within this time.
+diagram.took.bar.one = 1 auction sold within this time.
+diagram.took.key = Sales whose auction is known
+
+rules.deposit.read = The deposit was {coins} for {units} {name}, read from your last post here.

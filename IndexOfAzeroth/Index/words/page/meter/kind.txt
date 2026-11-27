@@ -1,0 +1,24 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: name, n, dungeon
+
+single = Single enemy
+single.tip = Show the fights against one enemy
+multi = Multi enemy
+multi.tip = Show the fights against two or more enemies, the pulls
+all = Single and multi enemy
+all.tip = Show the fights against one enemy and those against several together
+single.fights = single enemy fights
+multi.fights = multi enemy fights
+all.fights = single and multi enemy fights
+world = Open world
+world.tip = Show the fights out in the world
+dungeon = Dungeons
+dungeon.tip = Show the fights inside dungeons
+both = Open world and dungeons
+both.tip = Show the fights out in the world and inside dungeons
+none = None of the fights recorded is of the kind and place the keys above pick.
+target.more = {name} +{n}
+target.more.tip = You damaged {n} more enemies in this fight.
+target.more.tip.one = You damaged 1 more enemy in this fight.
+dungeon.mark.tip = This fight was in {dungeon}.
+boss.mark.tip = This fight was a boss fight in {dungeon}.

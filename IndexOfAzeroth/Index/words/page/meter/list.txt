@@ -1,0 +1,21 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: n, pct
+
+when = Date
+target = Target
+duration = Duration
+dps = DPS
+damage = Damage done
+taken = Damage taken
+enemies = Enemies
+enemies.tip = How many enemies you damaged in the fight
+ttk = Time to kill
+ttk.tip = The time from the start of the fight until the last enemy you damaged died, for a pull where every one died
+main = Main target share
+main.tip = The share of the damage you did that went to the enemy you damaged most
+main.value = {pct}%
+none.value = -
+target.unknown = Unknown target
+open.tip = Open this fight by spell
+more = {n} older fights are not in this list.
+more.one = {n} older fight is not in this list.

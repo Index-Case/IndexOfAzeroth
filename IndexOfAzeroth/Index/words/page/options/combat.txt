@@ -1,0 +1,24 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+name = Combat
+blood-screen = Blood on the screen
+blood-screen.text = Puts blood spatter round the screen's edge as the character loses health
+blood-map = Blood on the map
+blood-map.text = Leaves a blood trail on the map where the character fought
+death-pool = Death pool
+death-pool.text = Spreads a pool of blood with a chalk outline on the map where the character died
+combat-words = Combat words
+combat-words.text = Shows IN COMBAT at the top of the map in a fight and CORPSERUN on a corpse run
+idle-warning = Idle warning
+idle-warning.text = Makes IN COMBAT beat like a heart while the character stands idle in a fight and loses health
+edge-glow = Edge glow
+edge-glow.text = Glows round the page's edge in a fight and on a corpse run
+duel-flag = Duel flag and gravestone
+duel-flag.text = Drops the duel flag on the map when a fight starts and a gravestone when the character dies
+map-shake = Map shake
+map-shake.text = Shakes the map as the duel flag or the gravestone lands
+screen-blood-strength = Screen blood strength
+screen-blood-strength.text = Sets how strong the blood on the screen shows
+map-blood-strength = Map blood strength
+map-blood-strength.text = Sets how strong the blood trail and the death pool show on the map

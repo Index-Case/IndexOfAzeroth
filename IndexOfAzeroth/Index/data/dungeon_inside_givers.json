@@ -1,0 +1,39 @@
+{
+  "givers": [
+    {
+      "npc": 16031,
+      "name": "Ysida Harmon",
+      "instance": 329,
+      "boss": "Baron Rivendare",
+      "appears": "Baron Rivendare dies within 45 minutes of the timer starting"
+    },
+    {
+      "npc": 16073,
+      "name": "Spirit of Lord Valthalak",
+      "instance": 229,
+      "boss": "The Beast",
+      "appears": "Lord Valthalak, summoned with the Brazier of Beckoning in the chamber of The Beast, dies and his amulet is used on his corpse"
+    },
+    {
+      "npc": 14566,
+      "name": "Ancient Equine Spirit",
+      "instance": 429,
+      "boss": "Tendris Warpwood",
+      "appears": "Tendris Warpwood dies"
+    },
+    {
+      "npc": 14504,
+      "name": "Dreadsteed Spirit",
+      "instance": 429,
+      "boss": "Immol'thar",
+      "appears": "the Xorothian Dreadsteed and Lord Hel'nurath die at the ritual circle on Immol'thar's dais"
+    },
+    {
+      "npc": 217996,
+      "name": "Aeonas",
+      "instance": 189,
+      "boss": "High Inquisitor Whitemane",
+      "appears": "Scarlet Commander Mograine and High Inquisitor Whitemane die, in the chamber at the back of the Cathedral"
+    }
+  ]
+}

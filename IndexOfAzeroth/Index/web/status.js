@@ -1,0 +1,563 @@
+// The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+"use strict";
+
+const CLASS_COLORS = { Warrior: tint("class-warrior"), Paladin: tint("class-paladin"), Hunter: tint("class-hunter"),
+  Rogue: tint("class-rogue"), Priest: tint("white"), Shaman: tint("quality-rare"), Mage: tint("class-mage"),
+  Warlock: tint("class-warlock"), Druid: tint("class-druid") };
+const REACTIONS = ["", "Hated", "Hostile", "Unfriendly", "Neutral", "Friendly", "Honored", "Revered", "Exalted"];
+const HAPPINESS = ["", "Unhappy", "Content", "Happy"];
+const WARNING_ROW = { ammo: "ammo", petUnhappy: "petHappiness", shards: "shards", mhPoison: "mhPoison", ohPoison: "ohPoison",
+  poisons: "poisons", water: "water", ankh: "ankhs", earthTotem: "earthTotem", fireTotem: "fireTotem",
+  waterTotem: "waterTotem", airTotem: "airTotem", durability: "durability" };
+const BEEP_REPEAT_MS = 60000;
+const ZERO_IS_FINE = new Set(["tree1Points", "tree2Points", "tree3Points", "hearth", "reincarnation", "petTraining", "special", "specialFree", "totem1", "totem2", "totem3", "totem4"]);
+
+const ammoLabel = (s) => s.ammoName || s.ammoBetter || word("page.status.ammo");
+
+function shootingTime(n, row = false) {
+  const speed = n.rangedSpeed ? n.rangedSpeed / 1000 : 0;
+  if (!speed) return "";
+  const time = clock(n.ammo * speed);
+  return row ? word("page.status.shooting.row", { time }) : word("page.status.shooting", { time });
+}
+
+function poisonText(n, hand) {
+  if (!n[`${hand}Enchanted`]) return word("page.status.poison.none");
+  const sec = n[`${hand}PoisonSec`] || 0, charges = n[`${hand}PoisonCharges`] || 0;
+  return clock(sec) + (charges ? ` <small>${word("page.status.poison.charges", { n: charges })}</small>` : "");
+}
+
+function warningText(w, n) {
+  if (w.text) return [w.text, w.detail || ""];
+  const low = w.level === "low";
+  if (w.spell) {
+    return [word("page.status.warn.rank", { name: w.spell.name, rank: w.spell.best }), word("page.status.warn.rank.detail", { have: w.spell.have })];
+  }
+  switch (w.key) {
+    case "ammo": return low ? [word("page.status.warn.ammo", { n: num(n.ammo) }), shootingTime(n)]
+      : [word("page.status.warn.ammo.out"), word("page.status.warn.ammo.out.detail")];
+    case "petUnhappy": return [word("page.status.warn.pet"), word("page.status.warn.pet.detail")];
+    case "shards": return low ? [word("page.status.warn.shards", { n: n.shards }), word("page.status.warn.shards.detail")]
+      : [word("page.status.warn.shards.out"), word("page.status.warn.shards.out.detail")];
+    case "mhPoison": return low ? [word("page.status.warn.mh-poison"), poisonText(n, "mh").replace(/<[^>]+>/g, "")] : [word("page.status.warn.mh-poison.out"), ""];
+    case "ohPoison": return low ? [word("page.status.warn.oh-poison"), poisonText(n, "oh").replace(/<[^>]+>/g, "")] : [word("page.status.warn.oh-poison.out"), ""];
+    case "poisons": return low ? [word("page.status.warn.poisons", { n: n.poisons }), ""]
+      : [word("page.status.warn.poisons.out"), word("page.status.warn.poisons.out.detail")];
+    case "water": return low ? [word("page.status.warn.water", { n: n.water }), ""] : [word("page.status.warn.water.out"), ""];
+    case "ankh": return low ? [word("page.status.warn.ankh", { n: n.ankhs }), ""] : [word("page.status.warn.ankh.out"), word("page.status.warn.ankh.out.detail")];
+    case "earthTotem": return [word("page.status.warn.earth-totem"), word("page.status.warn.earth-totem.detail")];
+    case "fireTotem": return [word("page.status.warn.fire-totem"), word("page.status.warn.fire-totem.detail")];
+    case "waterTotem": return [word("page.status.warn.water-totem"), word("page.status.warn.water-totem.detail")];
+    case "airTotem": return [word("page.status.warn.air-totem"), word("page.status.warn.air-totem.detail")];
+    case "durability": return low ? [word("page.status.warn.durability", { n: n.durability }), word("page.status.warn.durability.detail")]
+      : [word("page.status.warn.durability.out"), word("page.status.warn.durability.out.detail")];
+    default: return [w.key, ""];
+  }
+}
+
+
+const sound = { ctx: null, heard: {}, lastOutBeep: 0 };
+
+function unlockSound() {
+  if (sound.ctx) return;
+  try {
+    sound.ctx = new AudioContext();
+  } catch (e) { return; }
+  renderWarnings();
+}
+["pointerdown", "keydown"].forEach((ev) => document.addEventListener(ev, unlockSound, { once: false, passive: true }));
+
+function beep(urgent) {
+  const ctx = sound.ctx;
+  if (!ctx) return;
+  if (ctx.state === "suspended") ctx.resume();
+  const tones = urgent ? [880, 660, 880, 660] : [660, 880];
+  tones.forEach((freq, i) => {
+    const osc = ctx.createOscillator(), gain = ctx.createGain();
+    const t = ctx.currentTime + i * 0.18;
+    osc.type = "square";
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.12, t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.17);
+  });
+}
+
+function soundWarnings(warnings) {
+  const now = Date.now(), current = {};
+  let fresh = false, urgent = false;
+  for (const w of warnings) {
+    current[w.key] = w.level;
+    if (!sound.heard[w.key] || (w.level === "out" && sound.heard[w.key] === "low")) fresh = true;
+    if (w.level === "out") urgent = true;
+  }
+  sound.heard = current;
+  if (app.options?.warningSound === false) return;
+  if (fresh || (urgent && now - sound.lastOutBeep > BEEP_REPEAT_MS)) {
+    beep(urgent);
+    if (urgent) sound.lastOutBeep = now;
+  }
+}
+
+
+let dismissed = {};
+const warningSignature = (w) => `${w.level}|${w.spell ? w.spell.best : ""}`;
+
+function dismissable(w) {
+  return w.level !== "out" && !!todoForWarning(w);
+}
+const movedToTodo = (w) => dismissed[w.key]?.sig === warningSignature(w) && dismissable(w);
+
+function activeWarnings() {
+  const rankWarnings = (app.bars?.ranks || []).map((r) => ({ key: `rank:${r.name}`, level: "low", spell: r }));
+  const dungeonOnes = dungeonWarnings();
+  return [...queueNotices(), ...(app.status?.warnings || []), ...rankWarnings, ...dungeonOnes]
+    .filter((w) => !isSilencedWarning(w) && !movedToTodo(w));
+}
+
+function moveToTodo(key, sig, todoId) {
+  postTodo({ dismiss: { [key]: { sig, todo: todoId } } });
+}
+function moveBack(key) {
+  postTodo({ unmove: key });
+}
+function movedWarnings() {
+  const rankWarnings = (app.bars?.ranks || []).map((r) => ({ key: `rank:${r.name}`, level: "low", spell: r }));
+  return [...(app.status?.warnings || []), ...rankWarnings].filter((w) => !isSilencedWarning(w) && movedToTodo(w));
+}
+function bandClicked(e) {
+  const news = e.target.closest(".warn[data-queue]");
+  if (news) return dismissQueue(news.dataset.queue);
+  const el = e.target.closest(".warn[data-key]");
+  if (el) moveToTodo(el.dataset.key, el.dataset.sig, el.dataset.todo);
+}
+$("warnings").addEventListener("click", bandClicked);
+
+function loudInGame() {
+  return (app.status?.warnings || []).filter((w) => !w.quiet).map((w) => ({ ...w, never: isSilencedWarning(w) }))
+    .filter((w) => w.never || movedToTodo(w));
+}
+function quietInGame() {
+  return (app.status?.warnings || []).filter((w) => w.quiet && !movedToTodo(w) && !isSilencedWarning(w));
+}
+
+const WARN_ORDER = { news: 0, out: 1 };
+function renderWarnings() {
+  const st = app.status;
+  const warnings = activeWarnings();
+  let html = warnings
+    .slice().sort((a, b) => (WARN_ORDER[a.level] ?? 2) - (WARN_ORDER[b.level] ?? 2))
+    .map((w) => {
+      const [title, detail] = warningText(w, st?.nums || {});
+      const click = w.queue ? ` data-queue="${esc(w.key)}"` : dismissable(w) ? ` data-key="${esc(w.key)}" data-sig="${esc(warningSignature(w))}" data-todo="${esc(todoForWarning(w))}"
+        title="${word("page.status.warn.move")}"` : "";
+      return `<div class="warn ${w.level}${w.invite ? " invite" : ""}${click && !w.queue ? " dismissable" : ""}"${click}>${esc(title)}${detail ? `<small>${esc(detail)}</small>` : ""}</div>`;
+    }).join("");
+  if (warnings.length && !sound.ctx) html += `<div class="warn sound">${word("page.status.warn.sound")}</div>`;
+  setHtml($("warnings"), html);
+}
+
+
+function row(key, label, value, state = "", bar = null) {
+  return { key, label, value, state, bar };
+}
+
+const AMMO_STACK = 200;
+function hoverHtml(name, pinned = false) {
+  const other = window.HOVERS?.[name] || window.HOVERS?.[`${name.split(":")[0]}:`];
+  if (other) return other(pinned, name);
+  const d = alts.data, b = d?.chars?.[d.current]?.bags;
+  if (!b) return `<div class="hv"><div class="hv-note">${word("page.status.bags.none")}</div></div>`;
+  wantItemInfo([...Object.keys(b.items), ...(b.each || []).map((x) => x.id)], () => refreshHover());
+  const info = (id) => app.itemInfo?.[baseItem(id)] || {};
+  const icon = (i) => (i.icon ? `<img src="/icon/${esc(i.icon)}.jpg" alt="">` : "");
+  const line = (i, label, right, id) => `<div class="hv-row"${id ? ` data-tip="${id}"` : ""}>${icon(i)}<span class="hv-name${
+    i.quest ? " hv-quest" : ""}">${label}</span><span class="hv-n">${right}</span></div>`;
+  const foot = pinned ? "" : `<div class="hv-foot">${word("page.status.bags.pin")}</div>`;
+  const bag = (x) => {
+    const i = x.id ? info(x.id) : { icon: "inv_misc_bag_08", n: word("page.status.bags.backpack") };
+    const kind = x.family & 1 ? word("page.status.bags.quiver") : x.family & 2 ? word("page.status.bags.pouch") : x.family ? word("page.status.bags.special") : "";
+    return line(i, `${esc(i.n || word("page.status.bags.bag"))}${kind ? ` <small>${kind}</small>` : ""}`,
+      `${x.free} <small>${word("page.status.bags.free", { slots: x.slots })}</small>`, x.id || null);
+  };
+  if (name === "ammo") {
+    const called = app.status?.strs?.ammoName, better = app.status?.strs?.ammoBetter;
+    const ammo = Object.entries(b.items).filter(([id]) => info(id).n && [called, better].includes(info(id).n))
+      .map(([id, n]) => line(info(id), esc(info(id).n), `${num(n)} <small>${wordCount("page.status.ammo.stacks", Math.ceil(n / AMMO_STACK))}</small>`, id));
+    const holders = (b.each || []).filter((x) => x.family & 3).map(bag);
+    return `<div class="hv"><div class="hv-head">${word("page.status.ammo.head")}</div>${ammo.join("")
+      || `<div class="hv-note">${word("page.status.ammo.missing", { name: esc(called || word("page.status.ammo.none")) })}</div>`}
+      ${holders.length ? `<div class="hv-head">${word("page.status.ammo.holder")}</div>${holders.join("")}` : ""}${foot}</div>`;
+  }
+  const items = Object.entries(heldItems(b)).sort(([x], [y]) => (info(x).n || "").localeCompare(info(y).n || ""));
+  const cap = pinned ? items.length : 24;
+  const shown = items.slice(0, cap).map(([id, n]) => line(info(id), esc(info(id).n || word("page.status.bags.item", { id })), num(n), id)).join("");
+  const more = items.length > cap ? `<div class="hv-note">${word("page.status.bags.more", { n: items.length - cap })}</div>` : "";
+  const each = (b.each || []).map(bag).join("");
+  return `<div class="hv">${each ? `<div class="hv-head">${word("page.status.bags.head")}</div>${each}` : ""}<div class="hv-head">${word("page.status.bags.in")}</div>
+    ${shown || `<div class="hv-note">${word("page.status.bags.nothing")}</div>`}${more}${foot}</div>`;
+}
+
+function durabilityItem(n) {
+  const id = n.durabilityItem;
+  if (!id) return "";
+  wantItemInfo([id], () => renderStatus());
+  const name = app.itemInfo?.[id]?.n;
+  return name ? ` <small class="st-item" data-tip="${id}">(${esc(name)})</small>` : "";
+}
+
+const BAR_START = tintRgb("low");
+const BAR_END = tintRgb("error");
+
+const BAR_PROGRESS = tintRgb("cyan-deep");
+
+const skillGlows = (bar) => !!bar?.heat && options.get("skillglow");
+function heatSwitched() {
+  if (!app.state) return;
+  updateXp();
+  renderStatus();
+  heatWatch();
+}
+for (const id of ["xpglow", "skillglow", "levelflare"]) options.hooks[id] = { changed: heatSwitched };
+
+function barHot(bar) {
+  if (!skillGlows(bar) || !(bar.max > 0) || bar.dir !== "progress") return false;
+  const stage = heatStage(Math.min(1, bar.value / bar.max), 1 / bar.max);
+  return stage === "glow" || stage === "fire";
+}
+
+
+const RATE_EVERY = 30;
+const RATE_MOST = 240;
+const RATE_KEPT = "cc.rates";
+const rates = { who: null, at: -1, rows: {} };
+function rateNoted(seconds) {
+  const who = app.character || "";
+  if (rates.who === null) {
+    try { Object.assign(rates, JSON.parse(sessionStorage.getItem(RATE_KEPT)) || {}); } catch {   }
+    rates.who ??= who;
+  }
+  if (rates.who !== who || seconds < rates.at) Object.assign(rates, { who, at: -1, rows: {} });
+  return rates;
+}
+function rated(r, value, seconds) {
+  if (!Number.isFinite(value) || !(seconds > 0)) return r;
+  const kept = rateNoted(seconds), points = (kept.rows[r.key] ||= []);
+  const last = points[points.length - 1];
+  if (!last || seconds - last[0] >= RATE_EVERY) {
+    points.push([Math.round(seconds), Math.round(value)]);
+    if (points.length > RATE_MOST) kept.rows[r.key] = points.filter((_, i) => i % 2 === 0 || i === points.length - 1);
+    kept.at = Math.max(kept.at, seconds);
+    try { sessionStorage.setItem(RATE_KEPT, JSON.stringify(kept)); } catch {   }
+  }
+  return Object.assign(r, { rate: kept.rows[r.key] });
+}
+
+const RATE_NEAR = 900;
+const RATE_WIDEN = 3;
+function rateStretch(points) {
+  const end = points[points.length - 1][0];
+  let rose = points[0][0];
+  for (let i = 1; i < points.length; i++) if (points[i][1] > points[i - 1][1]) rose = points[i][0];
+  const from = end - (RATE_NEAR + (end - rose) * RATE_WIDEN);
+  return points.filter((p) => p[0] >= from);
+}
+
+function rateHtml(course) {
+  const points = course && course.length ? rateStretch(course) : [];
+  if (points.length < 3) return "";
+  const t0 = points[0][0], span = points[points.length - 1][0] - t0;
+  const low = Math.min(...points.map((p) => p[1])), high = Math.max(...points.map((p) => p[1]));
+  if (!(span > 0) || high === low) return "";
+  const at = points.map(([t, v]) => `${((t - t0) / span * 100).toFixed(1)},${(92 - (v - low) / (high - low) * 84).toFixed(1)}`);
+  return `<svg class="st-graph" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path class="st-graph-fill" d="M0,100 L${
+    at.join(" L")} L100,100 Z"/><polyline class="st-graph-line" points="${at.join(" ")}"/></svg>`;
+}
+
+function barHtml(bar) {
+  if (!bar || !(bar.max > 0)) return "";
+  const frac = Math.max(0, Math.min(1, bar.value / bar.max));
+  if (bar.dir === "progress") {
+    const levelled = bar.heat ? heatLevelled(`${bar.heat}:${heatWho()}:${bar.max}`, frac >= 1 ? 1 : 0) : null;
+    const age = options.get("levelflare") ? levelled : null;
+    if (frac >= 1 && age == null) return "";
+    const [r, g, b] = BAR_PROGRESS;
+    const heat = bar.heat ? (skillGlows(bar) ? heatEdgeHtml(frac, 1 / bar.max) : "") + heatBurstHtml(age) : "";
+    return `<span class="st-bar" style="width:${Math.max(frac * 100, 3)}%;background:rgba(${r},${g},${b},0.4);box-shadow:inset -2px 0 0 ${tint("cyan", 0.9)}">${heat}</span>`;
+  }
+  const toBad = bar.dir === "fill" ? (frac - 0.5) / 0.5 : (0.5 - frac) / 0.5;
+  if (toBad <= 0) return "";
+  const t = Math.min(1, toBad);
+  const [r, g, b] = BAR_START.map((c, i) => Math.round(c + (BAR_END[i] - c) * t));
+  return `<span class="st-bar" style="width:${Math.max(frac * 100, 3)}%;background:rgba(${r},${g},${b},0.34);box-shadow:inset -2px 0 0 rgba(${r},${g},${b},0.9)"></span>`;
+}
+
+const STATUS_ROWS = {
+  class: { 3: ["pet", "petLoyalty", "petTraining", "ammo"], 9: ["shards", "healthstones", "soulstones", "demon"],
+    8: ["arcanePowder", "runeTeleport", "runePortals", "lightFeather", "manaGems"],
+    4: ["mhPoison", "ohPoison", "poisons", "flashPowder", "blindingPowder"], 5: ["holyCandles", "sacredCandles"],
+    11: ["rebirthSeeds", "giftReagents"], 2: ["divinitySymbols", "kingsSymbols"],
+    7: ["ankhs", "reincarnation", "earthTotem", "fireTotem", "waterTotem", "airTotem", "totems"] },
+  supplies: ["food", "water", "bandages"], gold: ["money", "moneySession", "moneyHour", "bags", "special"], gear: ["durability", "ammo"],
+  weapon: ["all"], skills: ["all"], leveling: ["xpHour", "toLevel", "kills", "restedKills"], travel: ["hearth", "quests", "rep"],
+  time: ["server", "session", "played", "levelPlayed"], party: ["all"], finder: ["all"],
+};
+function statusRowChoices(heading, st) {
+  const rows = heading === "class" ? STATUS_ROWS.class[st?.classId] || []
+    : heading === "gear" && st?.classId === 3 ? STATUS_ROWS.gear.filter((v) => v !== "ammo") : STATUS_ROWS[heading];
+  return rows.map((v) => ({ value: v, name: CHARACTER_WORDS[`${heading}.${v.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`] }));
+}
+function statusRowChoice(key, heading) {
+  if (heading === "weapon" || heading === "skills") return "all";
+  if (key === "petHappiness" || key === "petNone") return "pet";
+  return /^totem\d$/.test(key) ? "totems" : key;
+}
+const statusRowShown = (heading, value) => !options.get(`rows${heading}`).includes(value);
+const shownSections = (secs) => secs.map((sec) => ({ ...sec, rows: sec.rows.filter((r) => statusRowShown(sec.id, statusRowChoice(r.key, sec.id))) }))
+  .filter((sec) => sec.rows.length);
+for (const heading of Object.keys(STATUS_ROWS)) {
+  options.hooks[`rows${heading}`] = { choices: () => statusRowChoices(heading, app.status), shown: () => statusRowChoices(heading, app.status).length > 0,
+    changed: () => { if (app.status) renderStatus(); } };
+}
+
+function sections(st, pos) {
+  const n = st.nums || {}, s = st.strs || {}, out = [];
+  const counted = (key, label) => (key in n ? row(key, label, num(n[key])) : null);
+  const of = (max) => `<small>${word("page.status.of", { of: max })}</small>`;
+
+  const cls = [];
+  if (st.classId === 3) {
+    if (n.petActive) {
+      if ("petHappiness" in n) {
+        cls.push(row("petHappiness", word("page.options.character.class.pet"),
+          `${HAPPINESS[n.petHappiness] || "?"} <small>${word("page.status.pet.damage", { pct: n.petDamage })}</small>`, "",
+          { value: n.petHappiness, max: 3, dir: "empty" }));
+      }
+      if (s.petLoyalty) cls.push(row("petLoyalty", word("page.options.character.class.pet-loyalty"), esc(s.petLoyalty)));
+      if ("petTraining" in n) cls.push(row("petTraining", word("page.options.character.class.pet-training"), num(n.petTraining)));
+    } else {
+      cls.push(row("petNone", word("page.options.character.class.pet"), word("page.status.pet.none")));
+    }
+    if ("ammo" in n) cls.push(Object.assign(row("ammo", esc(ammoLabel(s)), `${num(n.ammo)}${n.ammo ? ` <small>${shootingTime(n, true)}</small>` : ""}`, "",
+      n.ammoMax ? { value: n.ammo, max: n.ammoMax, dir: "empty" } : null), { hover: "ammo" }));
+  }
+  if (st.classId === 9) {
+    cls.push(counted("shards", word("page.options.character.class.shards")), counted("healthstones", word("page.options.character.class.healthstones")),
+      counted("soulstones", word("page.options.character.class.soulstones")));
+    if (s.demon) cls.push(row("demon", word("page.options.character.class.demon"), esc(s.demon)));
+  }
+  if (st.classId === 8) {
+    cls.push(counted("arcanePowder", word("page.options.character.class.arcane-powder")), counted("runeTeleport", word("page.options.character.class.rune-teleport")),
+      counted("runePortals", word("page.options.character.class.rune-portals")), counted("lightFeather", word("page.options.character.class.light-feather")),
+      counted("manaGems", word("page.options.character.class.mana-gems")));
+  }
+  if (st.classId === 4) {
+    if ("mhEnchanted" in n) {
+      cls.push(row("mhPoison", word("page.options.character.class.mh-poison"), poisonText(n, "mh"), "", { value: n.mhPoisonSec || 0, max: 1800, dir: "empty" }));
+    }
+    if ("ohEnchanted" in n) {
+      cls.push(row("ohPoison", word("page.options.character.class.oh-poison"), poisonText(n, "oh"), "", { value: n.ohPoisonSec || 0, max: 1800, dir: "empty" }));
+    }
+    cls.push(counted("poisons", word("page.options.character.class.poisons")), counted("flashPowder", word("page.options.character.class.flash-powder")),
+      counted("blindingPowder", word("page.options.character.class.blinding-powder")));
+  }
+  if (st.classId === 5) {
+    cls.push(counted("holyCandles", word("page.options.character.class.holy-candles")), counted("sacredCandles", word("page.options.character.class.sacred-candles")));
+  }
+  if (st.classId === 11) {
+    cls.push(counted("rebirthSeeds", word("page.options.character.class.rebirth-seeds")), counted("giftReagents", word("page.options.character.class.gift-reagents")));
+  }
+  if (st.classId === 2) {
+    cls.push(counted("divinitySymbols", word("page.options.character.class.divinity-symbols")),
+      counted("kingsSymbols", word("page.options.character.class.kings-symbols")));
+  }
+  if (st.classId === 7) {
+    cls.push(counted("ankhs", word("page.options.character.class.ankhs")));
+    if ("reincarnation" in n) {
+      cls.push(row("reincarnation", word("page.options.character.class.reincarnation"), n.reincarnation ? clock(n.reincarnation) : word("page.status.reincarnation.ready")));
+    }
+    for (const [key, label] of [["earthTotem", word("page.options.character.class.earth-totem")], ["fireTotem", word("page.options.character.class.fire-totem")],
+      ["waterTotem", word("page.options.character.class.water-totem")], ["airTotem", word("page.options.character.class.air-totem")]]) {
+      if (key in n) cls.push(row(key, label, n[key] ? word("page.status.totem.in-bags") : word("page.status.totem.missing")));
+    }
+    for (let i = 1; i <= 4; i++) {
+      if (s[`totem${i}`]) cls.push(row(`totem${i}`, esc(s[`totem${i}`]), clock(n[`totem${i}`] || 0)));
+    }
+  }
+  const classRows = cls.filter(Boolean);
+  if (classRows.length) {
+    out.push({ id: "class", title: st.className || word("page.options.character.class"), classColor: CLASS_COLORS[st.className], rows: classRows });
+  }
+
+  const supplies = [counted("food", word("page.options.character.supplies.food")), counted("water", word("page.options.character.supplies.water")),
+    counted("bandages", word("page.options.character.supplies.bandages"))].filter(Boolean);
+  if (supplies.length) out.push({ id: "supplies", title: word("page.options.character.supplies"), rows: supplies });
+
+  const hours = (n.sessionSeconds || 0) / 3600;
+  const gold = [row("money", word("page.options.character.gold.money"), money(n.money || 0))];
+  if ("moneyStart" in n) gold.push(row("moneySession", word("page.options.character.gold.money-session"), signedMoney((n.money || 0) - n.moneyStart)));
+  if (hours > 0.05 && "moneyStart" in n) {
+    const perHour = Math.round(((n.money || 0) - n.moneyStart) / hours);
+    gold.push(rated(row("moneyHour", word("page.options.character.gold.money-hour"), signedMoney(perHour)), perHour, n.sessionSeconds));
+  }
+  gold.push(Object.assign(row("bags", word("page.options.character.gold.bags"), `${n.bagFree ?? "?"} ${of(n.bagSlots ?? "?")}`, n.bagFree === 0 ? "zero" : "",
+    { value: (n.bagSlots || 0) - (n.bagFree || 0), max: n.bagSlots, dir: "fill" }), { hover: "bags" }));
+  if (n.specialFree) gold.push(row("special", word("page.options.character.gold.special"), num(n.specialFree)));
+  out.push({ id: "gold", title: word("page.options.character.gold"), rows: gold });
+
+  const gear = [];
+  if ("durability" in n) {
+    gear.push(row("durability", word("page.options.character.gear.durability"), `${n.durability}%${durabilityItem(n)}`, "", { value: n.durability, max: 100, dir: "empty" }));
+  }
+  if ("ammo" in n && st.classId !== 3) gear.push(row("ammo", esc(ammoLabel(s)), num(n.ammo), "", n.ammoMax ? { value: n.ammo, max: n.ammoMax, dir: "empty" } : null));
+  if (gear.length) out.push({ id: "gear", title: word("page.options.character.gear"), rows: gear });
+  const profs = app.professions || [];
+  const skills = (st.skills || []).filter((sk) => !profs.some((p) => p.name === sk.name))
+    .map((sk) => row(`skill-${sk.name}`, esc(sk.name), `${sk.rank} <small>/ ${sk.max}</small>`, "",
+      { value: sk.rank, max: sk.max, dir: "progress", heat: `skill:${sk.name}` }));
+  if (skills.length) out.push({ id: "weapon", title: word("page.options.character.weapon"), rows: skills });
+  const levelled = profs.map((p) => {
+    const up = skillRise(p.name, p.rank, n.sessionSeconds);
+    return row(`skill-${p.name}`, esc(p.name), `${p.rank} <small>/ ${p.max}</small>${up > 0 ? ` <small class="st-up">+${up}</small>` : ""}`,
+      skillRose(p.name, p.rank) ? "rose" : "", { value: p.rank, max: p.max, dir: "progress", heat: `skill:${p.name}` });
+  });
+  if (levelled.length) out.push({ id: "skills", title: word("page.options.character.skills"), rows: levelled });
+
+  if (pos && pos.xpMax && !(app.maxLevel != null && pos.level >= app.maxLevel)) {
+    const left = pos.xpMax - pos.xp;
+    const lvl = [];
+    const perHour = hours > 0.03 ? n.sessionXP / hours : 0;
+    const xpHour = row("xpHour", word("page.options.character.leveling.xp-hour"), perHour ? num(perHour) : `<small>${word("page.status.xp.measuring")}</small>`);
+    lvl.push(perHour ? rated(xpHour, perHour, n.sessionSeconds) : xpHour);
+    if (perHour) lvl.push(row("toLevel", word("page.options.character.leveling.to-level"), clock(left / perHour * 3600)));
+    if (n.lastKillXP) {
+      lvl.push(row("kills", word("page.options.character.leveling.kills"),
+        `${num(Math.ceil(left / n.lastKillXP))} <small>${word("page.status.kills.at", { xp: num(n.lastKillXP) })}</small>`));
+      if (n.lastKillRested && pos.rested) {
+        lvl.push(row("restedKills", word("page.options.character.leveling.rested-kills"),
+          word("page.status.rested", { n: num(Math.ceil(pos.rested / (n.lastKillXP / 2))) })));
+      }
+    }
+    out.push({ id: "leveling", title: word("page.options.character.leveling"), rows: lvl });
+  }
+
+  const travel = [];
+  if (s.bind || "hearth" in n) {
+    travel.push(row("hearth", word("page.options.character.travel.hearth"),
+      `${esc(s.bind || "")}${"hearth" in n ? ` <small>${n.hearth ? clock(n.hearth) : word("page.status.hearth.ready")}</small>` : ""}`));
+  }
+  if ("quests" in n) {
+    travel.push(row("quests", word("page.options.character.travel.quests"),
+      `${n.quests} ${of(n.questsMax)}${n.questsDone ? ` <small>${word("page.status.quests.done", { n: n.questsDone })}</small>` : ""}`,
+      n.quests >= n.questsMax ? "zero" : "", { value: n.quests, max: n.questsMax, dir: "fill" }));
+  }
+  if (s.repName) travel.push(row("rep", esc(s.repName), `${REACTIONS[n.repReaction] || ""} <small>${num(n.repValue || 0)} / ${num(n.repMax || 0)}</small>`, "",
+    { value: n.repValue || 0, max: n.repMax || 0, dir: "progress" }));
+  if (travel.length) out.push({ id: "travel", title: word("page.options.character.travel"), rows: travel });
+
+  const time = [];
+  if ("serverMinutes" in n) {
+    time.push(row("server", word("page.options.character.time.server"),
+      `${String(Math.floor(n.serverMinutes / 60)).padStart(2, "0")}:${String(n.serverMinutes % 60).padStart(2, "0")}`));
+  }
+  if ("sessionSeconds" in n) time.push(row("session", word("page.options.character.time.session"), clock(n.sessionSeconds)));
+  if ("playedSeconds" in n) time.push(row("played", word("page.options.character.time.played"), playedText(n.playedSeconds)));
+  if ("levelSeconds" in n) time.push(row("levelPlayed", word("page.options.character.time.level-played"), playedText(n.levelSeconds)));
+  if (time.length) out.push({ id: "time", title: word("page.options.character.time"), rows: time });
+  return out;
+}
+
+const skillStart = { key: null, at: 0, ranks: {} };
+function skillRise(name, rank, session) {
+  const key = charStore("skillStart", app.character), at = session != null ? Math.round(Date.now() / 60000 - session / 60) : 0;
+  if (skillStart.key !== key) {
+    let kept = null;
+    try { kept = JSON.parse(localStorage.getItem(key) || "null"); } catch (e) {   }
+    Object.assign(skillStart, { key, at: kept?.at ?? at, ranks: kept?.ranks || {} });
+  }
+  if (Math.abs(skillStart.at - at) > 2) { skillStart.at = at; skillStart.ranks = {}; }
+  if (!(name in skillStart.ranks)) {
+    skillStart.ranks[name] = rank;
+    try { localStorage.setItem(key, JSON.stringify({ at: skillStart.at, ranks: skillStart.ranks })); } catch (e) {   }
+  }
+  return rank - skillStart.ranks[name];
+}
+const SKILL_LIT = 4000, skillSeen = {};
+function skillRose(name, rank) {
+  const key = `${app.character}|${name}`, seen = skillSeen[key];
+  const at = seen && rank > seen.rank ? Date.now() : seen?.at || 0;
+  skillSeen[key] = { rank, at };
+  return Date.now() - at < SKILL_LIT;
+}
+
+
+const SECTION_ICONS = {
+  supplies: "inv_misc_bag_08", gold: "inv_misc_coin_01", gear: "inv_chest_chain_05", weapon: "inv_sword_04", skills: "inv_misc_book_11",
+  leveling: "achievement_level_10", travel: "inv_misc_map_01", time: "inv_misc_pocketwatch_01", party: "inv_misc_groupneedmore",
+};
+const ROW_ICONS = {
+  petHappiness: "ability_hunter_beastcall", petNone: "ability_hunter_beastcall", petLoyalty: "ability_hunter_beastsoothe",
+  petTraining: "ability_hunter_beasttraining", shards: "inv_misc_gem_amethyst_02", healthstones: "inv_stone_04",
+  soulstones: "spell_shadow_soulgem", demon: "spell_shadow_summonimp", arcanePowder: "inv_misc_dust_01",
+  runeTeleport: "inv_misc_rune_06", runePortals: "inv_misc_rune_08", lightFeather: "inv_feather_04", manaGems: "inv_misc_gem_emerald_01",
+  mhPoison: "ability_poisons", ohPoison: "ability_poisons", poisons: "trade_brewpoison", flashPowder: "inv_misc_powder_purple",
+  blindingPowder: "inv_misc_powder_green", holyCandles: "inv_misc_candle_02", sacredCandles: "inv_misc_candle_03",
+  rebirthSeeds: "inv_misc_food_19", giftReagents: "inv_misc_herb_07", divinitySymbols: "inv_stone_weightstone_05",
+  kingsSymbols: "inv_misc_symbolofkings_01", ankhs: "inv_jewelry_talisman_06", reincarnation: "spell_nature_reincarnation",
+  earthTotem: "spell_nature_stoneskintotem", fireTotem: "spell_fire_searingtotem", waterTotem: "spell_frost_summonwaterelemental",
+  airTotem: "spell_nature_windfury", food: "inv_misc_food_15", water: "inv_drink_07", bandages: "inv_misc_bandage_15",
+  money: "inv_misc_coin_01", moneySession: "inv_misc_coin_02", moneyHour: "inv_misc_coin_03", bags: "inv_misc_bag_07",
+  special: "inv_misc_quiver_03", durability: "trade_blacksmithing", xpHour: "spell_holy_surgeoflight",
+  toLevel: "inv_misc_pocketwatch_02", kills: "ability_dualwield", restedKills: "spell_nature_sleep", hearth: "inv_misc_rune_01",
+  quests: "inv_misc_note_06", rep: "achievement_reputation_01", server: "inv_misc_pocketwatch_01", session: "spell_holy_borrowedtime",
+  played: "inv_misc_pocketwatch_03", levelPlayed: "spell_nature_timestop",
+};
+const SKILL_ICONS = {
+  Axes: "inv_axe_01", "Two-Handed Axes": "inv_axe_09", Bows: "inv_weapon_bow_01", Guns: "inv_weapon_rifle_01", Maces: "inv_mace_01",
+  "Two-Handed Maces": "inv_hammer_05", Polearms: "inv_spear_06", Swords: "inv_sword_04", "Two-Handed Swords": "inv_sword_06",
+  Staves: "inv_staff_08", "Fist Weapons": "inv_gauntlets_04", Daggers: "inv_weapon_shortblade_01", Thrown: "inv_throwingknife_02",
+  Crossbows: "inv_weapon_crossbow_01", Wands: "inv_wand_01", Lockpicking: "inv_misc_key_03",
+  Alchemy: "trade_alchemy", Blacksmithing: "trade_blacksmithing", Enchanting: "trade_engraving", Engineering: "trade_engineering",
+  Herbalism: "spell_nature_naturetouchgrow", Leatherworking: "trade_leatherworking", Mining: "trade_mining",
+  Skinning: "inv_misc_pelt_wolf_01", Tailoring: "trade_tailoring", Jewelcrafting: "inv_misc_gem_01",
+  Inscription: "inv_inscription_tradeskill01", Cooking: "inv_misc_food_15", "First Aid": "spell_holy_sealofsacrifice",
+  Fishing: "trade_fishing",
+};
+function rowIcon(key, st) {
+  if (key === "ammo") return st.nums?.ammoKind === 2 ? "inv_ammo_arrow_01" : "inv_ammo_bullet_01";
+  if (key.startsWith("totem")) return "spell_nature_stoneskintotem";
+  if (key.startsWith("skill-")) return SKILL_ICONS[key.slice(6)] || "inv_sword_04";
+  return ROW_ICONS[key];
+}
+const stIcon = (name, cls = "st-ic") => name ? `<img class="${cls}" src="/icon/${esc(name)}.jpg" alt="">` : `<span class="${cls} none"></span>`;
+
+function renderStatus() {
+  const st = app.status;
+  const box = $("status");
+  if (!st?.nums) { box.hidden = true; return; }
+  const levels = {};
+  for (const w of st.warnings || []) levels[WARNING_ROW[w.key]] = w.level;
+  const zeroKeys = new Set(Object.keys(st.nums).filter((k) => st.nums[k] === 0 && !ZERO_IS_FINE.has(k)));
+  const help = helpButton("status"), party = statusRowShown("party", "all") ? partySection(help) : "";
+  const finder = statusRowShown("finder", "all") ? queueLineHtml() : "";
+  const html = finder + party + shownSections(sections(st, app.state)).map((sec, i) => {
+    const mine = !party && i === 0 ? help : "";
+    const head = sec.classColor
+      ? `<div class="st-head class" style="color:${sec.classColor}">${stIcon(`classicon_${(st.className || "").toLowerCase()}`, "st-hic")}${esc(sec.title)}${mine}</div>`
+      : `<div class="st-head">${stIcon(SECTION_ICONS[sec.id], "st-hic")}${esc(sec.title)}${mine}</div>`;
+    const rows = sec.rows.map((r) => {
+      const state = `${levels[r.key] || r.state || (zeroKeys.has(r.key) ? "zero" : "")}${barHot(r.bar) ? " hot" : ""}`;
+      return `<div class="st-row ${state}"${r.hover ? ` data-hover="${r.hover}"` : ""}>${rateHtml(r.rate)}${barHtml(r.bar)}<span class="st-label">${stIcon(rowIcon(r.key, st))}${r.label}</span><span class="st-value">${r.value}</span></div>`;
+    }).join("");
+    return head + rows;
+  }).join("");
+  box.hidden = false;
+  setHtml(box, html);
+  renderWarnings();
+  soundWarnings(activeWarnings());
+  renderTodo();
+  renderGuide();
+}

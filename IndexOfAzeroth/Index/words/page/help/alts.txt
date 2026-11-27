@@ -1,0 +1,10 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: about, down, up
+
+title = Alts
+banks = Banks
+banks.p1 = Each character's bank shows as it was last opened in game.
+comparing-gear = Comparing gear
+comparing-gear.p1 = Pick the playing character under <b>Compare with</b>, and each piece of another character's gear gets a mark. <b>{up}</b> means the piece is better for the playing character, <b>{down}</b> means the piece the playing character wears is better, <b>=</b> means it's the same piece and <b>{about}</b> means it's about the same.
+removing-character = Removing a character
+removing-character.p1 = A character removed from the board comes back whole at the next login on that character.

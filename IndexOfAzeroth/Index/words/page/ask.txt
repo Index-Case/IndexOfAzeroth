@@ -1,0 +1,23 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: what, status, why
+
+failed.old = {what}, because the Index is older than the page and has no answer for this ask yet. Restart the Index and try again
+failed.error = {what}, because the Index answered with error {status}
+failed.away = {what}, because the Index isn't answering. Check that the Index is running
+
+wait.1 = A dwarf of the Explorers' League went down to the archives for this. The archives are deep
+wait.2 = A goblin courier is bringing the ledgers. He is paid by the mile, so he took the long way round
+wait.3 = The librarian of Stormwind climbed the ladder for the top shelf and is still climbing
+wait.4 = A Forsaken scribe is copying out the pages. He stops now and then to put a finger back on
+wait.5 = Three magi of the Kirin Tor are looking for the right tome. They disagree about which tome
+wait.6 = A gryphon rider from Aerie Peak is bringing the dispatch. The gryphon has its own views on the route
+wait.7 = A kobold was sent down to the record room. He has found a candle and seems happy with that
+wait.8 = An orc of Orgrimmar is reading out the list to you. He is on the second letter
+wait.9 = The quartermaster of Ironforge is dusting off his books. Most of the dust is a family heirloom
+wait.10 = A night elf archivist is fetching the scrolls. She does not believe in hurrying
+
+note.failed = The page couldn't get {what} because {why}.
+note.again = Ask again
+why.away = the Index didn't answer
+why.error = the Index answered with error {status}
+why.unread = the Index's answer couldn't be read

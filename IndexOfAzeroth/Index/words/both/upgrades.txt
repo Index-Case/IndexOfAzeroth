@@ -1,0 +1,18 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: skill, teacher, kind, wear
+
+clear = Clear upgrade
+weak = Weak upgrade
+debatable = Debatable upgrade
+item-level = Item level upgrade
+small = Small upgrade
+train = Upgrade, train {skill}
+lower = Upgrade, lower armour
+vendor = Vendor pick
+wanted = The item you asked for
+
+train.tip = This piece is better than what you wear in that slot once you've learned {skill}. {teacher} teaches {skill}
+train.weapon = A weapon master
+train.armour = Your class trainer
+lower.tip = This piece is better than what you wear in that slot, but it's {kind}. Your class wears {wear}, which has more armour and stats cut for you. Leave the piece to someone who wears {kind}
+item-level.tip = This piece has a higher item level than what you wear in that slot. No stats are known yet for this piece or for what you wear there, so the verdict goes by item level alone

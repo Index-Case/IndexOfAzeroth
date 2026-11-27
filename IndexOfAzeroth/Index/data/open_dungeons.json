@@ -1,0 +1,271 @@
+{
+ "posts": {
+  "30290854": {
+   "post": 30290854,
+   "date": 1790895364,
+   "title": "WoW Forever Beta Development Notes \u2013 Updated September 24",
+   "list": true,
+   "open": [
+    [
+     "Excavation Site: Wetlands",
+     26,
+     31
+    ],
+    [
+     "Razorfen Downs",
+     25,
+     null
+    ],
+    [
+     "Uldaman",
+     30,
+     null
+    ],
+    [
+     "Ragefire Chasm",
+     null,
+     null
+    ],
+    [
+     "Hall of Thanes",
+     null,
+     null
+    ],
+    [
+     "Ruins of Lordaeron",
+     null,
+     null
+    ],
+    [
+     "Wailing Caverns",
+     null,
+     null
+    ],
+    [
+     "The Deadmines",
+     null,
+     null
+    ],
+    [
+     "Shadowfang Keep",
+     null,
+     null
+    ],
+    [
+     "The Stockade",
+     null,
+     null
+    ],
+    [
+     "Blackfathom Deeps",
+     null,
+     null
+    ],
+    [
+     "Gnomeregan",
+     null,
+     null
+    ],
+    [
+     "Razorfen Kraul",
+     null,
+     null
+    ],
+    [
+     "Scarlet Monastery",
+     null,
+     null
+    ]
+   ],
+   "closed": [],
+   "barred": [],
+   "unread": []
+  },
+  "30395251": {
+   "post": 30395251,
+   "date": 1791495158,
+   "title": "WoW Forever Beta Development Notes \u2013 Updated October 8",
+   "list": false,
+   "open": [
+    [
+     "City of Dalaran",
+     null,
+     null
+    ],
+    [
+     "City of Dalaran",
+     null,
+     null
+    ]
+   ],
+   "closed": [],
+   "barred": [],
+   "unread": []
+  },
+  "30494222": {
+   "post": 30494222,
+   "date": 1792109723,
+   "title": "WoW Forever Beta Development Notes \u2013 Updated October 15",
+   "list": false,
+   "open": [],
+   "closed": [],
+   "barred": [
+    [
+     "Dalaran",
+     "Horde"
+    ]
+   ],
+   "unread": [],
+   "named": []
+  },
+  "30899768": {
+   "post": 30899768,
+   "date": 1794621247,
+   "title": "WoW: Forever Hotfixes - November 13, 2026",
+   "list": false,
+   "open": [],
+   "closed": [],
+   "barred": [],
+   "unread": [],
+   "named": [
+    "The Deadmines",
+    "The Drowned City",
+    "Stratholme",
+    "Gnomeregan",
+    "Zul'Farrak"
+   ]
+  },
+  "30831545": {
+   "post": 30831545,
+   "date": 1794284626,
+   "title": "WoW: Forever Hotfixes - November 9, 2026",
+   "list": false,
+   "open": [],
+   "closed": [],
+   "barred": [],
+   "unread": [],
+   "named": [
+    "Alcaz Prison",
+    "Blackfathom Deeps",
+    "Blackrock Depths",
+    "The Drowned City",
+    "The Shaper's Terrace",
+    "Stratholme"
+   ]
+  },
+  "30786304": {
+   "post": 30786304,
+   "date": 1794013679,
+   "title": "WoW: Forever Hotfixes - November 6, 2026",
+   "list": false,
+   "open": [],
+   "closed": [],
+   "barred": [],
+   "unread": [],
+   "named": [
+    "Maraudon",
+    "The Drowned City",
+    "Blackmaw Hold",
+    "Ruins of Lordaeron"
+   ]
+  },
+  "30732723": {
+   "post": 30732723,
+   "date": 1793676033,
+   "title": "WoW Forever Beta Development Notes \u2013 Updated November 2",
+   "list": false,
+   "open": [],
+   "closed": [],
+   "barred": [],
+   "unread": [],
+   "named": [
+    "Ruins of Lordaeron",
+    "The Deadmines"
+   ]
+  },
+  "30941234": {
+   "post": 30941234,
+   "date": 1794881863,
+   "title": "WoW: Forever Hotfixes - November 16, 2026",
+   "list": false,
+   "open": [],
+   "closed": [],
+   "barred": [],
+   "unread": [],
+   "named": [
+    "The Drowned City",
+    "The Temple of Atal'Hakkar"
+   ]
+  },
+  "30961910": {
+   "post": 30961910,
+   "date": 1794972248,
+   "title": "WoW: Forever Hotfixes - November 17, 2026",
+   "list": false,
+   "open": [],
+   "closed": [],
+   "barred": [],
+   "unread": [],
+   "named": [
+    "Lower Blackrock Spire",
+    "Upper Blackrock Spire",
+    "Razorfen Downs"
+   ]
+  },
+  "30992551": {
+   "post": 30992551,
+   "date": 1795147255,
+   "title": "WoW: Forever Hotfixes - November 19, 2026",
+   "list": false,
+   "open": [],
+   "closed": [],
+   "barred": [],
+   "unread": [],
+   "named": [
+    "City of Dalaran",
+    "The Shaper's Terrace"
+   ]
+  },
+  "31002979": {
+   "post": 31002979,
+   "date": 1795220309,
+   "title": "WoW: Forever Hotfixes - November 20, 2026",
+   "list": false,
+   "open": [],
+   "closed": [],
+   "barred": [],
+   "unread": [],
+   "named": [
+    "Lower Blackrock Spire",
+    "Upper Blackrock Spire"
+   ]
+  },
+  "31039019": {
+   "post": 31039019,
+   "date": 1795486012,
+   "title": "WoW: Forever Hotfixes - November 23, 2026",
+   "list": false,
+   "open": [],
+   "closed": [],
+   "barred": [],
+   "unread": [],
+   "named": [
+    "Uldaman"
+   ]
+  },
+  "31066529": {
+   "post": 31066529,
+   "date": 1795649108,
+   "title": "WoW: Forever Hotfixes - November 25, 2026",
+   "list": false,
+   "open": [],
+   "closed": [],
+   "barred": [],
+   "unread": [],
+   "named": [
+    "Blackfathom Deeps",
+    "The Temple of Atal'Hakkar"
+   ]
+  }
+ }
+}

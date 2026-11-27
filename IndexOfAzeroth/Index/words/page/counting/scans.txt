@@ -1,0 +1,41 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: when, name, n, day, auctions
+
+title = Scans
+tick = Scan {when}
+tick.by = By {name}
+tick.whole = Full scan
+tick.partial = Partial scan
+tick.auctions = {auctions} auctions scanned
+lane.none = Not known
+coverage = Scans per day
+coverage.cell = {day}: {n} scans
+coverage.cell.one = {day}: 1 scan
+coverage.cell.none = {day}: no scan
+chart.day = {day}: {n} scans by {name}
+chart.day.one = {day}: 1 scan by {name}
+chart.auctions = Auctions scanned
+
+when = When
+by = Character
+kind = Type
+auctions = Auctions
+items = Items
+items.tip = The number of different items listed. Each random suffix of an item counts as a different item.
+read = Scan duration
+gap = Time since last scan
+gap.tip = The time since the scan before this one.
+whole = Full
+whole.tip = The scan read the whole auction house.
+partial = Partial
+partial.tip = The scan stopped before it read the whole auction house.
+first = First
+first.tip = The oldest scan of this auction house in the Index.
+counting = Counting
+counting.tip = The items in this scan are still being counted.
+not-read = Not known
+not-read.tip = The Index could not read this scan, so the items in this scan were not counted.
+by.record = was playing then
+by.record.tip = This scan has no character recorded. The name is the character who was playing at the time.
+by.none = Unknown
+by.none.tip = This scan has no character recorded, and no character was recorded as playing at the time.

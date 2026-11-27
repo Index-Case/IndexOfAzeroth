@@ -1,0 +1,9 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = Class quests
+intro.p1 = A class quest teaches a class something the class needs, such as a Hunter's pet or a Warrior's Defensive Stance.
+zone-epic = In a zone epic
+zone-epic.p1 = As soon as the character's level allows, a zone epic puts the class quest first after the quest in progress. The class quest's steps have the class's icon and the words <b>Class quest</b>. <b>Park</b> on the card puts a class quest off for later the same way as any other quest.
+class-quest = A class quest epic
+class-quest.p1 = <b>Class quest</b> plans the class quest alone as one epic, every step in order. When a class quest opens, a question in game offers that epic. Closing the question puts the question away for good, but zone epics still put the class quest first.

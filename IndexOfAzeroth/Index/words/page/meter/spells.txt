@@ -1,0 +1,77 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: name, n, pct, with, without, list, when, dmg, casts
+
+back.tip = Back to the spells
+back.spell.tip = Back to {name}
+loading = The Index is reading your spells.
+failed = The Index couldn't read your spells just now.
+building = The Index is still reading your older fights: {n} days to go. The spells cover the fights read so far.
+building.one = The Index is still reading your older fights: 1 day to go. The spells cover the fights read so far.
+none = No spells were recorded in the fights the graph shows.
+unrecorded = {n} fights the graph shows have no spells recorded and are left out of these figures.
+unrecorded.one = 1 fight the graph shows has no spells recorded and is left out of these figures.
+none.value = -
+pct = {pct}%
+
+spells.title = Spells in the fights shown
+head.spell = Spell
+head.spell.tip = Your spells, Auto Attack and your pet's spells in the fights the graph shows
+head.damage = Damage done
+head.damage.tip = Sort by damage done
+head.share = % of damage
+head.share.tip = The spell's share of all damage done in the fights shown
+head.casts = Casts
+head.casts.tip = Sort by casts
+head.perfight = Casts per fight
+head.perfight.tip = Sort by casts per fight, over every fight shown
+head.hits = Hits
+head.hits.tip = Sort by hits, ticks included
+head.crit = Crit %
+head.crit.tip = Sort by Crit %, the crits among the direct hits
+head.avg = Average hit
+head.avg.tip = Sort by average hit, ticks included
+head.percast = Enemies hit per cast
+head.percast.tip = Sort by how many enemies one cast of the spell struck on average, shown where the spell hit more than one enemy in a fight
+head.dps = DPS with / without the spell
+head.dps.tip = Sort by the gap between the average DPS of the fights with the spell and the average DPS of the fights without the spell
+head.graph = Share over time
+head.graph.tip = The spell's share of each fight's damage across the stretch the graph shows
+row.tip = Open this spell: its damage and casts over time and its hits under each aura
+dps.value = {with} / {without}
+dps.tip = The fights with this spell averaged {with} DPS. The fights without it averaged {without} DPS.
+dps.need = This comparison needs {list}.
+dps.need.with = {n} more fights with this spell
+dps.need.with.one = 1 more fight with this spell
+dps.need.without = {n} more fights without this spell
+dps.need.without.one = 1 more fight without this spell
+graph.share.tip = This spell's share of each fight's damage across the stretch the graph shows
+
+procs.title = Procs in the fights shown
+procs.none = No aura came and went on you within the fights the graph shows.
+procs.aura = Proc
+procs.aura.tip = The auras put on you within a fight at least once
+procs.perfight = Procs per fight
+procs.perfight.tip = How often the aura was put on you, over every fight shown
+procs.uptime = Uptime
+procs.uptime.tip = The aura's time on you as a share of the fights' time
+procs.damage = Damage done
+procs.damage.tip = The damage of the proc's damage spell, the one with the aura's ID or name
+procs.damage.none = The proc's damage spell did no damage in these fights.
+procs.graph = Uptime over time
+procs.graph.tip = The aura's uptime in each fight across the stretch the graph shows
+graph.uptime.tip = This aura's uptime in each fight across the stretch the graph shows
+
+spell.unused = This spell was not used in the fights the graph shows.
+graph.title = {name} in each fight over time
+graph.damage = Damage done by {name} in each fight
+graph.casts = Casts of {name} in each fight
+dot.tip = {when}: {dmg} damage done, {casts} casts. A click opens this fight by spell.
+split.title = {name} under each aura on you
+split.none = No aura was on you while this spell hit in the fights the graph shows.
+split.aura = Aura
+split.under = While the aura was on you
+split.under.tip = The spell's hits made while the aura was on you
+split.without = While the aura was off
+split.without.tip = Every other hit of the spell in the fights shown
+split.fights = The spell hit under this aura in {n} fights.
+split.fights.one = The spell hit under this aura in 1 fight.

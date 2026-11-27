@@ -1,0 +1,10 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = The character
+bags = Bags
+bags.p1 = Click <b>Free bag slots</b> to keep the list of what's in the bags open. Point at an item in the list to see its tooltip.
+warnings = Warnings
+warnings.p1 = Click a warning that's only running low to move it to To do. The game then drops that warning's banner and sound from the next <b>/reload</b>.
+group-invites = Group invites
+group-invites.p1 = The page never answers a group invite.

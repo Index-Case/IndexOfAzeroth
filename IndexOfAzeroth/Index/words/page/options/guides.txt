@@ -1,0 +1,8 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+name = Guides
+planning = Planning on the map
+planning.text = Draws a quest epic's planning on the map while the plan is made, with each stage written over the zone
+candidates = Route candidates
+candidates.text = Draws the routes being weighed on the map while a guide's way is worked out

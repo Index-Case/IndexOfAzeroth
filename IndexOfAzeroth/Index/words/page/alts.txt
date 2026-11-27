@@ -1,0 +1,5 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+all-realms = Show all realms
+all-realms.tip = Unchecked, only the alts of this region and rule set show.

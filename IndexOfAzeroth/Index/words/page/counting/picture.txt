@@ -1,0 +1,25 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: spent, spend, n, of
+
+listed = Listed
+weighing = Weighing
+weighed = Weighed
+aside = Set aside
+good = Makes gold
+bad = Makes no gold
+budget.wait = The budget is filled once every item is weighed.
+budget = Budget: {spent} spent of {spend}
+market.wait = The Index reads the market from the scans before it weighs the items.
+rest = Not in the budget
+row.item = Item
+row.buy = Buy
+row.expected = Expected
+row.out = not in the budget
+held = Held
+market = Weighing the market first: {n} of {of} items
+house = Auction house
+vendor = Vendor
+none = No recommendation
+row.way = Best way to sell
+row.gold = Gold
+nothing = Nothing changed since the recommendations were last worked out, so the recommendations below still stand.

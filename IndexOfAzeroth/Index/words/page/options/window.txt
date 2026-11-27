@@ -1,0 +1,8 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = Options
+close.tip = Close (Escape)
+pages = Categories
+on = On
+off = Off

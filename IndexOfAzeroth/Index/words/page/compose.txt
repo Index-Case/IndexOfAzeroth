@@ -1,0 +1,13 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+ready.1 = The bard has finished your epic. /reload to hear it
+ready.2 = A gnome sealed your orders in wax and burnt his thumb. /reload to open them
+ready.3 = Your epic is written and the scribe wants his lunch. /reload to begin
+ready.4 = The goblin has finished your epic and sent the bill. /reload to start
+ready.5 = The dwarf put down his quill and called for an ale. Your epic is ready. /reload to begin
+ready.6 = The innkeeper has your epic behind the bar. /reload to pick it up
+ready.7 = A night elf scribe finished your epic in a single moon. /reload to read it
+ready.8 = The Tauren elder has finished your epic. /reload and ride out
+ready.9 = Brann has written your epic and has started on a sequel. /reload to begin
+ready.10 = Your epic is ready, and the orc who wrote it is standing over you. /reload now

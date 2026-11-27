@@ -1,0 +1,8 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+all = All
+none = None
+hide = Hide
+hide.off = Hide everything this menu shows on the map. The ticks stay as they are
+hide.on = Show everything this menu's ticks show on the map again

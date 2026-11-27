@@ -1,0 +1,158 @@
+{
+ "pictures": {
+  "storm_bottom_left_corner_1": {
+   "box": [
+    0.0,
+    0.64213,
+    0.28724,
+    1.0
+   ],
+   "height": "f7c95621add6",
+   "v": "d940fe386c5f"
+  },
+  "storm_bottom_left_corner_2": {
+   "box": [
+    0.0,
+    0.27917,
+    0.45807,
+    1.0
+   ],
+   "height": "a0ff9276b007",
+   "v": "bc5ea7bc5f6c"
+  },
+  "storm_bottom_left_corner_3": {
+   "box": [
+    0.0,
+    0.36528,
+    0.32812,
+    1.0
+   ],
+   "height": "fe1111129038",
+   "v": "e223c00a7166"
+  },
+  "storm_bottom_right_corner_1": {
+   "box": [
+    0.57396,
+    0.47176,
+    1.0,
+    1.0
+   ],
+   "height": "c57c2cbb2ba6",
+   "v": "340614c5e91d"
+  },
+  "storm_bottom_right_corner_2": {
+   "box": [
+    0.64062,
+    0.47083,
+    1.0,
+    1.0
+   ],
+   "height": "229a7d0c5915",
+   "v": "4339c53f19a1"
+  },
+  "storm_bottom_right_corner_3": {
+   "box": [
+    0.46589,
+    0.17222,
+    1.0,
+    1.0
+   ],
+   "height": "c62b7e112469",
+   "v": "1b536c09cad4"
+  },
+  "storm_random_corner_1": {
+   "box": [
+    0.31484,
+    0.10556,
+    0.72005,
+    0.73102
+   ],
+   "height": "82316577ab7e",
+   "v": "b5dedcd0fb06"
+  },
+  "storm_random_corner_2": {
+   "box": [
+    0.21042,
+    0.16435,
+    0.73203,
+    0.84444
+   ],
+   "height": "4c4e16aada9c",
+   "v": "f337ba0a3f6b"
+  },
+  "storm_random_corner_3": {
+   "box": [
+    0.17005,
+    0.05324,
+    0.79271,
+    0.79491
+   ],
+   "height": "af2c54cbb9e3",
+   "v": "c30646f1648c"
+  },
+  "storm_top_left_corner_1": {
+   "box": [
+    0.0,
+    0.0,
+    0.41641,
+    0.54213
+   ],
+   "height": "cfb0191f258e",
+   "v": "0045b8dcba35"
+  },
+  "storm_top_left_corner_2": {
+   "box": [
+    0.0,
+    0.0,
+    0.37578,
+    0.5338
+   ],
+   "height": "dd7e122bbca6",
+   "v": "254bbb026b74"
+  },
+  "storm_top_left_corner_3": {
+   "box": [
+    0.0,
+    0.0,
+    0.43177,
+    0.66065
+   ],
+   "height": "6e725e81dce3",
+   "v": "2b5892979813"
+  },
+  "storm_top_right_corner_1": {
+   "box": [
+    0.54401,
+    0.0,
+    1.0,
+    0.35972
+   ],
+   "height": "e23db3613c22",
+   "v": "05c14b88e334"
+  },
+  "storm_top_right_corner_2": {
+   "box": [
+    0.56432,
+    0.0,
+    1.0,
+    0.8625
+   ],
+   "height": "ad8ba4212006",
+   "v": "e92e299db023"
+  },
+  "storm_top_right_corner_3": {
+   "box": [
+    0.62422,
+    0.0,
+    1.0,
+    0.57083
+   ],
+   "height": "7e886343f606",
+   "v": "8acc30299c4c"
+  }
+ },
+ "screen": [
+  3840,
+  2160
+ ]
+}

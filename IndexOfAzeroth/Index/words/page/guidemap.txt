@@ -1,0 +1,13 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: name, n, total
+
+careful = Careful
+danger = Mobs that would attack you
+danger.reach = This stretch passes within their reach
+tricky.climb = A steep climb that seems like it can be done.
+tricky.drop = A drop that seems like it can be taken.
+easy = {name}, the easy way
+stop = Stop {n}
+stop.of = Stop {n} of {total}
+stop.last = Stop {n} of {total}, the last
+on-the-way = On the way to {name}

@@ -1,0 +1,88 @@
+{
+ "map": "Alterac Mountains",
+ "offered": "aa3f2afc6edbeb74",
+ "layout": "8d990069d2ef31ef",
+ "build": "1.60.1.70755",
+ "art": "048730b5f28584d1",
+ "files": "5b590bc85d6df3544588",
+ "got": {
+  "names": [
+   {
+    "area": 1339,
+    "fit": 0.543,
+    "lines": [
+     {
+      "text": "LORDAMERE LAKE",
+      "x0": 0.03892,
+      "x1": 0.29541,
+      "base": 0.12725,
+      "cap": 0.02395,
+      "small": 0.02395
+     }
+    ]
+   },
+   {
+    "area": 280,
+    "fit": 0.655,
+    "lines": [
+     {
+      "text": "STRAHNBRAD",
+      "x0": 0.57585,
+      "x1": 0.6497,
+      "base": 0.41916,
+      "cap": 0.01048,
+      "small": 0.01048
+     }
+    ]
+   },
+   {
+    "area": 281,
+    "fit": 0.657,
+    "lines": [
+     {
+      "text": "RUINS OF ALTERAC",
+      "x0": 0.30739,
+      "x1": 0.40719,
+      "base": 0.51198,
+      "cap": 0.01198,
+      "small": 0.01198
+     }
+    ]
+   },
+   {
+    "area": 279,
+    "fit": 0.682,
+    "lines": [
+     {
+      "text": "DALARAN",
+      "x0": 0.11078,
+      "x1": 0.22754,
+      "base": 0.74701,
+      "cap": 0.01946,
+      "small": 0.01946
+     }
+    ]
+   }
+  ],
+  "ink": [
+   74,
+   53,
+   25
+  ],
+  "bevel": [
+   181,
+   158,
+   106
+  ],
+  "check": {
+   "found": [
+    279,
+    280,
+    281,
+    1339
+   ],
+   "fallback": [],
+   "unread": []
+  }
+ }
+}

@@ -1,0 +1,22 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = Auction House
+intro.p1 = The Auction House window shows prices, recommendations and sales from your scans.
+use = Using the window
+use.li1 = Auction house picks the auction house.
+use.li2 = The range keys set the time span for every panel. Dragging across a time chart sets a custom span.
+use.li3 = Chart, Diagram and Table at the top right of a panel switch the panel's view.
+age = Scan age and gaps
+age.p1 = The tag beside a figure is the age of the scan behind that figure. After a day, the tag is grey with a clock.
+age.p2 = Lines break where scans are far apart. Diagonal lines mark time with no scan.
+confidence = Confidence
+confidence.p1 = Recommendations are rated High, Medium or Low. More scans raise the rating. Old scans and long gaps lower the rating.
+scans = Scans
+scans.p1 = Scans lists every scan with the character who scanned. A scan marked "was playing then" shows the character who was playing at the time.
+auctions = Your auctions
+auctions.p1 = Your auctions marks each auction undercut in the last scan. Opening the auction house on a character updates the list of that character.
+goods = Inventory
+goods.p1 = Inventory values the bags, bank, mailbox and auctions of every character at market value, before the AH cut and the deposit.
+record = Auction history
+record.p1 = Auction history lists each auction posted here with the outcome. A guess shows its chance until the mail confirms the sale.

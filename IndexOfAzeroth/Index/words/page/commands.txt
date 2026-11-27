@@ -1,0 +1,19 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: name, kept, of, upto, from, to, next, n
+
+close-to = as close as it goes to {name}
+no-way = (no route worked out yet)
+cut.stops = A chat line holds only the first {kept} of the guide's {of} stops. Copy the guide again at stop {kept} for the rest
+cut.stop = A chat line holds only the first of the guide's {of} stops. Copy the guide again at that stop for the rest
+cut.route = A chat line holds the route only as far as {upto}. Copy the guide again at {upto} for the rest
+copied = Copied
+paste = Paste the line into the game's chat box. Press Enter, Ctrl+V and Enter again
+older = The addon in game is older than this line. Type /reload in game first, then paste the line into the chat box
+game-guide = The game's guide stays on the map until you paste the line
+nothing = There's nothing to copy, because the in-game arrow has no route on foot from here
+refused = The page couldn't copy the line, because the browser wouldn't let the page use the clipboard
+trade.part = This line holds recommendations {from} to {to} of the shopping list's {of}. Copy line {next} for the next ones
+trade.last = This line holds recommendations {from} to {to} of the shopping list's {of}, the last of them
+trade.bad = {n} recommendations can't go in a chat line, because their item, units, price or duration is outside what a line carries
+trade.bad.one = 1 recommendation can't go in a chat line, because its item, units, price or duration is outside what a line carries
+trade.none = There's nothing to copy, because the shopping list has no recommendation a chat line can carry

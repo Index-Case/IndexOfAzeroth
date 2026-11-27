@@ -1,0 +1,8 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+options = Open or close the options
+compass = Switch the compass on or off
+beacons = Switch the beacons on or off
+arrows = Switch the navigation arrows on or off
+lines = Switch the guide lines on the maps on or off

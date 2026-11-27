@@ -1,0 +1,73 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: coins, ago, name, n, span, panel, line
+
+key = Auction House
+key.tip = Open the Auction House window, which shows your auction house scans, prices, recommendations and sales.
+title = Auction House
+back = Back
+back.tip = Back to the Items and gear menu.
+close.tip = Close (Escape)
+loading = The Index is reading your auction house scans.
+failed = The auction house scans could not be read. Reopen the window to try again.
+recalc = Recalculate
+recalc.tip = Works out every figure in this window again now from your newest scan and your money record. The figures cover the market, the recommendations, your auctions, your inventory and the budget. Recalculate does not start a scan in the game.
+recalc.busy.tip = The Index is working out the figures of this window. The panels update by themselves when the Index is done.
+working = The Index is working out the figures of this window. The panels update by themselves when the Index is done.
+newer = {line}. The Index is adding your scan from {ago} ago.
+arrived = {n}% of this scan arrived, so these figures show only the auctions that arrived
+
+house = Auction house
+house.tip = Picks the auction house the window shows. All realms of the same region, realm type and faction share one auction house.
+range = Range
+show = Show
+show.here = This character
+show.here.tip = Shows only the character you are playing in every list of this window. Recommendations are sized to that character's gold.
+show.all = All alts
+show.all.tip = Shows all your characters on this auction house in every list of this window. Recommendations are sized to the gold on all characters on the Alts panel.
+show.nobody = The game has not said which character you are playing yet, so you see all alts.
+show.none = not known yet
+show.none.tip = This character's gold is not known yet. Log in on the character once.
+show.reach = {coins} on characters who can use this auction house
+show.reach.tip = This is the gold on all characters of this auction house's region, realm type and faction. Each of those characters can spend gold in this auction house.
+show.unknown = The gold of {n} characters is not known yet.
+show.unknown.one = The gold of 1 character is not known yet.
+
+newest = Last scan {ago} by {name}.
+newest.unknown = Last scan {ago}. The character who scanned is not known.
+in-range = {n} scans in range.
+in-range.one = 1 scan in range.
+gap = Longest gap between scans: {span}.
+none-in-range = No scan of this auction house falls in this range.
+
+tab.scans = Scans
+tab.scans.tip = Every scan of this auction house, by character and by day.
+tab.market = Market
+tab.market.tip = The whole auction house at a glance.
+tab.item = Item
+tab.item.tip = The price history, listings and units sold per day of one item.
+tab.buy = Buy
+tab.buy.tip = What to buy with your budget, with the chances for each recommendation.
+tab.sell = Sell
+tab.sell.tip = What to sell from the items on your alts, and at what price.
+tab.auctions = Your auctions
+tab.auctions.tip = Your auctions, with the undercut ones marked.
+tab.record = Auction history
+tab.record.tip = Your sold, expired and cancelled auctions.
+tab.goods = Inventory
+tab.goods.tip = The items on all alts of this auction house and their market price now.
+tab.craft = Crafting
+tab.craft.tip = Profit from crafting an item compared with selling the reagents.
+tab.odds = Prediction accuracy
+tab.odds.tip = The predicted chances compared with your sales.
+not-built = The {panel} panel is not built yet.
+
+fees.cut.game = The AH cut is {n}% of each sale, as the game showed it on this auction house.
+fees.cut.faction = The AH cut is {n}% of each sale. WoW Forever guides give this rate for a faction auction house.
+fees.cut.neutral = The AH cut is {n}% of each sale. WoW Forever guides give this rate for a neutral auction house.
+fees.deposit.game = The deposit for a listing of the longest duration is {n}% of the vendor price of the goods posted, as the game showed it on this auction house.
+fees.deposit.faction = The deposit for a listing of the longest duration is {n}% of the vendor price of the goods posted. WoW Forever guides give this rate for a faction auction house.
+fees.deposit.neutral = The deposit for a listing of the longest duration is {n}% of the vendor price of the goods posted. WoW Forever guides give this rate for a neutral auction house.
+fees.guide = The Index uses the rates from WoW Forever guides until the game shows the rates of this auction house. Sell one item and post one auction of the longest duration on this auction house, and the game's rates replace the guide rates.
+
+empty = This auction house has no scan yet. Open the auction house in game and press Scan on the tab named The Index of Azeroth.
+empty.flavour = The goblin with the abacus will not commit to a number without a scan. He has been burnt before.

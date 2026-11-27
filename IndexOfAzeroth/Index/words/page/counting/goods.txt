@@ -1,0 +1,77 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: ago, n, coins, name, units, where, who, places
+
+title = Inventory
+latest = market values from the last scan {ago}
+latest.older = market values from the scan {ago} ago
+loading = The Index is reading the inventory of your characters.
+none = No inventory of your characters on this auction house is known yet.
+none.how = The Index reads your bags at every login, your bank and mailbox each time you open them, and your auctions when you open the auction house.
+none.flavour = The quartermaster counted your goods twice and got two different answers. He is counting them a third time to break the tie.
+worth = Total market value {coins}.
+worth.note = Market value is the market price before the AH cut and the deposit.
+vendor = {coins} of the total is at vendor price, for items with no market price on this auction house.
+bound = {coins} of the total is at vendor price, for soulbound items. A soulbound item can never be sold on the auction house.
+unbound = The Index has not read which items are soulbound in {places} yet, so a soulbound item there counts like any other item. A login reads the bags, and a visit to the bank reads the bank and the Warband Bank.
+unbound.bags = {who}'s bags
+unbound.bank = {who}'s bank
+unbound.warband = the Warband Bank
+unbound.and = and
+few = {n} kinds of item with a random suffix have too few auctions of that suffix to give a market price. The Index never prices a suffix from another suffix or from the item without a suffix.
+few.one = 1 kind of item with a random suffix has too few auctions of that suffix to give a market price. The Index never prices a suffix from another suffix or from the item without a suffix.
+unpriced = {n} kinds of item have no market price and no vendor price, so they count as nothing.
+unpriced.one = 1 kind of item has no market price and no vendor price, so it counts as nothing.
+unknown = {n} kinds of item have no market price, and their vendor price is not known yet, so they count as nothing.
+unknown.one = 1 kind of item has no market price, and its vendor price is not known yet, so it counts as nothing.
+elsewhere = {n} characters on other auction houses are left out. Pick the auction house of those characters to see their inventory.
+elsewhere.one = 1 character on another auction house is left out. Pick that auction house to see the character's inventory.
+
+where.bags = Bags
+where.bank = Bank
+where.mail = Mail
+where.auctions = On auction
+where.warband = Warband Bank
+where.count = {n} in {where}
+where.and = and
+where.who = {who}: {places}
+where.seen.bank = The Index last saw the bank of {who} {ago}.
+where.seen.mail = The Index last saw the mailbox of {who} {ago}.
+warband = Warband Bank
+other = Uncategorized
+
+crumb.all = All characters
+crumb.tip = Back to {name}.
+drill.tip = Click a tile to go down a level.
+diagram.key = The area of each tile is the market value of what the tile holds.
+legend.market = Valued at market price
+legend.other = Mostly valued at vendor price
+chart.key = Market value of each character's inventory, by category.
+tile.worth = Market value {coins}
+tile.units = {units} units
+
+col.item = Item
+col.who = Character
+col.where = Location
+col.where.tip = Where the items are. Hover over a bank or a mailbox to see when the Index last saw it.
+col.units = Units
+col.unit = Market value
+col.unit.tip = The market value of one unit.
+col.total = Total
+col.age = Scan age
+col.age.tip = The age of the last scan behind the market price.
+col.confidence = Confidence
+col.confidence.tip = How far the market price can be trusted, rated High, Medium or Low. More scans raise the rating. Old scans and long gaps between scans lower the rating.
+cell.vendor = vendor price
+cell.vendor.tip = This item has no market price on this auction house, so this figure is the vendor price of one unit.
+cell.vendor.few.tip = There are too few auctions of this item with this suffix to give a market price, so this figure is the vendor price of one unit.
+cell.few = Too few auctions
+cell.few.tip = There are too few auctions of this item with this suffix to give a market price, and no vendor buys this item.
+cell.few.unknown.tip = There are too few auctions of this item with this suffix to give a market price, and the vendor price of this item is not known yet.
+cell.none = No price
+cell.none.tip = This item has no market price on this auction house and no vendor price.
+cell.unknown = Not known
+cell.unknown.tip = This item has no market price on this auction house, and the vendor price of this item is not known yet.
+cell.bound = soulbound
+cell.bound.tip = This item is soulbound, so it can never be sold on the auction house. This figure is the vendor price of one unit.
+cell.bound.none.tip = This item is soulbound, so it can never be sold on the auction house. No vendor buys this item either, so the item counts as nothing.
+cell.bound.unknown.tip = This item is soulbound, so it can never be sold on the auction house. The vendor price of this item is not known yet, so the item counts as nothing.

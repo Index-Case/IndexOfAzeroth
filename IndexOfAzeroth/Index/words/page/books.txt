@@ -1,0 +1,62 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: n, of, name, zone, level, req, who, from, side, when
+
+title = Library books
+title.line = The books the librarian takes, where they are and what 10 and 20 books give
+close.tip = Close (Escape)
+open.tip = Opens Forever's library books. The window shows the books the character has, where the books still to find are and what 10 and 20 books give
+what = the library books
+not-known = The page shows which books you have once the game has sent the quests you've turned in.
+not-known.window = The list of books shows once the game has sent the quests turned in, within a minute and a half of logging in.
+count = You have turned in {n} books
+count.one = You have turned in {n} book
+count.ring = of the {of} the ring needs
+count.ring-done = and you have done the ring's quest
+carried = and {n} more are in your bags or bank to hand in
+carried.one = and {n} more is in your bags or bank to hand in
+hand-in = Hand the books in to {name}.
+hand-in.zone = Hand the books in to {name} in {zone}.
+
+had.turned = Turned in
+had.bags = In your bags, ready to hand in
+had.bank = In your bank
+map.tip = A library book you haven't got. Click the book to start the Navigation Guide to it
+map.opens = Opens {name}
+book = Library book
+librarian = Librarian
+
+item = Item {n}
+never = your class can't use this item
+no-upgrade = not an upgrade for you
+takes = {n} books turned in
+takes.unknown = the number of books this reward takes isn't known yet
+done = Done
+open = You can take this reward at the librarian
+to-go = {n} more books to go
+level = level {level}
+from-level = from level {req}
+only = {who} only
+choose = Choose one
+
+nowhere = We have no information yet on where this book is
+from = From {from}
+opens = Opens <b>{name}</b>, level {level}
+side-only = {side} only
+go = Guide me
+go.tip = Starts the Navigation Guide to the nearest spot of this book. Paste the line the page copies into the game's chat, as with every guide
+near = Guide me to the nearest
+near.tip = Starts the Navigation Guide to the nearest book still to find. Paste the line the page copies into the game's chat, as with every guide
+to-librarian = Guide me to the librarian
+to-librarian.tip = Starts the Navigation Guide to {name}, the librarian who takes the books. Paste the line the page copies into the game's chat, as with every guide
+on-map = On the map
+bank = The books in your bank are as you last saw the bank, {when}.
+no-quest = No quest takes these books yet
+no-quest.line = The game has these books, but no source has a librarian's quest that takes them yet. Most of these books come from Forever's later levels. They don't count toward the rewards until a quest takes them.
+give = What the books give
+find = To find
+find.none = You have every book for your side.
+yours = Yours
+other = The other side's
+layer = Collecting
+layer.books = Library books
+layer.books.line = the books still to find

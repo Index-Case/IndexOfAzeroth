@@ -1,0 +1,1095 @@
+{
+ "fixes": [
+  {
+   "class": 3,
+   "specs": [
+    "Beast Mastery",
+    "Marksmanship"
+   ],
+   "weights": {
+    "dps": 0.1,
+    "ohdps": 0.1
+   },
+   "why": "A Beast Mastery or Marksmanship hunter fights with the bow or gun and its pet. Its melee weapons hold stats, so a melee weapon's own damage is worth little in either hand: Pawn's 0.75 made a Strength and Spirit axe an upgrade on its damage alone (Smite's Reaver). Ranged damage stays as Pawn has it. Survival keeps Pawn's 1.0: Forever's Survival hunter fights in melee too."
+  },
+  {
+   "class": 3,
+   "specs": [
+    "Beast Mastery",
+    "Marksmanship",
+    "Survival"
+   ],
+   "weights": {
+    "hit": 10.5,
+    "crit": 9.0,
+    "rap": 0.39,
+    "spi": 0.5,
+    "mp5": 0.5,
+    "hp5": 0.3
+   },
+   "why": "Two of the guides rank a hunter's weapon damage first, then hit, crit, Agility and attack power, and all four guide sites put Agility above attack power. Hit goes to 10.5, above Agility for the same item budget with no cap worked in. One guide prices 1% crit at about 21 ranged attack power and a point of Agility at about 2.4, so ranged attack power is worth 1 / 2.4 of an Agility, 0.42, and crit 21 x 0.43, about 9.0. At 0.39 ranged attack power sits just under Agility for the same item budget. One guide puts Spirit third, as Bestial Discipline, Rapid Recuperation and Resourcefulness keep mana coming while casting, and another puts it above Stamina, so Spirit goes from 0.05 to 0.5, under Intellect. No guide names mp5 or hp5, so mp5 goes from 2.4 to 0.5 and hp5 to 0.3, under every stat the guides name. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 3,
+   "specs": [
+    "Beast Mastery"
+   ],
+   "weights": {
+    "rdps": 6.0,
+    "ap": 0.42
+   },
+   "why": "Two of the guides put a Beast Mastery hunter's ranged weapon damage first, where Pawn's Classic 2.4 sat eighth. At 6.0 it is first for the same item budget. Attack power on an item counts for the bow as well, so it takes ranged attack power's worth, 0.42, under Agility. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 3,
+   "specs": [
+    "Marksmanship"
+   ],
+   "weights": {
+    "rdps": 6.5,
+    "ap": 0.42,
+    "int": 0.75
+   },
+   "why": "Two of the guides put a Marksmanship hunter's ranged weapon damage first, where Pawn's Classic 2.6 sat seventh: at 6.5 it is first for the same item budget. Attack power on an item counts for the bow as well, so it takes ranged attack power's worth, 0.42, which also prices Careful Aim's share of Intellect by rank. One guide calls Intellect with Careful Aim a little better than attack power point for point and worse than Agility, and all four guide sites put Agility above Intellect. Intellect goes to 0.75 with Careful Aim's 45% held as the base weights hold it, so the talent fix after this one gives 0.56 without the talent and 0.98 at its fifth rank, under Agility. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 3,
+   "specs": [
+    "Survival"
+   ],
+   "weights": {
+    "dps": 6.0,
+    "ohdps": 2.67,
+    "rdps": 6.0,
+    "ap": 0.48,
+    "str": 0.3
+   },
+   "why": "One guide puts a Survival hunter's melee weapon damage first and another its weapon damage, and two describe the spec weaving melee and ranged attacks. Pawn's Classic block weighed the melee weapon at 1.0 and the bow at 2.4: both go to 6.0, first for the same item budget. A hunter's off-hand weapon hits for half a swing, so it is weighed by the warrior's rule for an off hand without Dual Wield Specialization, 6.0 x 4/9, 2.67. Attack power on an item counts in melee and at range, so it goes to 0.48, under Agility. A point of Strength gives a hunter a point of melee attack power, so Strength goes from 0.05 to 0.3. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 3,
+   "specs": [
+    "Beast Mastery",
+    "Marksmanship",
+    "Survival"
+   ],
+   "set": "leveling",
+   "weights": {
+    "sta": 0.4
+   },
+   "why": "One levelling guide's hunter list is Agility, attack power, Stamina, Spirit and Intellect, with crit and hit rare early, and another's is Agility, attack power, crit, Intellect, Spirit and Stamina. Both name Stamina where the level 60 scale gives it 0.1, so it goes to 0.4. The rest of the level 60 weights hold below 60: both lists keep Agility first and attack power second. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 3,
+   "specs": [
+    "Marksmanship"
+   ],
+   "talent": 1223984,
+   "gives": [
+    {
+     "stat": "int",
+     "figure": 1,
+     "of": "ap",
+     "held": 45
+    }
+   ],
+   "why": "Careful Aim gives a Marksmanship hunter melee and ranged attack power equal to 20% of Intellect a rank, 100% at its fifth rank. Pawn's weights were made for Burning Crusade, where Careful Aim gave 45%, so Pawn's Intellect 0.9 already holds 45% at Pawn's attack power weight of 0.55. Without the talent Intellect is 0.9 less 0.45 x 0.55, 0.65, and each rank adds 0.11, for 1.2 at its fifth."
+  },
+  {
+   "class": 7,
+   "specs": [
+    "Enhancement"
+   ],
+   "talent": 415140,
+   "gives": [
+    {
+     "stat": "int",
+     "figure": 1,
+     "of": "ap"
+    }
+   ],
+   "why": "Mental Dexterity gives an Enhancement shaman attack power equal to 33%, 66% and 100% of Intellect at its three ranks. Pawn's weights count none of it, so Pawn's Intellect 0.34 gains each rank's share at Pawn's attack power weight of 0.5, for 0.84 at its third."
+  },
+  {
+   "class": 2,
+   "specs": [
+    "Retribution"
+   ],
+   "talent": 1311084,
+   "gives": [
+    {
+     "stat": "int",
+     "figure": 1,
+     "of": "sp"
+    }
+   ],
+   "why": "Champion of the Light gives a Retribution paladin spell damage equal to 12% of Intellect a rank, 60% at its fifth rank. Pawn's weights count none of it, so Pawn's Intellect 0.34 gains each rank's share at the spec's spell damage weight of 0.85, for 0.85 at its fifth. The talent's first rank asks 25 points in Retribution, so a paladin under level 35 has none of it."
+  },
+  {
+   "class": 1,
+   "specs": [
+    "Fury"
+   ],
+   "weights": {
+    "ohdps": 2.32
+   },
+   "why": "A Fury warrior's off-hand weapon hits for half a main hand's swing. Pawn weighs a warrior's off-hand weapon as its main hand, 5.22. Pawn's own rogue off-hand scale weighs an off-hand weapon at 2/3 of the main hand for a rogue whose off hand deals 75% (its Dual Wield Specialization at 50%). The warrior's 50% at that rate is 5.22 x 2/3 x 50/75, for 2.32. Dual Wield Specialization adds to it by rank in the fix after this one."
+  },
+  {
+   "class": 1,
+   "specs": [
+    "Fury"
+   ],
+   "talent": 23584,
+   "gives": [
+    {
+     "stat": "ohdps",
+     "figure": 1,
+     "of": "ohdps"
+    }
+   ],
+   "why": "Dual Wield Specialization raises a warrior's off-hand damage by 5% a rank, 25% at its fifth rank, so each rank adds 5% of the off hand's 2.32, for 2.9 at its fifth. The talent's first rank asks 15 points in Fury, so a warrior under level 25 has none of it."
+  },
+  {
+   "class": 5,
+   "specs": "*",
+   "weights": {
+    "wdps": 1
+   },
+   "why": "A wand is a priest's only ranged weapon and Pawn weighs its damage at 0, so a better wand was never an upgrade. A point of wand damage per second is weighed as a point of the spec's main stat: the least weight the gear verdicts count as a weapon the spec fights with, so a better wand is an upgrade and its other stats still count."
+  },
+  {
+   "class": 5,
+   "specs": [
+    "Discipline"
+   ],
+   "weights": {
+    "mp5": 1.6,
+    "spellhaste": 1.6,
+    "hp5": 0.3
+   },
+   "why": "Forever's Discipline guides put healing first, then mp5 or Intellect, then Spirit or Intellect, then crit. Pawn's mp5 of 1.19 sat under Spirit and level with haste: at 1.6 it sits above Spirit and under Intellect for the same item budget. No guide ranks haste, and one says it is not widely available, so it goes from 4.58 to 1.6, under crit. No guide names hp5, so it goes to 0.3. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 5,
+   "specs": [
+    "Discipline"
+   ],
+   "set": "leveling",
+   "weights": {
+    "sp": 0.3,
+    "spholy": 0.3
+   },
+   "why": "Two of the guides say a levelling Discipline priest fights with Smite and Holy Fire, where the healer weights give spell damage nothing. Spell damage and Holy spell damage go to 0.3, under every stat the levelling list names. The levelling order is otherwise the level 60 one: healing, mp5, Intellect, Spirit, crit. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 5,
+   "specs": [
+    "Holy"
+   ],
+   "weights": {
+    "int": 0.6,
+    "mp5": 1.9,
+    "spellhaste": 1.2,
+    "hp5": 0.3
+   },
+   "why": "Two of the guides rank a Holy priest's healing, mp5, Spirit, Intellect and crit, in that order, and a third puts Intellect second. The base weights had Intellect second and mp5 fourth. Intellect goes to 0.6, under Spirit with Spiritual Guidance at its fifth rank, and mp5 to 1.9, above Spirit for the same item budget. No guide ranks haste, which sat above crit, so it goes to 1.2, under crit. No guide names hp5, so it goes to 0.3. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 5,
+   "specs": [
+    "Holy"
+   ],
+   "set": "leveling",
+   "weights": {
+    "int": 0.45,
+    "sp": 0.4,
+    "spholy": 0.4,
+    "sta": 0.2
+   },
+   "why": "One levelling guide's Holy list is healing, mp5, Spirit, Intellect and crit, and another's is Spirit, spell power, Intellect, mp5, crit and Stamina. Both put Spirit above Intellect, and Spirit without Spiritual Guidance (before level 30) is 0.53. Intellect goes to 0.45, under it. The second guide puts spell power above Intellect for a levelling Holy priest, who fights with Smite and Holy Fire, so spell damage and Holy spell damage go to 0.4, and Stamina to 0.2. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 5,
+   "specs": [
+    "Shadow"
+   ],
+   "weights": {
+    "spellhit": 12.0,
+    "spellcrit": 12.16,
+    "spellhaste": 1.8,
+    "int": 0.25,
+    "spellpen": 0.3,
+    "mp5": 0.2,
+    "hp5": 0.3
+   },
+   "why": "Forever's Shadow guides rank hit first, then spell power, crit, spell penetration or Intellect, then Spirit. Hit goes from 8.96 to 12.0, just above spell damage for the same item budget with no cap worked in. Shadowform (level 40) doubles a Shadow spell's crit bonus and Forever's damage over time can crit, so crit doubles Pawn's 6.08 to 12.16, above haste. One guide calls haste not a very interesting stat and another puts it under Stamina, so it goes from 5.22 to 1.8, under Spirit. Intellect goes to 0.25, above Spirit as two guides rank it, and spell penetration to 0.3, above Intellect as two others rank it. One guide says raw mp5 is of no use, so mp5 goes to 0.2, and no guide names hp5, so it goes to 0.3. The levelling set prices crit without Shadowform. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 5,
+   "specs": [
+    "Shadow"
+   ],
+   "set": "leveling",
+   "weights": {
+    "spellcrit": 6.08,
+    "spellhit": 4.0,
+    "sta": 0.15
+   },
+   "why": "A levelling guide's Shadow list is spell power, crit, hit, Intellect, Spirit, Stamina and mp5. Before Shadowform at level 40 crit keeps Pawn's 6.08, and hit goes to 4.0, under crit and above Intellect for the same item budget. Stamina goes to 0.15, under Spirit and above mp5. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 8,
+   "specs": "*",
+   "weights": {
+    "wdps": 1
+   },
+   "why": "A wand is a mage's only ranged weapon and Pawn weighs its damage at 0, so a better wand was never an upgrade. A point of wand damage per second is weighed as a point of the spec's main stat: the least weight the gear verdicts count as a weapon the spec fights with, so a better wand is an upgrade and its other stats still count."
+  },
+  {
+   "class": 8,
+   "specs": [
+    "Arcane",
+    "Fire",
+    "Frost"
+   ],
+   "weights": {
+    "spellhit": 12.0,
+    "hp5": 0.3
+   },
+   "why": "Every Forever mage guide puts hit first, to 17%, then spell power and crit. Pawn's hit sat under spell damage in all three specs and under Intellect for Arcane. At 12.0 hit sits just above spell damage for the same item budget, with no cap worked in. No guide names hp5, so it goes to 0.3. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 8,
+   "specs": [
+    "Arcane",
+    "Fire"
+   ],
+   "weights": {
+    "spellcrit": 15.0
+   },
+   "why": "One guide says Arcane and Fire value crit nearly as much as spell power, from Arcane Mind's doubled Arcane crit bonus and from Heating Up and Ignite, and every guide puts crit second after spell power. Pawn's 4.8 and 6.16 left crit under Intellect. At 15.0 crit sits just under spell damage for the same item budget. The levelling set keeps a lower figure for Arcane. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 8,
+   "specs": [
+    "Frost"
+   ],
+   "weights": {
+    "spellcrit": 14.0,
+    "int": 0.6,
+    "spi": 0.3
+   },
+   "why": "Every Forever Frost guide puts crit after spell power and above Intellect, as Ice Shards doubles a crit's bonus. Pawn's 4.64 sat under Intellect and hp5: at 14.0 crit sits under spell damage and above Intellect for the same item budget. Intellect at Pawn's 0.37 sat only just above mp5, and goes to 0.6. Two of the guides put mp5 above Spirit for Frost, and Mage Armor gives 50% of mana regeneration while casting from level 34, so Spirit goes from 0.06 to 0.3, just under mp5. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 8,
+   "specs": [
+    "Fire"
+   ],
+   "weights": {
+    "int": 0.6,
+    "spi": 0.4,
+    "spfrost": 0.2
+   },
+   "why": "Two of the guides put a Fire mage's Spirit above mp5, where Pawn's 0.066 sat last at a fifth of mp5: Mage Armor gives 50% of mana regeneration while casting from level 34. Spirit goes to 0.4, above mp5 and under Intellect, which goes from 0.44 to 0.6, under crit. No guide names Frost spell damage for Fire, so it goes from 0.32 to 0.2. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 8,
+   "specs": [
+    "Arcane"
+   ],
+   "weights": {
+    "spfrost": 0.2
+   },
+   "why": "One guide says Arcane spell damage covers almost all an Arcane mage's damage, and no guide names Frost spell damage for it. Pawn's 0.52 is a Classic Arcane mage's Frostbolt: it goes to 0.2. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 8,
+   "specs": [
+    "Arcane"
+   ],
+   "set": "leveling",
+   "weights": {
+    "spellcrit": 6.0,
+    "spellhit": 6.0,
+    "sta": 0.2
+   },
+   "why": "A levelling guide's Arcane list is spell power, Intellect, Spirit, then crit, which it calls not integral, then Stamina, and another says hit, crit and haste are rare while levelling. Arcane Mind's crit bonus comes from level 30. Levelling crit goes to 6.0, under Spirit, hit to 6.0, under Intellect, and Stamina to 0.2. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 8,
+   "specs": [
+    "Fire"
+   ],
+   "set": "leveling",
+   "weights": {
+    "spellhit": 5.5,
+    "spi": 0.5,
+    "sta": 0.2
+   },
+   "why": "A levelling guide's Fire list is spell power, crit, Intellect, Spirit and Stamina, with Spirit extremely underrated for levelling, and no hit. Crit keeps its level 60 figure: Ignite comes from level 15. Hit goes to 5.5, under Intellect, Spirit to 0.5, just under Intellect, and Stamina to 0.2. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 8,
+   "specs": [
+    "Frost"
+   ],
+   "set": "leveling",
+   "weights": {
+    "spi": 0.65,
+    "sta": 0.2
+   },
+   "why": "A levelling guide's Frost list is hit, spell or Frost damage, crit, Spirit, Intellect and Stamina: Spirit goes to 0.65, above Intellect, and Stamina to 0.2. Crit keeps its level 60 figure, as Ice Shards comes from level 15. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 9,
+   "specs": "*",
+   "weights": {
+    "wdps": 1
+   },
+   "why": "A wand is a warlock's only ranged weapon and Pawn weighs its damage at 0, so a better wand was never an upgrade. A point of wand damage per second is weighed as a point of the spec's main stat: the least weight the gear verdicts count as a weapon the spec fights with, so a better wand is an upgrade and its other stats still count."
+  },
+  {
+   "class": 9,
+   "specs": [
+    "Affliction",
+    "Demonology"
+   ],
+   "weights": {
+    "spellcrit": 10.0,
+    "spellhaste": 5.0,
+    "spellpen": 0.45,
+    "mp5": 0.5,
+    "hp5": 0.3
+   },
+   "why": "Forever's Affliction and Demonology guides rank hit and spell power first, then crit, then haste, then Intellect and Spirit, with spell penetration between crit and Intellect in three of them. Pawn's crit came from a Classic scale where damage over time could not crit, which put it under haste, Intellect and mp5. In Forever damage over time and drains crit, and Pandemic doubles their crit bonus. Crit goes to 10.0 and haste to 5.0, so crit sits above haste and haste above Intellect for the same item budget, and one guide calls haste very rare on gear. Spell penetration goes from 0.08 to 0.45, under haste and above Intellect. No guide names mp5 or hp5, so mp5 goes to 0.5 and hp5 to 0.3. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 9,
+   "specs": [
+    "Demonology"
+   ],
+   "weights": {
+    "spi": 0.3
+   },
+   "why": "Four of the guides rank a Demonology warlock's Intellect above Spirit, where Pawn's base had Spirit 0.5 over Intellect 0.4. Spirit goes to 0.3, under Intellect. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 9,
+   "specs": [
+    "Affliction",
+    "Demonology"
+   ],
+   "set": "leveling",
+   "weights": {
+    "spellcrit": 5.0,
+    "spellhaste": 2.5,
+    "sta": 0.38,
+    "spi": 0.3
+   },
+   "why": "One levelling guide's warlock list is spell power, hit, Intellect, Stamina, crit, Spirit and haste, and another says Affliction's crit gains its worth with Pandemic (levels 20 to 22) and that a levelling Demonology warlock should not give up much spell power for crit. Levelling crit goes to 5.0, under Intellect and Stamina, and haste to 2.5, last. A third says Stamina is worth a bit more to a warlock than to other casters, so Stamina goes to 0.38, just under Intellect, and Spirit to 0.3. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 9,
+   "specs": [
+    "Destruction"
+   ],
+   "weights": {
+    "spellpen": 0.6,
+    "mp5": 0.5,
+    "hp5": 0.3
+   },
+   "why": "One guide puts spell penetration second for a Destruction warlock and two others above Intellect, and one prices a point at about 1.6 spell power on direct Fire damage. Pawn's 0.08 put it last: at 0.6 it sits above Intellect. No guide names mp5 or hp5, so mp5 goes to 0.5 and hp5 to 0.3. The guides split crit against haste, so both stay as Pawn has them. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 9,
+   "specs": [
+    "Destruction"
+   ],
+   "set": "leveling",
+   "weights": {
+    "sta": 0.38
+   },
+   "why": "A levelling guide's Destruction list is spell power (Fire and Shadow), Intellect and Spirit, then Stamina, which it says is worth a bit more to a warlock than to other casters, and another puts Stamina after Intellect. Stamina goes to 0.38. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 9,
+   "specs": [
+    "Destruction"
+   ],
+   "talent": 17959,
+   "gives": [
+    {
+     "stat": "spellcrit",
+     "figure": 1,
+     "of": "spellcrit",
+     "held": 100
+    }
+   ],
+   "why": "Ruin raises the crit damage bonus of a warlock's Destruction spells by 20% a rank, 100% at its fifth rank. Pawn's crit of 6.96 holds Classic's one-rank Ruin at 100%, so without the talent crit is 6.96 / 2, 3.48, and each rank adds 20% of that, for 6.96 at its fifth. The talent's first rank asks 10 points in Destruction, so a warlock under level 20 has none of it."
+  },
+  {
+   "class": 1,
+   "specs": [
+    "Arms",
+    "Fury"
+   ],
+   "weights": {
+    "crit": 14.5,
+    "agi": 0.735
+   },
+   "why": "Crit feeds an Arms or Fury warrior's Rage, Flurry and Deep Wounds, and Forever's simulations price 1% crit at 11.2 to 15.1 Strength, far above Pawn's 7.2 and 6.0. Forever's guides rank crit above Strength. At 14.5 a 1% crit is worth a little more than one Strength for the same item budget. Agility gives a warrior 1% crit for every 20 points and 2 armor a point, so Agility follows crit at 14.5 / 20 plus 0.01 for its armor, 0.735. The levelling set prices crit without the level 60 talents (a fix further on)."
+  },
+  {
+   "class": 1,
+   "specs": [
+    "Arms"
+   ],
+   "weights": {
+    "haste": 8.3
+   },
+   "why": "Forever's gear carries haste, and both of Forever's simulations weigh it for an Arms warrior at 0.83 and 0.89 Strength a rating, with 10 rating to 1%. The lower figure is taken, 8.3 a 1%."
+  },
+  {
+   "class": 1,
+   "specs": [
+    "Fury"
+   ],
+   "weights": {
+    "ap": 0.43,
+    "hit": 9.3793,
+    "expertise": 9.3793,
+    "haste": 4.8
+   },
+   "why": "A point of Strength gives a warrior 2 attack power, so attack power is worth at most half a Strength, and Forever's simulations price it at 0.45 and 0.40: their mean is 0.43. Every Forever source ranks hit first for a Fury warrior, where Pawn's 5.35 sat under Agility, so hit takes the Arms warrior's 9.38. A 1% of expertise takes away one dodged or parried swing in a hundred, as 1% of hit takes away one miss, so expertise takes the hit weight. Haste takes the lower of the two simulations' figures, 0.48 Strength a rating, 4.8 a 1%."
+  },
+  {
+   "class": 1,
+   "specs": [
+    "Protection"
+   ],
+   "weights": {
+    "armor": 0.06
+   },
+   "marked": "order only",
+   "why": "Forever's tank guides rank armor above Agility, dodge and parry for a Protection warrior, under Stamina, defense and hit. Pawn's 0.02 put armor near the bottom. At 0.06 armor is worth a little more than Agility for the same item budget and a little less than hit."
+  },
+  {
+   "class": 1,
+   "specs": [
+    "Arms"
+   ],
+   "weights": {
+    "dps": 5.8,
+    "ohdps": 2.58,
+    "hit": 11.2,
+    "expertise": 10.4,
+    "hp5": 0.3
+   },
+   "why": "Forever's Arms guides put weapon damage first, then hit, then expertise and crit, then Strength. Pawn's 9.38 for hit and expertise sat under Strength. Hit and expertise take one simulation's 11.2 and 10.4 a 1%, which puts both above crit and Strength for the same item budget with no cap worked in. Weapon damage goes to 5.8 so it stays first, as two of the guides rank it. An Arms warrior fights with a two-handed weapon and has no Dual Wield Specialization, so an off-hand weapon is weighed by the Fury warrior's rule for an off hand without the talent, half a swing: 5.8 x 2/3 x 50/75, 2.58. Pawn weighed it as a main hand. No guide names hp5, so it goes to 0.3, under every stat the guides name."
+  },
+  {
+   "class": 1,
+   "specs": [
+    "Fury"
+   ],
+   "weights": {
+    "hit": 10.4,
+    "expertise": 10.4,
+    "haste": 6.8,
+    "hp5": 0.3
+   },
+   "why": "Forever's Fury guides put weapon damage first, then hit and expertise, then crit, then Strength, then haste and Agility. The Arms warrior's 9.38 left hit and expertise under crit and Strength. At 10.4 a 1% both sit above crit and just under weapon damage for the same item budget, the guides' order with no cap worked in: one simulation's 13.3 and 15.3 would put them above weapon damage, where no guide does. Haste takes the mean of the two simulations' 0.48 and 0.87 Strength a rating, 6.8 a 1%, level with Agility as the guides rank them. No guide names hp5, so it goes to 0.3. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 1,
+   "specs": [
+    "Arms",
+    "Fury"
+   ],
+   "set": "leveling",
+   "weights": {
+    "crit": 10.0,
+    "agi": 0.51,
+    "sta": 0.4
+   },
+   "why": "The level 60 crit of 14 is priced by level 60 simulations with Deep Wounds (from level 20), Impale (from 25) and Flurry (from 35) at full rank. The levelling guides put Strength above crit and Agility for Arms and Fury, so levelling crit is 10.0, under Strength for the same item budget. Agility follows crit at 10.0 / 20 plus 0.01 for its armor, 0.51. Two of the levelling guides name Stamina after Strength and Agility, where the level 60 scale gives it 0.1, so it goes to 0.4. One of them also puts Spirit first while levelling with no figure, and no other guide does: that stays open. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 1,
+   "specs": [
+    "Protection"
+   ],
+   "weights": {
+    "hit": 8.5,
+    "expertise": 8.5,
+    "block": 2.5,
+    "hp5": 0.6,
+    "str": 0.55,
+    "agi": 0.55,
+    "blockvalue": 0.367,
+    "dodge": 5.5,
+    "ohdps": 1.39
+   },
+   "why": "Forever's Protection warrior guides put Stamina and defense first, then expertise and hit, then armor, then Agility, Strength and block value, then dodge and parry. Pawn's base had block chance third and hp5 fourth with no guide behind either, and Strength under Agility, dodge and block value. Hit and expertise go to 8.5, under Stamina and defense for the same item budget. Block chance goes to 2.5 and hp5 to 0.6, under every stat the guides name ahead of them. Strength, Agility and block value go level at 0.55 for the same item budget, under armor, and dodge to 5.5 under them. A Protection warrior fights with a shield and has no Dual Wield Specialization, so an off-hand weapon is weighed by the Fury warrior's rule for an off hand without the talent: 3.13 x 2/3 x 50/75, 1.39. Pawn weighed it as a main hand. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 1,
+   "specs": [
+    "Protection"
+   ],
+   "set": "leveling",
+   "weights": {
+    "str": 1.2,
+    "agi": 0.7,
+    "dps": 6.25,
+    "ohdps": 2.78,
+    "def": 0.6,
+    "block": 2.0,
+    "armor": 0.03
+   },
+   "why": "Every levelling guide puts Strength first for a levelling Protection warrior, then Stamina, then Agility, and one puts weapon damage above Strength. Another calls Strength the main stat to look for and says armor and Stamina give very little while levelling. Strength goes to 1.2, above Stamina, Agility to 0.7, and weapon damage to 6.25, above Strength for the same item budget, with the off hand at 6.25 x 4/9, 2.78, by the rule for an off hand without Dual Wield Specialization. Defense goes to 0.6, block chance to 2.0 and armor to 0.03, under Agility, as a third guide puts defense and block value after it. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 2,
+   "specs": [
+    "Retribution"
+   ],
+   "weights": {
+    "sp": 0.85,
+    "spholy": 0.85
+   },
+   "marked": "order only",
+   "why": "Forever's Retribution paladin deals much of its damage as Holy damage that grows with spell damage, from its seals, Holy Strike and Judgement. Forever's guides put a spell damage piece at least level with a Strength piece. At 0.85 a point of spell damage is worth one Strength for the same item budget. Holy spell damage gets the same weight a point, since a Retribution paladin's spells are Holy."
+  },
+  {
+   "class": 2,
+   "specs": [
+    "Retribution"
+   ],
+   "weights": {
+    "crit": 10.5,
+    "haste": 6.38
+   },
+   "why": "Forever's one crit line is worth melee crit plus spell crit to a Retribution paladin, and its one haste line melee haste plus spell haste. Forever's simulations price a crit rating at 0.82 and 1.73 Strength and a haste rating at 0.67 and 1.48, with 14 crit rating and 10 haste rating to 1%. The lower figures are taken, since the guides keep crit under Strength: 11.5 a 1% for the crit line and 6.7 for the haste line. Less the spell halves the spec already weighs, 0.96 and 0.32, that is melee crit 10.5 and haste 6.38."
+  },
+  {
+   "class": 2,
+   "specs": [
+    "Holy"
+   ],
+   "weights": {
+    "spellcrit": 7.5
+   },
+   "marked": "order only",
+   "why": "Forever's Holy paladin guides rank crit third, above mana regeneration and Spirit, since a critical heal gives mana back through Illumination and Holy Power makes critical heals larger. At 7.5 a 1% crit is worth a little more than mana regeneration for the same item budget and less than Intellect."
+  },
+  {
+   "class": 2,
+   "specs": [
+    "Protection"
+   ],
+   "weights": {
+    "sp": 0.6,
+    "spholy": 0.6
+   },
+   "marked": "order only",
+   "why": "Forever's Protection paladin makes its threat with Holy damage, which Righteous Fury raises by 90%. Forever's guides rank spell damage above Agility, dodge and Intellect for it, under defense and Stamina. At 0.6 spell damage sits above Agility for the same item budget and Holy spell damage under defense."
+  },
+  {
+   "class": 2,
+   "specs": [
+    "Protection"
+   ],
+   "weights": {
+    "expertise": 7.0
+   },
+   "marked": "order only",
+   "why": "Forever's guides rank expertise above crit and block for a Protection paladin and under hit. No paladin talent gives expertise. At 7.0 a 1% expertise is worth a little less than the hit line, melee and spell hit together, for the same item budget."
+  },
+  {
+   "class": 2,
+   "specs": [
+    "Retribution"
+   ],
+   "weights": {
+    "dps": 5.83,
+    "ohdps": 5.83,
+    "hit": 9.4,
+    "expertise": 10.5,
+    "agi": 0.9,
+    "mp5": 0.5,
+    "hp5": 0.3
+   },
+   "why": "Every Forever guide puts a Retribution paladin's weapon damage first, then hit, then expertise, then Strength and spell damage, then crit, Agility and Intellect. Weapon damage takes one simulation's 5.83 Strength a point, which puts it first for the same item budget. Hit at 9.4 and expertise at 10.5 put the hit line and expertise above Strength and under weapon damage, the guides' order with no cap worked in. Agility goes to 0.9: under Strength as every guide ranks it, and above Intellect at Champion of the Light's fifth rank, as three of the four simulations price it (0.63, 0.97, 1.18 and 1.36 Strength). No Forever guide names mp5 or hp5, so mp5 goes to 0.5 and hp5 to 0.3, under every stat the guides name. Order only, from level 60 guides. The levelling guides keep the same order for weapon damage, hit and Agility.",
+   "marked": "order only"
+  },
+  {
+   "class": 2,
+   "specs": [
+    "Retribution"
+   ],
+   "set": "leveling",
+   "weights": {
+    "sp": 0.6,
+    "spholy": 0.6,
+    "crit": 7.0,
+    "sta": 0.6,
+    "spi": 0.5
+   },
+   "why": "A levelling Retribution paladin values Strength above spell damage: two of the three levelling guides put spell damage under Strength, for levels 1 to 30 and 31 to 60 alike, and the third puts it above. The fix follows the two that agree, so spell damage goes to 0.6, under Strength and Agility for the same item budget. Champion of the Light's share of Intellect is priced at that 0.6. The level 60 crit of 10.5 is priced with Vengeance (from level 30) and Conviction (from 15), and the levelling guides put crit after the main stats, so levelling crit is 7.0. One levelling guide rates Stamina and Spirit level with Strength to level 30 and another puts Stamina second, where the level 60 scale gives them 0.1 and 0.05: Stamina goes to 0.6 and Spirit to 0.5, under Strength and Agility. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 2,
+   "specs": [
+    "Holy"
+   ],
+   "weights": {
+    "spi": 0.5,
+    "hp5": 0.3
+   },
+   "why": "Forever's Holy paladin guides rank healing and Intellect first and split on crit, mp5 and Spirit: two put Spirit third and two put it under mp5. Pawn's Classic Spirit of 0.28 counts no Reverence and sat last. At 0.5 Spirit sits level with mp5 for the same item budget. No guide names hp5, so it goes to 0.3, under every stat the guides name. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 2,
+   "specs": [
+    "Holy"
+   ],
+   "set": "leveling",
+   "weights": {
+    "spellcrit": 6.3,
+    "sta": 0.3
+   },
+   "why": "The level 60 crit of 7.5 rests on Illumination (from level 20) and Holy Power (from 35). A levelling guide puts crit under mp5 and above haste, so levelling crit is 6.3, just under mp5 for the same item budget. Another guide's Holy list names Stamina after Intellect and Spirit, so Stamina goes to 0.3. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 2,
+   "specs": [
+    "Protection"
+   ],
+   "weights": {
+    "str": 0.55,
+    "agi": 0.4,
+    "armor": 0.06,
+    "spellhit": 7.1,
+    "hp5": 0.6
+   },
+   "why": "Forever's Protection paladin guides list Strength above Agility, which Pawn's base had at 0.2 and 0.6: Strength goes to 0.55 and Agility to 0.4, as a simulation's threat figures keep them close. One guide puts armor third for survival and another with block chance, where Pawn's 0.02 sat last, so armor goes to 0.06. Two guides put hit third, after defense and Stamina, so spell hit goes to 7.1, which puts the hit line just under defense for the same item budget with no cap worked in. No guide names hp5, so it goes from 2.0 to 0.6, under every stat the guides name. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 2,
+   "specs": [
+    "Protection"
+   ],
+   "set": "leveling",
+   "weights": {
+    "str": 0.65,
+    "block": 3.0,
+    "spellhit": 4.4,
+    "def": 0.65,
+    "armor": 0.05,
+    "int": 0.45
+   },
+   "why": "One levelling guide's list for a Protection paladin is Stamina, spell power, Strength, block, hit, defense, armor, Intellect and Agility, and another's puts spell power and Stamina first. The levelling set follows the full list: Strength 0.65 sits under spell damage and above block, block 3.0 above the hit line, spell hit 4.4 puts the hit line above defense, defense 0.65 above armor at 0.05, and Intellect 0.45 above Agility. Spell damage gains its worth once Retribution Aura (level 16) and Consecration (level 20) are trained. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 4,
+   "specs": [
+    "Assassination"
+   ],
+   "weights": {
+    "dps": 5.9,
+    "ohdps": 3.9,
+    "crit": 11.6,
+    "haste": 5.7
+   },
+   "why": "Forever's simulations price a point of main-hand weapon damage at 7.49 and 4.35 Agility for an Assassination rogue, and 1% crit at 10.7 and 12.5, all above Pawn's figures. Their means are taken. Weapon damage is 5.9 in the main hand, with the off hand at Pawn's two thirds of it, 3.9. Crit is 11.6, which keeps crit under Agility and above Strength for the same item budget, where the guides rank it. Haste takes the lower simulation's 0.57 Agility a rating, 5.7 a 1%."
+  },
+  {
+   "class": 4,
+   "specs": [
+    "Combat"
+   ],
+   "weights": {
+    "dps": 5.7,
+    "ohdps": 3.8,
+    "crit": 10.5,
+    "haste": 5.4
+   },
+   "why": "Forever's simulations price a point of main-hand weapon damage at 7.21 and 4.13 Agility for a Combat rogue, and 1% crit at 10.6 and 10.4, all above Pawn's figures. Their means are taken. Weapon damage is 5.7 in the main hand, with the off hand at Pawn's two thirds of it, 3.8. Crit is 10.5, under Agility and above Strength for the same item budget, where the guides rank it. Haste takes the lower simulation's 0.54 Agility a rating, 5.4 a 1%."
+  },
+  {
+   "class": 4,
+   "specs": [
+    "Subtlety"
+   ],
+   "weights": {
+    "dps": 5.15,
+    "ohdps": 3.4,
+    "crit": 10.7,
+    "haste": 4.1
+   },
+   "why": "Forever's simulations price a point of main-hand weapon damage at 7.25 and 3.05 Agility for a Subtlety rogue, and 1% crit at 10.1 and 11.2, above Pawn's figures. Their means are taken. Weapon damage is 5.15 in the main hand, with the off hand at Pawn's two thirds of it, 3.4. Crit is 10.7, under Agility and above Strength for the same item budget, where the guides rank it. Haste takes the lower simulation's 0.41 Agility a rating, 4.1 a 1%."
+  },
+  {
+   "class": 4,
+   "specs": [
+    "Assassination",
+    "Combat",
+    "Subtlety"
+   ],
+   "weights": {
+    "hit": 10.2,
+    "hp5": 0.3
+   },
+   "why": "Three of the guides rank hit above Agility for every rogue spec, and one simulation does for Combat and Subtlety. Pawn's 9.38 put hit under Agility. At 10.2 the hit line sits above Agility and just under expertise for the same item budget, the guides' order with no cap worked in. No guide names hp5, so it goes from 1.0 to 0.3, under every stat the guides name. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 4,
+   "specs": [
+    "Subtlety"
+   ],
+   "weights": {
+    "dps": 5.25,
+    "ohdps": 3.5
+   },
+   "why": "Three of the guides put weapon damage first for a Subtlety rogue. The simulations' mean of 5.15 left it a hair under expertise for the same item budget, so it goes to 5.25, with the off hand at Pawn's two thirds of it, 3.5, which the talent fix takes Dual Wield Specialization out of. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 4,
+   "specs": [
+    "Assassination",
+    "Combat",
+    "Subtlety"
+   ],
+   "set": "leveling",
+   "weights": {
+    "crit": 9.0,
+    "sta": 0.3
+   },
+   "why": "The level 60 crit figures are means of level 60 simulations whose builds take Lethality (from level 20), Seal Fate (from 35) and Death Mark (from 40). One levelling guide says crit is worth less while levelling, since the levelling build skips Lethality, and another puts crit under Agility and above Strength. Levelling crit is 9.0, under attack power and above Strength for the same item budget. A third ranks crit first, against the other two, and the fix follows the two that agree. The first two name Stamina after Strength, where the level 60 scale gives it 0.1, so it goes to 0.3. No guide gives an Assassination levelling order of its own, so it takes the same levelling fix. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 4,
+   "specs": "*",
+   "talent": 13715,
+   "gives": [
+    {
+     "stat": "ohdps",
+     "figure": 1,
+     "of": "ohdps",
+     "held": 50
+    }
+   ],
+   "why": "A rogue's off-hand weight is Pawn's two thirds of the main hand, and Pawn's rogue off-hand scale weighs an off hand dealing 75%: half a swing with Dual Wield Specialization's 50% on it. Without the talent the off hand deals 50%, so each spec's off-hand weight without it is two thirds of the weight above, and each of the talent's two ranks adds 25% of that back. The talent sits in the Combat tree, so an Assassination or Subtlety rogue has it only with points spent there."
+  },
+  {
+   "class": 7,
+   "specs": [
+    "Enhancement"
+   ],
+   "weights": {
+    "expertise": 10.2
+   },
+   "marked": "order only",
+   "why": "Forever's Enhancement guides rank expertise with hit or just under it, and above Strength, Intellect and crit. At 10.2 a 1% expertise sits just under the hit line, melee and spell hit together, and above Strength for the same item budget, with no cap worked in."
+  },
+  {
+   "class": 7,
+   "specs": [
+    "Elemental"
+   ],
+   "weights": {
+    "spellhit": 10.0,
+    "spellhaste": 3.5,
+    "int": 0.55,
+    "hp5": 0.3
+   },
+   "why": "Forever's Elemental guides rank spell power or hit first, then crit, Intellect, mp5 and Spirit. One guide and one simulation put hit first and another guide second, so hit goes from 7.2 to 10.0, just under spell damage for the same item budget with no cap worked in. No guide lists haste, where Pawn's 7.2 put it level with hit, so it goes to 3.5, under mp5. Intellect at Pawn's 0.31 sat under mp5, spell penetration and hp5: at 0.55 it sits under crit and above mp5. No guide names hp5, so it goes to 0.3. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 7,
+   "specs": [
+    "Elemental"
+   ],
+   "set": "leveling",
+   "weights": {
+    "spellcrit": 6.5,
+    "sta": 0.3,
+    "spi": 0.3
+   },
+   "why": "The level 60 crit of 8.4 sits between the level 60 simulations, which take Call of Thunder (from level 20) and Elemental Fury (from 35). A levelling guide's Elemental list is spell damage and Intellect, crit, Stamina and Spirit, then armor. Levelling crit goes to 6.5, just under Intellect for the same item budget, and Stamina and Spirit to 0.3 each. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 7,
+   "specs": [
+    "Enhancement"
+   ],
+   "weights": {
+    "dps": 7.0,
+    "ohdps": 0,
+    "hit": 8.6,
+    "agi": 0.56,
+    "mp5": 0.5,
+    "hp5": 0.3
+   },
+   "why": "Forever's Enhancement guides rank weapon damage first, then hit, expertise, Strength and Intellect, then crit and spell power, with Agility low. One simulation prices a point of weapon damage at 14 attack power, 7.0 at the spec's attack power of 0.5, which puts it first for the same item budget. Hit goes to 8.6, so the hit line sits above expertise and Strength, the guides' order with no cap worked in. Agility gives a shaman about 1% crit for 20 points and 2 armor a point and no attack power, so it is worth the crit line's 10.9 / 20 plus 0.01, 0.56. Forever's shaman has no Dual Wield, so an off-hand weapon is never worn and weighs nothing. No guide names mp5 or hp5, so mp5 goes to 0.5 and hp5 to 0.3."
+  },
+  {
+   "class": 7,
+   "specs": [
+    "Enhancement"
+   ],
+   "set": "leveling",
+   "weights": {
+    "spi": 0.6,
+    "sta": 0.4
+   },
+   "why": "A levelling guide's Enhancement list is weapon damage, Intellect, Strength, Spirit, Agility and Stamina, with Strength stronger than Intellect at low levels, which Mental Dexterity's ranks already give. Another's list before a spec names Stamina and Spirit after Strength and Intellect. Spirit goes to 0.6, above Agility, and Stamina to 0.4, under it. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 7,
+   "specs": [
+    "Restoration"
+   ],
+   "weights": {
+    "spellcrit": 14.5,
+    "spellhaste": 3.0,
+    "hp5": 0.3
+   },
+   "why": "Three of the guides rank crit second for a Restoration shaman, above Intellect: Forever's Water Shield gives back 2% of maximum mana on each spell crit. Pawn's 3.84 put crit last. At 14.5 a 1% crit sits just above Intellect for the same item budget. No guide names haste, which sat above crit, so it goes to 3.0, under mp5 and Spirit. No guide names hp5, so it goes to 0.3. No guide gives a levelling order for a Restoration shaman, and Water Shield comes at level 20, so the level 60 weights stand below 60. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 11,
+   "specs": [
+    "Feral"
+   ],
+   "weights": {
+    "str": 0.95
+   },
+   "marked": "order only",
+   "why": "Forever's Feral guides rank Agility above Strength for a cat at level 60. Forever moved Heart of the Wild to the first row of the Restoration tree and cut its Strength bonus to 10% in Cat Form, so Pawn's Classic 1.48 overrates Strength. At 0.95 with Heart of the Wild at its fifth rank, Strength sits just under Agility. The fix after this one takes the talent's share out by rank."
+  },
+  {
+   "class": 11,
+   "specs": [
+    "Feral"
+   ],
+   "talent": 17003,
+   "gives": [
+    {
+     "stat": "str",
+     "figure": 3,
+     "of": "str",
+     "held": 10
+    }
+   ],
+   "why": "Heart of the Wild sits in the first row of the Restoration tree in Forever's talent window and raises a druid's Strength in Cat Form by 2% a rank, 10% at its fifth rank. The cat's Strength of 0.95 holds the fifth rank, so without the talent it is 0.95 / 1.1, 0.864, and each rank adds 2% of that. Attack power stays at 0.432 whatever the ranks."
+  },
+  {
+   "class": 11,
+   "specs": [
+    "Feral"
+   ],
+   "weights": {
+    "ap": 0.432,
+    "fap": 0.432,
+    "dps": 6.05
+   },
+   "why": "A cat's Strength is worth its attack power: 2 attack power a point, 10% more with Heart of the Wild, so attack power is Strength's 0.95 / 2.2, 0.432, in Cat Form and on a weapon's feral line alike. Forever's form attacks use the equipped weapon's damage per second, which Classic's forms ignored, so Pawn weighs it at nothing. A swing deals the weapon's damage per second plus attack power / 14 for each second of the swing, so a point of weapon damage per second is worth 14 attack power: 14 x 0.432, 6.05."
+  },
+  {
+   "class": 11,
+   "specs": [
+    "Guardian"
+   ],
+   "weights": {
+    "dps": 4.76
+   },
+   "why": "Forever's form attacks use the equipped weapon's damage per second, at a fixed 2.5 second swing in Bear Form, so a better weapon raises a bear's damage and threat. Pawn's Classic scale weighs it at nothing. A swing deals the weapon's damage per second plus attack power / 14 for each second of the swing, so a point of weapon damage per second is worth 14 attack power: 14 x the bear's 0.34, 4.76."
+  },
+  {
+   "class": 11,
+   "specs": [
+    "Guardian"
+   ],
+   "set": "60",
+   "weights": {
+    "def": 1.05
+   },
+   "marked": "order only",
+   "why": "Forever's Feral guides rank defense above Stamina and Agility for a bear: Thick Hide in Forever turns defense from gear into armor in Bear Form, and 440 defense keeps raid bosses from landing critical hits. At 1.25 with Thick Hide at its third rank, defense is worth a little more than Stamina for the same item budget. Without the talent that is 1.05, and the fix after this one adds Thick Hide's share by rank. The 440 is a level 60 raid figure, so this holds for the level 60 set alone: below 60 a bear's defense keeps the base weight of 0.39 with Thick Hide's share by rank, 0.59 at its third."
+  },
+  {
+   "class": 11,
+   "specs": [
+    "Balance"
+   ],
+   "weights": {
+    "spellhit": 12.0,
+    "spellcrit": 9.4,
+    "mp5": 0.3,
+    "hp5": 0.3
+   },
+   "why": "Forever's Balance guides put hit first, then spell power and crit, then haste and Intellect. Hit goes from 9.68 to 12.0, just above spell damage for the same item budget with no cap worked in. Every guide puts crit above Intellect and haste, and one simulation prices 1% crit at 9.4 spell damage, where Pawn's 4.96 put it under Intellect: crit takes that 9.4. The same simulation prices mp5 at 0.14 against Pawn's 0.58, and no guide ranks it high, so it goes to 0.3. No guide names hp5, so it goes to 0.3. Intellect and Spirit stay as Pawn has them, since the two simulations disagree on them."
+  },
+  {
+   "class": 11,
+   "specs": [
+    "Balance"
+   ],
+   "set": "leveling",
+   "weights": {
+    "spellcrit": 8.0,
+    "spellhaste": 5.0
+   },
+   "why": "The level 60 crit is a simulation's, priced with Vengeance (from level 25), Nature's Grace (from 30) and Moonkin Form (from 40). A levelling guide's list names Intellect, spell power, crit, haste, Spirit and mp5. Levelling crit goes to 8.0 and haste to 5.0, which keeps crit above haste as the list gives them. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 11,
+   "specs": [
+    "Feral"
+   ],
+   "weights": {
+    "crit": 10.2,
+    "hit": 10.25,
+    "expertise": 10.5,
+    "haste": 5.6,
+    "hp5": 0.3
+   },
+   "why": "Both of Forever's simulations price a cat's 1% crit at 9.5 and 10.9 Agility, against Pawn's 5.0: crit takes their mean, 10.2. Two of the guides put expertise, then hit, above Agility, and the simulations price hit at 6.9 and 13.6: hit takes their mean, 10.25, and expertise 10.5, above Agility for the same item budget with no cap worked in. Haste takes the simulations' 5.5 and 5.7, 5.6. No guide names hp5, so it goes to 0.3."
+  },
+  {
+   "class": 11,
+   "specs": [
+    "Feral"
+   ],
+   "set": "leveling",
+   "weights": {
+    "sta": 0.3
+   },
+   "why": "A levelling guide's Feral list is weapon damage, hit and expertise, crit, Agility, Strength and attack power, then Stamina, the level 60 order with Stamina added. Stamina goes from 0.1 to 0.3. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 11,
+   "specs": [
+    "Guardian"
+   ],
+   "weights": {
+    "agi": 0.7,
+    "hp5": 0.6
+   },
+   "why": "Two of the guides rank a bear's armor, defense, Stamina, Agility and dodge, in that order. Pawn's 0.48 put Agility under attack power: at 0.7 it sits under armor and above attack power for the same item budget. No guide names hp5, which Pawn put above Agility, so it goes from 2.0 to 0.6. Order only.",
+   "marked": "order only"
+  },
+  {
+   "class": 11,
+   "specs": [
+    "Restoration"
+   ],
+   "weights": {
+    "hp5": 0.3
+   },
+   "why": "No Forever guide names hp5 for a Restoration druid, so it goes from 1.0 to 0.3, under every stat the guides name. No guide gives a levelling order for a Restoration druid, so the level 60 weights stand below 60."
+  },
+  {
+   "class": 11,
+   "specs": [
+    "Guardian"
+   ],
+   "talent": 16929,
+   "gives": [
+    {
+     "stat": "def",
+     "figure": 2,
+     "of": "armor",
+     "unit": "each"
+    }
+   ],
+   "why": "Thick Hide gives a druid in Bear Form 0.67, 1.33 and 2.00 armor for each point of defense at its three ranks. At the bear's armor weight of 0.1 that adds 0.067, 0.133 and 0.2 to defense's 1.05, for 1.25 at its third rank."
+  },
+  {
+   "class": 8,
+   "specs": [
+    "Arcane"
+   ],
+   "weights": {
+    "int": 0.75
+   },
+   "marked": "order only",
+   "why": "Forever's Arcane guides rank Intellect above Spirit and mana regeneration, under spell damage. Pawn's 0.46 put Intellect under Spirit for the same item budget. At 0.75 Intellect sits above Spirit and under spell damage."
+  },
+  {
+   "class": 9,
+   "specs": [
+    "Destruction"
+   ],
+   "set": "60",
+   "weights": {
+    "spfire": 0.67,
+    "spshadow": 0.33
+   },
+   "marked": "order only",
+   "why": "Forever's Destruction warlock casts Fire: Incinerate is its main spell, with Immolate and Conflagrate, and its Shadow spells come second. Pawn's weights were made for a Shadow Bolt warlock and weighs Shadow damage 0.95 and Fire damage 0.23. Fire damage goes to two thirds of a point of spell damage and Shadow damage to one third, as one guide's estimate gives them, which holds Fire first. Incinerate comes at level 40 and Conflagrate at 25, and a levelling guide says Shadow Bolt is the main cast before Incinerate, so this holds for the level 60 set alone: below 60 the Shadow Bolt warlock's 0.95 Shadow and 0.23 Fire stand."
+  },
+  {
+   "class": 5,
+   "specs": [
+    "Holy"
+   ],
+   "talent": 14901,
+   "gives": [
+    {
+     "stat": "spi",
+     "figure": 1,
+     "of": "heal",
+     "held": 25
+    }
+   ],
+   "why": "Spiritual Guidance gives a Holy priest spell healing equal to 5% of Spirit a rank, 25% at its fifth rank. Pawn's Classic weights hold Classic's Spiritual Guidance at 25% of Spirit, so Pawn's Spirit of 0.73 holds 25% at Pawn's healing weight of 0.81. Without the talent Spirit is 0.73 less 0.25 x 0.81, 0.53, and each rank adds 0.04. The talent's spell damage share counts nothing here, since a Holy priest's weights hold no spell damage."
+  }
+ ]
+}

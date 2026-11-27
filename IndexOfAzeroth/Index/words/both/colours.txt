@@ -1,0 +1,13 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+gold = gold
+forever-blue = blue
+bone-white = bone white
+kill-crimson = crimson
+gather-purple = purple
+skin-teal = teal
+mining-blue = blue
+herbalism-leaf = leaf green
+fishing-salmon = salmon
+treasure-gold = deep gold

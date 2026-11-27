@@ -1,0 +1,7 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+cut = The Index found no whole way on foot to this step. The arrow points straight at it.
+map = The Index knows no flight, boat or doorway to the map this step is on, so it can't lead you there.
+failed = The Index couldn't work out the way to this step. The arrow points straight at it until the next plan.
+unbuilt = The Index hasn't mapped the ground on the way to this step yet. The arrow points straight at it until it has.

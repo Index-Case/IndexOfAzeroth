@@ -1,0 +1,4 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+cave = The height of this spot is unknown. A cave or mine lies under it.

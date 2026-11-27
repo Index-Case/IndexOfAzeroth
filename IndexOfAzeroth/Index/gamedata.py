@@ -1,0 +1,534 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+import json
+import os
+import threading
+import time
+
+import client
+import game
+import icons
+import mainstores
+import moblevels
+import store
+import storewriter
+from itemtips import ItemTips
+from wordparts import F
+
+ROOT = os.path.dirname(os.path.abspath(__file__))
+
+
+ICONS = mainstores.path("icons")
+
+ICON_CACHE = mainstores.path("iconcache")
+
+
+def load_class_spells():
+    return store.load_json(os.path.join(ROOT, "data", "classspells.json"), {})
+
+
+TRAINER_PRICES = os.path.join(ROOT, "data", "trainerprices.json")
+
+
+def load_trainer_prices():
+    return seen_builds(store.load_json(mainstores.standing(TRAINER_PRICES), {}))
+
+
+def recipe_prices(prices, recipes, build_at=None):
+    if build_at is None:
+        import clientfiles
+        build_at = clientfiles.build_at
+    seen = []
+    for spell, r in (recipes or {}).items():
+        said = (r or {}).get(F) or {}
+        if said.get("cost") is not None:
+            seen.append((int(spell), said["cost"], said.get("build"), (0,)))
+    for t in ((prices or {}).get("professions") or {}).values():
+        build = build_at(t.get("at") or 0)
+        for s in t.get("services") or ():
+            if s.get("spell") and s.get("cost") is not None:
+                seen.append((int(s["spell"]), s["cost"], build, (1, t.get("at") or 0)))
+    return {spell: {"cost": cost, "build": build} for spell, (cost, build) in newest_seen(seen).items()}
+
+
+def newest_seen(seen):
+    out, best = {}, {}
+    for key, price, build, rank in seen:
+        k = (game.version_key(build), rank)
+        if key not in best or k > best[key]:
+            best[key], out[key] = k, (price, build)
+    return out
+
+
+def shipped_class_prices(prices):
+    levels, builds = prices.get("levels") or {}, prices.get("builds") or {}
+    return {cid: {sid: [(levels.get(cid) or {}).get(sid), copper, (builds.get(cid) or {}).get(sid)]
+                  for sid, copper in sorted(costs.items(), key=lambda kv: int(kv[0]))}
+            for cid, costs in sorted((prices.get("classes") or {}).items(), key=lambda kv: int(kv[0])) if costs}
+
+
+def class_sightings(shipped, own):
+    seen = [((cid, sid), (level, copper), build, 0)
+            for cid, rows in (shipped or {}).items() for sid, (level, copper, build) in rows.items()]
+    own = own or {}
+    for cid, costs in (own.get("classes") or {}).items():
+        for sid, copper in costs.items():
+            seen.append(((cid, sid), (((own.get("levels") or {}).get(cid) or {}).get(sid), copper),
+                         ((own.get("builds") or {}).get(cid) or {}).get(sid), 1))
+    out = {"classes": {}, "levels": {}, "builds": {}}
+    for (cid, sid), ((level, copper), build) in newest_seen(seen).items():
+        out["classes"].setdefault(cid, {})[sid] = copper
+        out["levels"].setdefault(cid, {})[sid] = level
+        out["builds"].setdefault(cid, {})[sid] = build
+    return out
+
+
+def seen_builds(prices):
+    import clientfiles
+    seen = prices.get("seen") or {}
+    when = {}
+    for npc, spells in (prices.get("trainers") or {}).items():
+        at = (seen.get(npc) or {}).get("at") or 0
+        for sid in spells:
+            when[str(sid)] = max(when.get(str(sid), 0), at)
+    for cid, costs in (prices.get("classes") or {}).items():
+        mine = prices.setdefault("builds", {}).setdefault(cid, {})
+        for sid in costs:
+            if sid not in mine:
+                mine[sid] = clientfiles.build_at(when.get(sid, 0))
+    return prices
+
+
+_icon_index = {"mtime": None, "names": {}}
+
+_wanted = {"names": None, "lock": threading.Lock()}
+
+INDEX_LOOK = 60
+_indexed = {"at": float("-inf"), "tried": set(), "lock": threading.Lock()}
+_unmade = set()
+
+
+def icon_names():
+    index_install()
+    path = os.path.join(ICONS, "index.json")
+    try:
+        mtime = os.path.getmtime(path)
+    except OSError:
+        return {}
+    if _icon_index["mtime"] != mtime:
+        _icon_index.update(mtime=mtime, names=store.load_json(path, {}).get("names", {}))
+    return _icon_index["names"]
+
+
+def index_install():
+    now = time.monotonic()
+    if now - _indexed["at"] < INDEX_LOOK or mainstores.in_main(ICONS):
+        return
+    with _indexed["lock"]:
+        if now - _indexed["at"] < INDEX_LOOK:
+            return
+        _indexed["at"] = now
+        try:
+            build = game.installed_version()
+        except (OSError, ValueError, game.GameNotFound):
+            return
+        path = os.path.join(ICONS, "index.json")
+        if build in _indexed["tried"] or (store.load_json(path, {}) or {}).get("build") == build:
+            return
+        _indexed["tried"].add(build)
+        try:
+            names = icons.names(build, stored=True)
+        except (OSError, ValueError, KeyError):
+            return
+        store.save_json(path, {"build": build, "names": names}, indent=None)
+
+
+def make_icon(fid):
+    fid = int(fid)
+    if fid in _unmade or mainstores.in_main(ICONS):
+        return False
+    if icons.make(fid, out=ICONS):
+        return True
+    _unmade.add(fid)
+    return False
+
+
+def note_wanted(name):
+    with _wanted["lock"]:
+        if mainstores.in_main(ICONS):
+            return
+        path = os.path.join(ICONS, "wanted.json")
+        if _wanted["names"] is None:
+            _wanted["names"] = set(store.load_json(path, []))
+        if name in _wanted["names"] or len(_wanted["names"]) >= 2000:
+            return
+        _wanted["names"].add(name)
+        os.makedirs(ICONS, exist_ok=True)
+        store.save_json(path, sorted(_wanted["names"]), indent=None)
+
+
+def stored_icon(size, name=None, fid=None):
+    names = icon_names()
+    fid = fid or names.get(name)
+    path = fid and os.path.join(ICONS, str(size), f"{fid}.jpg")
+    if path and (os.path.exists(path) or make_icon(fid) and os.path.exists(path)):
+        return True, path
+    lacked = fid and icons.shipped(fid, size)
+    if lacked:
+        return True, lacked
+    old = (os.path.join(ICON_CACHE, f"f{fid}.jpg") if size == 64 and fid
+           else os.path.join(ICON_CACHE if size == 36 else os.path.join(ICON_CACHE, "large"), f"{name}.jpg") if name else None)
+    if old and os.path.exists(old):
+        return True, old
+    note_wanted(name or f"f{fid}")
+    q = names.get("inv_misc_questionmark")
+    for path in (q and os.path.join(ICONS, str(size), f"{q}.jpg"), os.path.join(ICON_CACHE, "inv_misc_questionmark.jpg")):
+        if path and os.path.exists(path):
+            return False, path
+    return False, None
+
+
+BUILD_CACHE = os.path.join(ROOT, "data", "buildcache")
+
+ITEM_TIPS = ItemTips()
+SPELL_TIPS = ItemTips("spell")
+
+
+_tables = {}
+
+
+def client_table(name, key):
+    path = os.path.join(ROOT, "data", name)
+    try:
+        mtime = os.path.getmtime(path)
+    except OSError:
+        return None, {}, {}
+    got = _tables.get((name, key))
+    if not got or got[0] != mtime:
+        data = store.load_json(path, {}).get(key, {})
+        got = _tables[(name, key)] = (mtime, data, {k.lower(): v for k, v in data.items()})
+    return got
+
+
+def spell_icons(names):
+    _, _, lower = client_table("spells.json", "spells")
+    return {n: lower[n.lower()] for n in names if n.lower() in lower}
+
+
+BATTLEGROUND = 3
+_battleground_icons = {}
+
+
+def battleground_icons():
+    try:
+        build = client.installed_version()
+        if build not in _battleground_icons:
+            stored = client.stored_build("BattlemasterList", build)
+            rows = [r for r in (client.rows("BattlemasterList", stored, stored=True) if stored else ())
+                    if str(r.get("InstanceType")) == str(BATTLEGROUND) and r.get("Name_lang")]
+            own = {r["Name_lang"]: int(r.get("IconFileDataID") or 0) for r in rows}
+            given = [fid for fid in own.values() if fid]
+            most = max(set(given), key=given.count) if given else None
+            _battleground_icons[build] = {name: fid or most for name, fid in own.items() if fid or most}
+        return _battleground_icons[build]
+    except (OSError, ValueError, KeyError, game.GameNotFound):
+        return {}
+
+
+ITEM_CLASS = 9
+ITEM_MAX_STACK = 11
+_item_classes = {}
+
+
+def item_classes():
+    mtime, rows, _ = client_table("items.json", "items")
+    if mtime not in _item_classes:
+        items = {i: r[ITEM_CLASS:ITEM_CLASS + 2] for i, r in rows.items()
+                 if len(r) > ITEM_CLASS + 1 and r[ITEM_CLASS] is not None}
+        stacks = {i: r[ITEM_MAX_STACK] for i, r in rows.items() if len(r) > ITEM_MAX_STACK}
+        _item_classes.clear()
+        _item_classes[mtime] = (items, client_table("items.json", "classes")[1], client_table("items.json", "subs")[1],
+                                stacks)
+    return _item_classes[mtime]
+
+
+AURA_STUN, AURA_CONFUSE, AURA_TRANSFORM, AURA_FEAR, AURA_CHARM = 12, 5, 56, 7, 6
+AURA_SILENCE, AURA_ROOT, AURA_SNARE = 27, 26, 33
+AUTO_REPEAT = 0x20
+ON_USE = "0"
+TRINKET = "12"
+_spell_facts = {}
+
+
+def control_kind(auras):
+    for kind, has in (("stun", AURA_STUN in auras), ("polymorph", {AURA_CONFUSE, AURA_TRANSFORM} <= auras),
+                      ("fear", AURA_FEAR in auras), ("disorient", AURA_CONFUSE in auras),
+                      ("charm", AURA_CHARM in auras), ("silence", AURA_SILENCE in auras),
+                      ("root", AURA_ROOT in auras), ("snare", AURA_SNARE in auras)):
+        if has:
+            return kind
+    return None
+
+
+def spell_facts():
+    try:
+        build = client.installed_version()
+        if build not in _spell_facts:
+            _spell_facts[build] = _read_spell_facts(build)
+        return _spell_facts[build]
+    except (OSError, ValueError, KeyError, game.GameNotFound):
+        return {}
+
+
+def _read_spell_facts(build):
+    def table(name):
+        stored = client.stored_build(name, build)
+        return client.rows(name, stored, stored=True) if stored else []
+    out = {}
+    fact = lambda sid: out.setdefault(int(sid), {})
+    auras = {}
+    for r in table("SpellEffect"):
+        auras.setdefault(int(r["SpellID"]), set()).add(int(r.get("EffectAura") or 0))
+    for sid, a in auras.items():
+        kind = control_kind(a)
+        if kind:
+            fact(sid)["cc"] = kind
+    lasts = {r["ID"]: int(r.get("Duration") or 0) for r in table("SpellDuration")}
+    for r in table("SpellMisc"):
+        if int(r.get("Attributes_2") or 0) & AUTO_REPEAT:
+            fact(r["SpellID"])["auto"] = 1
+        if lasts.get(r.get("DurationIndex"), 0) > 0:
+            fact(r["SpellID"])["dur"] = lasts[r["DurationIndex"]] / 1000
+    for r in table("SpellCooldowns"):
+        cd = max(int(r.get("RecoveryTime") or 0), int(r.get("CategoryRecoveryTime") or 0)) / 1000
+        if cd > 0:
+            f = fact(r["SpellID"])
+            f["cd"] = max(f.get("cd", 0), cd)
+    kinds = {r["ID"]: r.get("InventoryType") for r in table("Item")}
+    effects = {r["ID"]: r for r in table("ItemEffect") if r.get("TriggerType") == ON_USE}
+    for r in sorted(table("ItemXItemEffect"), key=lambda r: int(r["ItemID"])):
+        e = effects.get(r["ItemEffectID"])
+        if not e or not int(e.get("SpellID") or 0):
+            continue
+        use = "trinket" if kinds.get(r["ItemID"]) == TRINKET else "consumable" if int(e.get("Charges") or 0) < 0 \
+            else None
+        f = fact(e["SpellID"])
+        if use and f.get("use") != "trinket" and (use == "trinket" or "item" not in f):
+            f["item"], f["use"] = int(r["ItemID"]), use
+    return {sid: f for sid, f in out.items() if f}
+
+
+def item_name(item):
+    return (client_table("items.json", "items")[1].get(str(item)) or [None])[0]
+
+
+ITEM_BUY = 6
+ITEM_STACK = 7
+ITEM_REQUIRED = 5
+ITEM_SELL = 8
+ITEM_QUALITY, ITEM_LEVEL = 1, 4
+ITEM_PRICED = 12
+SELL_SEEN, SELL_TABLE, SELL_WORKED = "game", "table", "worked out"
+
+
+def sell_price(item):
+    seen = seen_prices.price(item) if seen_prices else None
+    if seen is not None:
+        return seen, SELL_SEEN
+    import protocol
+    import suffixes
+    import vendorprice
+    ident, bonuses = protocol.split_key(item)
+    row = client_table("items.json", "items")[1].get(str(ident)) or ()
+    if len(row) > ITEM_SELL and row[ITEM_SELL] is not None:
+        return row[ITEM_SELL], SELL_TABLE
+    figures = client_table("items.json", "prices")[1]
+    if len(row) <= ITEM_PRICED or not figures:
+        return None, None
+    level, quality = suffixes.level_and_quality(row[ITEM_LEVEL], row[ITEM_QUALITY], bonuses)
+    if level is None:
+        return None, None
+    inv, variance, random_value = row[ITEM_PRICED]
+    copper = vendorprice.sell(figures, inv, row[ITEM_CLASS], row[ITEM_CLASS + 1], quality, level, variance,
+                              random_value, row[ITEM_STACK])
+    return (copper, SELL_WORKED) if copper is not None else (None, None)
+
+
+def item_sell_price(item):
+    return sell_price(item)[0]
+
+
+SEEN_PRICES = os.path.join(ROOT, "data", "vendor_seen.json")
+seen_prices = None
+
+
+class SeenPrices:
+
+    def __init__(self, path=SEEN_PRICES):
+        self.path, self.lock = path, threading.Lock()
+        kept = store.load_json(path, {})
+        self.data = {str(k): v for k, v in kept.items() if isinstance(v, int) and v >= 0} if isinstance(kept, dict) else {}
+        self.version = 0
+
+    def note(self, pairs):
+        news = False
+        with self.lock:
+            for key, copper in pairs:
+                if isinstance(copper, int) and copper >= 0 and self.data.get(str(key)) != copper:
+                    self.data[str(key)], news = copper, True
+            if news:
+                self.version += 1
+                storewriter.save_json_later(self.path, dict(self.data), indent=None)
+        return news
+
+    def price(self, key):
+        with self.lock:
+            return self.data.get(str(key))
+
+
+def item_unit_price(item):
+    row = client_table("items.json", "items")[1].get(str(item)) or ()
+    price = row[ITEM_BUY] if len(row) > ITEM_BUY else 0
+    if not price:
+        return None
+    return price / ((row[ITEM_STACK] if len(row) > ITEM_STACK else 0) or 1)
+
+
+def item_infos(ids):
+    import protocol
+    import suffixes
+    _, items, _ = client_table("items.json", "items")
+    out, words = {}, None
+    for i in ids:
+        item, bonuses = protocol.split_key(i)
+        it = items.get(str(item)) if item else None
+        if not it:
+            continue
+        if bonuses and words is None:
+            words = suffixes.tables() or ()
+        key = str(protocol.item_key(item, bonuses))
+        out[key] = {"n": suffixes.suffixed_name(it[0], bonuses, words) if bonuses else it[0], "q": it[1],
+                    "icon": it[2] or "inv_misc_questionmark"}
+        if len(it) > 3 and it[3]:
+            out[key]["quest"] = 1
+    return out
+
+
+_names = {"mtime": None, "ids": {}}
+
+
+def item_ids(names):
+    mtime, items, _ = client_table("items.json", "items")
+    if _names["mtime"] != mtime:
+        ids = {}
+        for item_id, row in items.items():
+            ids[row[0]] = None if row[0] in ids else int(item_id)
+        _names.update(mtime=mtime, ids=ids)
+    return {n: _names["ids"][n] for n in names if _names["ids"].get(n)}
+
+
+_quest_names = {"mtime": None, "ids": {}}
+
+
+def quest_item_id(name):
+    mtime, items, _ = client_table("items.json", "items")
+    if _quest_names["mtime"] != mtime:
+        ids = {}
+        for item_id, row in items.items():
+            if len(row) > 3 and row[3]:
+                ids[row[0]] = None if row[0] in ids else int(item_id)
+        _quest_names.update(mtime=mtime, ids=ids)
+    if name in _quest_names["ids"]:
+        return _quest_names["ids"][name]
+    return item_ids([name]).get(name)
+
+
+STAT_WEIGHTS = os.path.join(ROOT, "data", "stat_weights.json")
+
+STAT_WEIGHTS_MINE = os.path.join(ROOT, "data", "stat_weights_mine.json")
+
+
+_weights = {"stamps": None, "data": None}
+
+
+def stat_weights():
+    stamps = (store.stamp(STAT_WEIGHTS), store.stamp(STAT_WEIGHTS_MINE))
+    if _weights["stamps"] != stamps:
+        _weights.update(data=read_stat_weights(), stamps=stamps)
+    return _weights["data"]
+
+
+def read_stat_weights():
+    data = store.load_json(STAT_WEIGHTS, None)
+    if not data:
+        return None
+    try:
+        with open(STAT_WEIGHTS_MINE, encoding="utf-8") as f:
+            mine = json.load(f)
+        data["mine"] = "applied"
+    except FileNotFoundError:
+        mine = {}
+    except ValueError as e:
+        mine, data["mine"] = {}, f"data/stat_weights_mine.json doesn't read: {e}"
+    for cls, specs in mine.items() if isinstance(mine, dict) else ():
+        for spec in data["classes"].get(cls, {}).get("specs", []):
+            for name in ("*", spec["name"]):
+                for stat, weight in (specs.get(name) or {}).items() if isinstance(specs, dict) else ():
+                    if not isinstance(weight, (int, float)):
+                        continue
+                    for block in (spec, spec.get("leveling") or {}):
+                        if "w" in block:
+                            block["w"][stat] = weight
+                            block["talents"] = [t for t in block.get("talents") or () if t.get("stat") != stat]
+    return data
+
+
+def load_rares():
+    try:
+        with open(os.path.join(ROOT, "data", "rares.json"), encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        return {"by_map": {}, "items": {}}
+    by_map = {}
+    for r in data["rares"]:
+        levels, kind = moblevels.from_text(r.get("level"))
+        r.update(levels=moblevels.game(r.get("id"), levels or moblevels.of_data(r.get("id"))), kind=kind)
+        by_map.setdefault(r["map"], []).append(r)
+    for rares in by_map.values():
+        rares.sort(key=lambda r: r["name"])
+    return {"by_map": by_map, "items": data["items"]}
+
+
+def load_tiles():
+    path = os.path.join(ROOT, "data", "tiles.json")
+    if not os.path.exists(path):
+        return {"version": None, "instances": {}}
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+TODO_PATH = os.path.join(ROOT, "data", "todo.json")
+
+todo_lock = threading.Lock()
+
+WARNING_TODO = {"ammo": "restock:ammo", "petUnhappy": "character:feedPet", "shards": "restock:shards",
+                "mhPoison": "restock:mhPoison", "ohPoison": "restock:ohPoison", "poisons": "restock:poisons",
+                "water": "restock:water", "ankh": "restock:ankhs", "earthTotem": "restock:earthTotem",
+                "fireTotem": "restock:fireTotem", "waterTotem": "restock:waterTotem", "airTotem": "restock:airTotem",
+                "durability": "character:repair"}
+
+
+def load_todo():
+    return {"silenced": {}, "dismissed": {}, **store.load_json(TODO_PATH, {})}
+
+
+def todo_answer(todo):
+    return {**todo, "tracks": WARNING_TODO}
+
+
+def save_todo(todo):
+    store.save_json(TODO_PATH, todo)
+
+
+def silenced_todos():
+    with todo_lock:
+        return set(load_todo().get("silenced") or ())

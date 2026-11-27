@@ -1,0 +1,6 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: none
+
+title = Camping
+intro.p1 = Sit by a campfire or craft beside it for a minute to get Camp Benefits for an hour. Camp Benefits are the buffs of every feature around the fire.
+intro.p2 = A fire and its features last 15 minutes, and all features share a one-hour cooldown.

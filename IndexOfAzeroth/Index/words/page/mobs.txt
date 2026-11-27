@@ -1,0 +1,23 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: n, total, name
+
+title = NPCs, Monsters and Rares
+all = All
+none = None
+rares = Rares
+rares.tip = This shows or hides all of this zone's rares
+rares.shown = {n} of {total}
+rares.here = {n} here
+drops = {n} drops
+drops.none = No drops recorded
+go = Guide me
+go.tip = This starts the Navigation Guide to {name} and copies the line for the in-game arrow
+zone.none = No rares are known in this zone.
+zone.what = the zone's rares
+hover = Hover over a rare to see its drops.
+dungeon = Dungeon
+dungeon.show = Show the dungeon's rares on the map
+dungeon.none = No rares are known in this dungeon.
+dungeon.what = the dungeon's rares
+dungeon.note = This box is the same switch as Rare spawns under Places. Outside the dungeon, this menu shows the zone's rares again.
+tip.click = Click the marker to start the guide to {name} and copy the line for the in-game arrow

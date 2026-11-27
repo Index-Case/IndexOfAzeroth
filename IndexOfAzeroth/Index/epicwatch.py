@@ -1,0 +1,862 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+import copy
+import json
+import math
+import threading
+import time
+
+import director_rules
+import errands
+from characters import TRAVEL_FASTEST, same_char
+import planlead
+import planrepair
+from plansteps import EPIC_CODE, step_ids
+from shared import epic_notes, plan_notes
+from shared import COVS, SIDES
+from shared import indoors_kw
+import ticks
+
+CHECK_EVERY = 10.0
+SOON = 1.5
+WAYS_AGAIN = 60.0
+RANK = {"minor": 0, "worth": 1, "needed": 2}
+NEEDS = ("train", "repair", "sell", "restock")
+SMALL = "has small changes"
+SHORT = "crafts again with what your bags hold"
+WAYS = {"safe": "takes the safest route, on roads and well clear of mobs",
+        "fight": "takes a route that grinds through the mobs worth fighting",
+        "any": "takes the quickest route round the mobs"}
+MOVED = "moves your errands to NPCs near where you are"
+DIED = "goes on from where you came back to life"
+JUMP_YARDS = 300.0
+WALK_MOST = TRAVEL_FASTEST * 1.25
+RIDE_SECONDS = 60.0
+SPOT_EVERY = 1.0
+SETTLED = 3.0
+GEAR_SETTLE = 5.0
+PICKS = "picks quest rewards for the gear you wear"
+SIDE = {"under": "leads you from where you stand under the ground", "over": "leads you from where you stand above the ground"}
+JUMPS_KEPT = 16
+
+
+class Jumps:
+
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.spots = []
+        self.away = False
+        self.dead = False
+        self.ride = None
+        self.n = 0
+        self.starts = {}
+        self.deaths = set()
+
+    def see(self, here, flags, now):
+        flags = flags or {}
+        with self.lock:
+            if flags.get("taxi") or flags.get("instance") or flags.get("dead") or flags.get("ghost"):
+                self.away = bool(self.spots)
+                self.dead = self.dead or bool(self.spots and (flags.get("dead") or flags.get("ghost")))
+                return False
+            if not here:
+                return False
+            here = tuple(here[:3])
+            start = self.start(here, now) if self.spots else None
+            if start:
+                self.n += 1
+                self.starts[self.n] = start
+                self.starts.pop(self.n - JUMPS_KEPT, None)
+                if self.dead:
+                    self.deaths.add(self.n)
+                self.deaths.discard(self.n - JUMPS_KEPT)
+                self.spots, self.ride = [], None
+            self.dead = False
+            if len(self.spots) > 1 and now - self.spots[-2][0] < SPOT_EVERY:
+                self.spots[-1] = (now, here)
+            else:
+                self.spots.append((now, here))
+            while len(self.spots) > 2 and now - self.spots[0][0] > RIDE_SECONDS:
+                self.spots.pop(0)
+            self.away = False
+            return bool(start)
+
+    def start(self, here, now):
+        t, last = self.spots[-1]
+        yards = lambda p: math.hypot(here[1] - p[1], here[2] - p[2])
+        fast = lambda t0, p: yards(p) / max(now - t0, 1e-3) > WALK_MOST
+        if last[0] != here[0]:
+            return last
+        if self.away:
+            return last if yards(last) >= JUMP_YARDS else None
+        if yards(last) >= JUMP_YARDS and fast(t, last):
+            return last
+        self.ride = self.ride or next((p for t0, p in self.spots if yards(p) >= JUMP_YARDS and fast(t0, p)), None)
+        back = [(t0, p) for t0, p in self.spots if now - t0 >= SETTLED]
+        if not self.ride or not back or fast(*back[-1]):
+            return None
+        start, self.ride = self.ride, None
+        return start if yards(start) >= JUMP_YARDS else None
+
+    def since(self, seen):
+        with self.lock:
+            if self.n <= seen:
+                return None
+            return self.n, self.starts.get(seen + 1, self.starts[min(self.starts)])
+
+    def died_since(self, seen):
+        with self.lock:
+            return any(k > seen for k in self.deaths)
+
+
+def signature(steps):
+    return [(ident(s), s.get("npc"), s.get("name") if s["k"] == "S" else None) for s in steps]
+
+
+def report_key(report):
+    if not report:
+        return report
+    return {**report, "events": [(e.get("kind"), e.get("step")) for e in report.get("events") or ()]}
+
+
+def plain(step):
+    return {"k": EPIC_CODE.get(step["kind"]), "ids": step_ids(step), "inst": step.get("inst"), "at": step.get("at"),
+            "name": step.get("questName"), "npc": step.get("npc"), "count": step.get("count"),
+            **{k: step[k] for k in ("what", "key", "target", "need") if step.get(k)}}
+
+
+def code(s):
+    return f'{s["k"]}{".".join(str(i) for i in s["ids"])}' if s["ids"] else f'{s["k"]}{s.get("what")}:{s.get("npc")}'
+
+
+def ident(s):
+    if s["k"] == "D":
+        return f'D@{round(s["at"][0])},{round(s["at"][1])}' if s.get("at") else "D"
+    return f'{code(s)}#{s["target"]}' if s["k"] == "O" and s.get("target") else code(s)
+
+
+def pair_up(a, b):
+    free, pairs, rest = {}, {}, []
+    for j, s in enumerate(b):
+        free.setdefault(ident(s), []).append(j)
+    for i, s in enumerate(a):
+        got = free.get(ident(s))
+        if got:
+            pairs[i] = got.pop(0)
+        else:
+            rest.append(i)
+    by_code = {}
+    for js in free.values():
+        for j in js:
+            by_code.setdefault(code(b[j]), []).append(j)
+    for i in rest:
+        got = by_code.get(code(a[i])) if a[i]["k"] == "O" else None
+        if got:
+            pairs[i] = got.pop(0)
+    return pairs
+
+
+def plan_mode(mode):
+    return mode if mode in ("safe", "fight") else "any"
+
+
+def step_done(s, done, log):
+    ids = s["ids"]
+    if s["k"] == "S":
+        return False
+    if s["k"] == "P":
+        return all(i in done or i in log for i in ids)
+    if s["k"] == "T":
+        return all(i in done for i in ids)
+    if s["k"] == "O":
+        return all(i in done or log.get(i) for i in ids)
+    have = [i for i in ids if i in done or i in log]
+    return bool(have) and all(i in done or log.get(i) for i in have)
+
+
+def names(xs):
+    xs = list(dict.fromkeys(x for x in xs if x))
+    return xs[0] if len(xs) == 1 else ", ".join(xs[:-1]) + " and " + xs[-1] if xs else ""
+
+
+def chore_state(c):
+    return c.get("errand") or {"game": c.get("facts")}
+
+
+def shown_done(s, facts=None, me=None):
+    return errands.shows_done(s, me if me is not None else {"game": facts}) is True
+
+
+def chore_sig(s):
+    return s.get("what"), s.get("key"), json.dumps(s.get("need") or {}, sort_keys=True)
+
+
+def settled_chores(steps, states):
+    return {chore_sig(s) for s, st in zip(steps, states or ()) if s["k"] == "S" and st in ("done", "skipped")}
+
+
+def pending_chores(steps, states=(), facts=None, me=None):
+    out = {}
+    game = facts if facts is not None else (me or {}).get("game")
+    for i, s in enumerate(steps):
+        if s["k"] != "S" or not (s.get("what") in NEEDS or ticks.declares(s.get("need"))):
+            continue
+        cover = planlead.covered(s, steps, states, game)
+        if (i < len(states) and states[i] in ("done", "skipped")) or (shown_done(s, facts, me) if cover is None else cover):
+            continue
+        out.setdefault(s["what"], []).append(s)
+    return out
+
+
+def restocks_due(live, plan, loaded):
+    if not (live or {}).get("running"):
+        return {}
+    out = {}
+    plan = plan or {}
+    if plan.get("version") is not None and plan.get("version") == loaded:
+        steps = (plan.get("epic") or {}).get("steps") or ()
+        for s in pending_chores(steps, live.get("states") or ()).get("restock", ()):
+            if s.get("key"):
+                out.setdefault(s["key"].partition(":")[2], {k: s.get(k) for k in ("npc", "inst", "at")})
+    for c in reversed(live.get("chores") or ()):
+        if c.get("what") == "restock" and c.get("thing") and c.get("state") not in ("done", "skipped"):
+            out[c["thing"]] = {k: c.get(k) for k in ("npc", "inst", "at")}
+    return out
+
+
+def new_chores(steps, pending, facts=None, me=None, settled=()):
+    mine, out = pending_chores(steps, facts=facts, me=me), []
+    for what, have in mine.items():
+        have = [s for s in have if chore_sig(s) not in settled]
+        extra = len(have) - len(pending.get(what, ()))
+        if extra > 0:
+            keys = {p.get("key") for p in pending.get(what, ())}
+            out += ([s for s in have if s.get("key") not in keys] or have)[:extra]
+    return out
+
+
+def theirs(steps, me):
+    owned = (me or {}).get("addon_chores") or ()
+    return [s for s in steps if not (s["k"] == "S" and s.get("what") in owned)] if owned else list(steps)
+
+
+def hidden_chores(steps, fresh):
+    keys = {n.get("key") for n in fresh.get("errandNotes") or () if n.get("hidden")}
+    return [s.get("name") or s.get("what") for s in steps if s["k"] == "S" and s.get("key") in keys]
+
+
+def lead(steps):
+    out = []
+    for s in steps:
+        if s["k"] != "S":
+            break
+        out.append(s)
+    return out
+
+
+def other_side(steps, c):
+    side, here, lead = c.get("side"), c.get("here"), c.get("lead") or {}
+    p, n = lead.get("step") or 0, lead.get("way") or 0
+    if side not in SIDE or not here or not steps or lead.get("version") != c.get("loaded") or not 0 < p <= len(steps):
+        return None
+    ways = director_rules.GUIDE["ways"]
+    name = ways[n - 1] if 0 < n <= len(ways) else None
+    s, marks_of = steps[p - 1], {way: (dict(COVS)[way], sd) for way, sd in SIDES}
+    if name not in marks_of or s.get("inst") != here[0] or not s.get(name) or not s.get(marks_of[name][1]) or not s.get("at"):
+        return None
+    cov_key, sd_key = marks_of[name]
+    points = [q[:2] for q in s[name]] + [s["at"][:2]]
+    cov, sd = set(s.get(cov_key) or ()), s[sd_key]
+    marks = [(k + 1 in cov, sd[k] if k < len(sd) else "-") for k in range(len(points))]
+    ground = "o" if side == "under" else "u"
+    reach = director_rules.reach("corridor", planlead.stretch_run(steps, p - 1))
+    yours = planlead.way_yards(points, marks, here[1], here[2], lambda m: not planlead.across(*m, side))
+    other = planlead.way_yards(points, marks, here[1], here[2], lambda m: planlead.across(*m, side) and m[1] == ground)
+    return side if other <= reach < yours else None
+
+
+def brought_up(before, after):
+    pairs = pair_up(before, after)
+    common = sorted(pairs, key=lambda i: pairs[i])
+    rank = {i: r for r, i in enumerate(sorted(pairs))}
+    out = []
+    for r, i in enumerate(common):
+        if before[i]["k"] == "P" and r < rank[i]:
+            out.append(before[i].get("name"))
+    return out
+
+
+def moved_errands(before, after):
+    was = {s.get("what"): s.get("npc") for s in lead(before)}
+    return [s for s in lead(after) if s.get("what") in was and was[s["what"]] != s.get("npc")]
+
+
+def errand_step(w):
+    out = {"kind": "errand", "quest": None, "questName": w.get("name") or w.get("text"), "text": w.get("text"),
+           "npc": w.get("npc"), "inst": w["inst"], "at": list(w["at"][:2] if w.get("guess") else w["at"])}
+    return {**out, **{k: w[k] for k in ("what", "key", "need", "cost", "map", "zone", "min", "grind", "trip", "why")
+                      if w.get(k) is not None}}
+
+
+def run_order(left, game, moves):
+    g2l = pair_up(game, left)
+    placed = {m["step"] - 1 for m in moves if 0 < m["step"] <= len(game)}
+    front, mine = {}, set()
+    for m in moves:
+        g = m["step"] - 1
+        if g not in placed or g not in g2l or g2l[g] in mine:
+            continue
+        b = m["before"] - 1
+        anchor = None if b < 0 or b in placed else next((g2l[a] for a in range(b, len(game)) if a not in placed and a in g2l), None)
+        front.setdefault(anchor, []).append(g2l[g])
+        mine.add(g2l[g])
+    if not mine:
+        return left
+    out = []
+    for i, s in enumerate(left):
+        if i not in mine:
+            out += [left[j] for j in front.get(i, ())] + [s]
+    return out + [left[j] for j in front.get(None, ())]
+
+
+def merge(left, planned, start, log=None, levels=None, level=None, was=None, ways=None, clocks=()):
+    return planrepair.repair(left, planned, start, log, levels, level, was, ways, clocks)
+
+
+class Settled:
+    def __init__(self, wait=None):
+        self.wait = GEAR_SETTLE if wait is None else wait
+        self.seen = None
+
+    def due(self, value, now):
+        if value is None:
+            return False
+        if self.seen is None:
+            self.seen = (value, now, False)
+            return False
+        was, since, due = self.seen
+        if value != was:
+            self.seen = (value, now, True)
+            return False
+        if due and now - since >= self.wait:
+            self.seen = (value, since, False)
+            return True
+        return False
+
+
+def main_place(name):
+    return property(lambda self: getattr(self.main, name), lambda self, value: setattr(self.main, name, value))
+
+
+class Place:
+    def __init__(self, key=None, char=None):
+        self.key, self.char = key, char
+        self.looked = None
+        self.last = None
+        self.advice = None
+        self.held = None
+        self.starting = False
+        self.wanted = None
+        self.ways_at = 0.0
+        self.jump_seen = 0
+        self.worn = Settled()
+        self.short_wrote = None
+        self.side_wrote = None
+
+    def epic(self, sh):
+        if self.key is None:
+            return (sh.data or {}).get("epic")
+        epic, at = sh.epic_of(self.key, self.char)
+        return epic if at is not None else None
+
+    def version(self, sh):
+        if self.key is None:
+            return (sh.data or {}).get("version")
+        return (self.epic(sh) or {}).get("written")
+
+    def run_start(self, sh):
+        return sh.run_start if self.key is None else (self.epic(sh) or {}).get("start")
+
+    def game(self, sh, c):
+        if self.key is None:
+            return c.get("loaded"), c.get("live") or {}
+        for s in c.get("sides") or ():
+            e = sh.written(s.get("version"))
+            if e and e.get("key") == self.key and same_char(e.get("char"), self.char):
+                return s["version"], s
+        return None, {}
+
+
+class EpicWatch:
+    def __init__(self, shared, plan, dress, find_way, context, log=None, find_route=None, answers=None, unknown=None,
+                 rewards=None, nexts=None, reckon=None, ways=None):
+        self.shared, self.plan, self.dress, self.find_way, self.context, self.log = shared, plan, dress, find_way, context, log
+        self.reckon, self.ways = reckon, ways
+        self.find_route, self.answers, self.unknown = find_route, answers, unknown
+        self.cv = threading.Condition()
+        self.poked = False
+        self.jobs = []
+        self.main = Place()
+        self.sides = {}
+        self.jumps = Jumps()
+        self.rewards = rewards
+        self.picks_from = None
+        self.picks_worn = Settled()
+        self.nexts = nexts
+        self.next_from = None
+
+    looked, last, advice, held, starting, wanted, ways_at, jump_seen, worn = (main_place(n) for n in (
+        "looked", "last", "advice", "held", "starting", "wanted", "ways_at", "jump_seen", "worn"))
+
+    def side_places(self, c):
+        me, keep = c.get("me"), {}
+        for s in self.shared.profs if self.shared else ():
+            if s.get("closed") or not s.get("key") or not same_char(s.get("char"), me):
+                continue
+            had = self.sides.get(s["key"])
+            keep[s["key"]] = had if had and same_char(had.char, s.get("char")) else Place(s["key"], s.get("char"))
+        self.sides = keep
+        return list(keep.values())
+
+    def side_advice(self):
+        return {key: p.advice for key, p in self.sides.items() if p.advice}
+
+    def moved(self, here, flags, now=None):
+        if self.jumps.see(here, flags, time.time() if now is None else now):
+            self.poke()
+
+    def landing(self, c, place=None):
+        place = place or self.main
+        got = self.jumps.since(place.jump_seen)
+        here = tuple(c["here"][:3]) if got and c.get("here") else None
+        if not here:
+            return None
+        n, start = got
+        if start[0] == here[0] and math.hypot(here[1] - start[1], here[2] - start[2]) < JUMP_YARDS:
+            place.jump_seen = n
+            return None
+        return n, here
+
+    def poke(self):
+        with self.cv:
+            self.poked = True
+            self.cv.notify_all()
+
+    def ask_mode(self, key, mode, me):
+        sh = self.shared
+        epic = ((sh.data or {}).get("epic") or {}) if sh else {}
+        mine = epic.get("key") == key and same_char(epic.get("char"), me) and not epic.get("closed")
+        if not mine and not (sh and sh.working == key):
+            return False
+        self.queue(lambda: self.take_mode(key, plan_mode(mode), me))
+        return True
+
+    def take_mode(self, key, mode, me):
+        sh = self.shared
+        epic = (sh.data or {}).get("epic") or {}
+        mine = epic.get("key") == key and same_char(epic.get("char"), me) and not epic.get("closed")
+        if not mine and sh.working != key:
+            return
+        if mine and not (sh.working and sh.working_start) and sh.switch_back(key, mode, sh.loaded):
+            self.wanted = self.held = None
+            return
+        self.wanted = {"key": key, "char": me, "mode": mode}
+        self.poke()
+
+    def queue(self, job):
+        with self.cv:
+            self.jobs.append(job)
+            self.cv.notify_all()
+
+    def pause(self, seconds, until_poked):
+        end = time.time() + seconds
+        while True:
+            with self.cv:
+                while not self.jobs and not (until_poked and self.poked):
+                    left = end - time.time()
+                    if left <= 0:
+                        return False
+                    self.cv.wait(left)
+                jobs, self.jobs = self.jobs, []
+                poked = until_poked and self.poked
+                if poked:
+                    self.poked = False
+            for job in jobs:
+                try:
+                    job()
+                except Exception:
+                    if self.log:
+                        self.log("epic watcher's job")
+            if poked:
+                return True
+
+    def run(self):
+        while True:
+            poked = self.pause(CHECK_EVERY, True)
+            if poked:
+                self.pause(SOON, False)
+            try:
+                self.tick(forced=poked)
+            except Exception:
+                if self.log:
+                    self.log("epic watcher")
+
+    def tick(self, now=None, forced=True):
+        now = now or time.time()
+        c = self.context()
+        sh = self.shared
+        try:
+            self.picks_look(c, now)
+        except Exception:
+            if self.log:
+                self.log("reward picks")
+        try:
+            self.next_look()
+        except Exception:
+            if self.log:
+                self.log("next zones")
+        if sh and c.get("loaded"):
+            sh.loaded = int(c["loaded"])
+        if sh:
+            sh.side_loaded = {int(s["version"]) for s in c.get("sides") or () if s.get("version")}
+        if not sh or sh.working:
+            if self.wanted:
+                self.poke()
+            return None
+        wrote = self.look(self.main, c, now, forced)
+        for place in self.side_places(c):
+            if sh.working:
+                break
+            wrote = self.look(place, c, now, forced) or wrote
+        return wrote
+
+    def look(self, place, c, now, forced):
+        sh = self.shared
+        epic = place.epic(sh)
+        if not epic or epic.get("closed") or not same_char(epic.get("char"), c.get("me")):
+            place.advice = place.held = place.wanted = None
+            place.jump_seen = self.jumps.n
+            return None
+        w = place.wanted
+        if w and (w["mode"] == (epic.get("mode") or "any") or w["key"] != epic.get("key") or not same_char(w["char"], epic.get("char"))):
+            place.wanted = None
+        if c.get("inside") or c.get("flying") or c.get("dead"):
+            return None
+        loaded, live = place.game(sh, c)
+        if place is not self.main:
+            inputs = c["inputs_of"](epic.get("steps")) if c.get("inputs_of") else c.get("inputs")
+            c = {**c, "loaded": loaded, "live": live, "inputs": inputs}
+        run = place.run_start(sh)
+        place.starting = bool(run) and int(loaded or 0) < int(run)
+        on_loaded = bool(live.get("running")) and live.get("version") == loaded and not place.starting
+        blind = bool(live.get("running")) and not on_loaded
+        live = live if on_loaded else {}
+        if on_loaded and place is self.main:
+            self.note_offers(c)
+        if on_loaded and self.recraft(sh, epic, (sh.written(loaded) or epic).get("steps"), live, c):
+            epic = place.epic(sh)
+        ways = (repr(c.get("built")), now - place.ways_at >= WAYS_AGAIN) if epic.get("unbuilt") else None
+        side = other_side(self.game_steps(c), c) if place is self.main else None
+        key = None if c.get("inputs") is None else (c["inputs"], place.version(sh), repr(report_key(live)),
+                                                      loaded, repr(c.get("me")), repr(place.wanted), ways, side)
+        wrote = None
+        landing = self.landing(c, place)
+        gear = self.gear_due(c.get("worn"), now, place)
+        if forced or key is None or key != place.looked or landing or gear:
+            wrote = self.keep_current(epic, live, c, now, landing, gear, place)
+            place.looked = key
+        place.advice = self.with_ways(self.hold(self.assess(c, live, now, place), blind, place), c, place)
+        return wrote
+
+    @staticmethod
+    def recraft(sh, epic, steps, live, c):
+        bags, changed = (c.get("facts") or {}).get("items"), False
+        if bags is None:
+            return False
+        for s, st in zip(steps or (), live.get("states") or ()):
+            if st != "blocked" or s.get("k") != "S":
+                continue
+            for item, count in (s.get("takes") or {}).get("uses") or ():
+                if bags.get(int(item), 0) < count:
+                    changed = sh.set_pick(epic["key"], int(item), "craft", epic.get("char")) or changed
+        return changed
+
+    def note_offers(self, c):
+        if not self.answers or not self.unknown:
+            return
+        who, done = c.get("who") or {}, c.get("done") or ()
+        for qid in c.get("log") or ():
+            giver = self.unknown(qid)
+            if giver is not None:
+                self.answers.note(qid, giver or None, who, done)
+
+    def gear_due(self, worn, now, place=None):
+        return (place or self.main).worn.due(worn, now)
+
+    def picks_look(self, c, now):
+        if not self.rewards or not self.shared or not c:
+            return False
+        gear = self.picks_worn.due(c.get("worn"), now)
+        wanted = self.rewards.wanted()
+        if wanted is None or (wanted == self.picks_from and not gear):
+            return False
+        self.picks_from = wanted
+        return self.shared.set_rewards(self.rewards.table(wanted))
+
+    def next_look(self):
+        if not self.nexts or not self.shared:
+            return False
+        wanted = self.nexts.wanted()
+        if wanted is None or wanted == self.next_from:
+            return False
+        self.next_from = wanted
+        return self.shared.set_next(self.nexts.table(wanted))
+
+    def picks_changed(self, fresh, place=None):
+        find = getattr(self.shared, "find_rewards", None)
+        if not find:
+            return False
+        had = {tuple(s["ids"]): s.get("rw") for s in ((place or self.main).epic(self.shared) or {}).get("steps") or ()
+               if s.get("k") == "T"}
+        now = {tuple(step_ids(s)): rw for s, rw in zip(fresh["steps"], find(fresh["steps"])) if s.get("kind") == "turnin"}
+        same = lambda a, b: json.dumps(a, sort_keys=True) == json.dumps(b, sort_keys=True)
+        return any(not same(rw, had[q]) for q, rw in now.items() if q in had)
+
+    def game_plan(self, c):
+        loaded = self.shared.snapshot(c.get("loaded")) if c.get("loaded") else None
+        if loaded and loaded.get("version") == c.get("loaded") and loaded.get("epic"):
+            return loaded["epic"]
+        return None
+
+    def game_steps(self, c):
+        game = self.game_plan(c)
+        return game["steps"] if game else None
+
+    def keep_current(self, epic, live, c, now=None, landing=None, gear=False, place=None):
+        place = place or self.main
+        now = time.time() if now is None else now
+        here = tuple(c["here"]) if c.get("here") else None
+        anchor = tuple(epic["anchor"]) if epic.get("anchor") else here
+        here_in = c.get("indoors") if here else None
+        anchor_in = epic.get("anchorIndoors") if epic.get("anchor") else here_in
+        where = {"anchor": list(anchor) if anchor else None, "anchorIndoors": anchor_in if anchor else None,
+                 "from": list(here) if here else None, "fromIndoors": here_in}
+        was = epic.get("mode") or "any"
+        mode = (place.wanted or {}).get("mode") or was
+        parked = set(live.get("parked") or ()) | (set(epic.get("parked") or ()) if place.starting else set())
+        kept = {i for st in epic.get("steps") or () for i in st.get("ids") or ()}
+        quests = self.plan(epic["key"], here or anchor, parked, kept, **indoors_kw(here_in if here else anchor_in))
+        if not quests:
+            self.jump_done(landing, place=place)
+            return None
+        done, log = c.get("done") or set(), c.get("log") or {}
+        left = [s for s in epic["steps"] if not step_done(s, done, log)]
+        game = self.game_steps(c) if live.get("moves") else None
+        ordered = run_order(left, game, live["moves"]) if game else left
+        level = (c.get("who") or {}).get("level")
+        wrote_at = next((w["wl"] for w in ordered if w["k"] != "S" and isinstance(w.get("wl"), int)), None)
+        merged = merge(ordered, quests["steps"], here, log, self.reckon, level, wrote_at,
+                       self.ways and self.ways(here, here_in), c.get("clocks") or ())
+        steps, new, gone = merged if merged else (quests["steps"], [plain(s) for s in quests["steps"]], left)
+        died = bool(landing) and self.jumps.died_since(place.jump_seen) and bool(merged)
+        if died:
+            again = planrepair.from_here(steps, here, self.reckon)
+            died = [plain(s) for s in again] != [plain(s) for s in steps]
+            steps = again
+        held = copy.deepcopy(steps) if landing and merged else None
+        fresh = self.dress(epic["key"], {**quests, "steps": steps}, here, **({"landed": True} if landing else {}),
+                           **indoors_kw(here_in))
+        if not fresh:
+            self.jump_done(landing, place=place)
+            return None
+        fsteps = [plain(s) for s in fresh["steps"] if s.get("at") and EPIC_CODE.get(s["kind"])]
+        states = (live.get("states") or ()) if place.version(self.shared) == c.get("loaded") else ()
+        me = chore_state(c)
+        settled = settled_chores(self.game_steps(c) or (), live.get("states"))
+        chores = theirs(new_chores(fsteps, pending_chores(epic["steps"], states, me=me), me=me, settled=settled), me)
+        kept = parked if place.starting else ()
+        up = brought_up([w for w in ordered if w["k"] != "S"], [plain(s) for s in steps]) if merged and not died else []
+        side = other_side(self.game_steps(c), c) if place is self.main else None
+        stay = (c.get("loaded"), (c.get("lead") or {}).get("step"))
+        due = bool(side) and place.side_wrote != stay
+        short = (c.get("loaded"), tuple(planlead.unworkable(self.game_steps(c) or (), live.get("states") or (), c.get("facts"))))
+        short_due = bool(short[1]) and place.short_wrote != short
+        due = due or short_due
+        if not due and not new and not gone and not chores and mode == was:
+            if died:
+                return self.jump_done(landing, self.write(epic, fresh, where, "minor", [DIED], kept, mode, place=place), place)
+            if up:
+                return self.jump_done(landing, self.write(epic, fresh, where, "minor", [f"picks up {names(up)} on your way"]
+                                                          + ([MOVED] if landing and moved_errands(left, fsteps) else []), kept, mode, place=place), place)
+            moved = held is not None and self.after_jump(epic, quests, ordered, held, live, c, here)
+            if moved:
+                return self.jump_done(landing, self.write(epic, moved, where, "minor", [MOVED], kept, mode, place=place), place)
+            self.jump_done(landing)
+            hidden = hidden_chores(left, fresh)
+            if hidden:
+                return self.write(epic, fresh, where, "minor", [f"leaves out {names(hidden)}, which you hid"],
+                                  kept, mode, place=place)
+            if gear and self.picks_changed(fresh, place):
+                return self.write(epic, fresh, where, "minor", [PICKS], kept, mode, place=place)
+            if ordered != left and place.version(self.shared) != c.get("loaded"):
+                back = names(game[m["step"] - 1].get("name") for m in live["moves"] if 0 < m["step"] <= len(game))
+                return self.write(epic, fresh, where, "minor", [f"keeps {back} where you put it back in the game"],
+                                  kept, mode, place=place)
+            return self.ways_again(epic, fresh, where, kept, mode, now, place)
+        if not due and mode == was and signature(theirs(fsteps, me)) == signature(theirs(left, me)):
+            self.jump_done(landing, place=place)
+            return self.ways_again(epic, fresh, where, kept, mode, now, place)
+        rating, reasons = self.judge(self.game_steps(c) or epic["steps"], fsteps, live, c)
+        ways = self.ways_said(c, mode, was)
+        if ways:
+            rating, reasons = rating or "worth", reasons + [ways]
+        if landing and moved_errands(left, fsteps):
+            reasons = reasons + [MOVED]
+        if died:
+            reasons = reasons + [DIED]
+        if up:
+            reasons = reasons + [f"picks up {names(up)} on your way"]
+        wrote = self.write(epic, fresh, where, rating or "minor", reasons or ["has changed steps"], kept, mode,
+                           switched=mode != was and not (new or gone or chores),
+                           against=c.get("loaded") if self.game_steps(c) else None, place=place)
+        if side and wrote is not None:
+            place.side_wrote = stay
+        if short_due and wrote is not None:
+            place.short_wrote = short
+        return self.jump_done(landing, wrote, place)
+
+    def after_jump(self, epic, quests, ordered, held, live, c, here):
+        mine = [w for w in ordered if w["k"] != "S"]
+        pairs, steps, i = pair_up(mine, [plain(s) for s in held]), [], 0
+        for w in ordered:
+            if w["k"] == "S":
+                steps.append(errand_step(w))
+                continue
+            if i in pairs:
+                steps.append(held[pairs[i]])
+            i += 1
+        states = live.get("states") or ()
+        done = {code(g) for g, st in zip(self.game_steps(c) or (), states) if g["k"] == "S" and st in ("done", "skipped")}
+        notes = epic_notes(epic)
+        fresh = self.dress(epic["key"], {**quests, "steps": steps, **notes}, here, chores=False, landed=True,
+                           leave=lambda st: code(plain(st)) in done)
+        after = [plain(s) for s in fresh["steps"] if s.get("at") and EPIC_CODE.get(s["kind"])]
+        return fresh if moved_errands(ordered, after) else None
+
+    def jump_done(self, landing, wrote=True, place=None):
+        if landing and wrote is not None:
+            (place or self.main).jump_seen = landing[0]
+        return wrote
+
+    def ways_again(self, epic, fresh, where, kept, mode, now, place=None):
+        place = place or self.main
+        if not epic.get("unbuilt") or now - place.ways_at < WAYS_AGAIN:
+            return None
+        place.ways_at = now
+        n = epic["unbuilt"]
+        return self.write(epic, fresh, where, "minor", [f"has legs for {n} steps that had none"], kept, mode, fewer=n,
+                          place=place)
+
+    def write(self, epic, fresh, where, rating, reasons, parked=(), mode=None, switched=False, fewer=None,
+              against=None, place=None):
+        place = place or self.main
+        mode = mode or epic.get("mode") or "any"
+        meta = {"name": epic.get("name"), "char": epic.get("char"), **where,
+                "mode": mode,
+                "questLevels": epic.get("questLevels"),
+                "craft": epic.get("craft"),
+                "rating": rating, "reasons": reasons, "against": against, "fresh": True if place.starting else None,
+                "maybe": fresh.get("maybe"),
+                "next": fresh.get("next"),
+                "reach": fresh.get("reach"),
+                "materials": fresh.get("materials"), "route": fresh.get("route"),
+                "parked": sorted(parked) or None, "switched": switched or None, "fewer": fewer,
+                "side": {k: epic.get(k) for k in ("line", "prof", "ic")} if place.key is not None else None,
+                **plan_notes(fresh)}
+        still = lambda: (place.wanted or {}).get("mode", mode) == mode and place.epic(self.shared) is epic
+        if not self.shared.start_epic(epic["key"], fresh["steps"], self.find_way(mode), meta, self.find_route and self.find_route(mode),
+                                      still):
+            return None
+        place.last = (rating, reasons)
+        return place.last
+
+    def ways_said(self, c, mode, was):
+        game = self.game_plan(c)
+        return WAYS[mode] if mode != ((game.get("mode") if game else was) or "any") else None
+
+    def with_ways(self, advice, c, place=None):
+        game = self.game_plan(c) if advice else None
+        mode = ((place or self.main).epic(self.shared) or {}).get("mode") or "any"
+        if not game or (game.get("mode") or "any") == mode:
+            return advice
+        return {**advice, "rating": "worth" if advice["rating"] == "minor" else advice["rating"],
+                "reasons": [r for r in advice["reasons"] if r != SMALL] + [WAYS[mode]]}
+
+    def judge(self, base, latest, live, c):
+        done, log = c.get("done") or set(), c.get("log") or {}
+        states = live.get("states") or ()
+        reasons, rating = [], None
+        unoffered = set(live.get("notOffered") or ())
+        lead = live.get("cur")
+        now = False
+        for k, (s, st) in enumerate(zip(base, states)):
+            if st != "blocked" or (s["ids"] and s["ids"][0] in unoffered):
+                continue
+            why = SHORT if s["k"] == "S" else f"{s.get('name') or 'A quest'} failed"
+            now = now or s["k"] != "S" or lead == k + 1
+            if why not in reasons:
+                reasons.append(why)
+        side = other_side(self.game_steps(c), c)
+        if side:
+            reasons.append(SIDE[side])
+            now = True
+        if reasons:
+            rating = "needed" if now else "worth"
+        todo = [s for s in base if s["k"] != "S" and not step_done(s, done, log)]
+        mine = [s for s in latest if s["k"] != "S" and not step_done(s, done, log)]
+        paired = pair_up(mine, todo)
+        quests = {i for s in todo for i in s["ids"]}
+        holds = {i for s in mine for i in s["ids"]}
+        takes = [s.get("name") for s in mine if s["k"] == "P" and s["ids"][0] not in quests]
+        clocks = set(c.get("clocks") or ())
+        timed = [s.get("name") for s in mine if clocks & set(s["ids"]) and not quests & set(s["ids"])]
+        if timed:
+            rating = "needed"
+            takes += timed
+        again = [s.get("name") for i, s in enumerate(mine) if i not in paired and set(s["ids"]) <= quests]
+        drops = [s.get("name") for s in todo if not set(s["ids"]) & holds]
+        me = chore_state(c)
+        chores = theirs(new_chores(latest, pending_chores(base, states, me=me), me=me, settled=settled_chores(base, states)), me)
+        for words, what in (("takes in", takes), ("goes back to", again), ("leaves out", drops),
+                            ("adds", [s.get("name") or s.get("what") for s in chores])):
+            if what:
+                reasons.append(f"{words} {names(what)}")
+                rating = rating or "worth"
+        return (rating, reasons) if rating else (None, [])
+
+    def assess(self, c, live, now, place=None):
+        place = place or self.main
+        latest_v, loaded_v = place.version(self.shared), c.get("loaded")
+        epic = place.epic(self.shared)
+        if not epic or not loaded_v or loaded_v == latest_v:
+            return None
+        game = self.game_steps(c)
+        done, log = c.get("done") or set(), c.get("log") or {}
+        latest = [s for s in epic["steps"] if not step_done(s, done, log)]
+        if game is None:
+            return {"rating": "worth", "reasons": ["replaces an old plan in the game"], "version": latest_v, "loaded": loaded_v, "at": now}
+        rating, reasons = self.judge(game, latest, live, c)
+        if not rating:
+            rating, reasons = "minor", [SMALL]
+        return {"rating": rating, "reasons": reasons, "version": latest_v, "loaded": loaded_v, "at": now}
+
+    def hold(self, advice, blind=False, place=None):
+        place = place or self.main
+        if not advice:
+            place.held = None
+            return None
+        h, rank = place.held, RANK.get(advice["rating"], 0)
+        if blind and h and h["loaded"] == advice["loaded"] and h["version"] == advice["version"] and RANK[h["rating"]] >= rank:
+            return {**advice, "rating": h["rating"], "reasons": h["reasons"]}
+        place.held = {"loaded": advice["loaded"], "version": advice["version"], "rating": advice["rating"],
+                      "reasons": advice["reasons"]} if rank else None
+        return advice

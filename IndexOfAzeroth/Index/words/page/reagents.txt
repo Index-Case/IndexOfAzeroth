@@ -1,0 +1,66 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: item, npc
+
+doing.1 = Reading the recipe twice, because the first time it seemed to ask for a whole murloc
+doing.2 = Working out what the recipe takes, as the trainer's handwriting leaves a lot to the imagination
+doing.3 = Listing what the recipe takes, so nobody reaches the anvil and starts patting their pockets
+doing.4 = Asking a gnome what goes into it, as gnomes answer every question with a diagram
+
+cloth.1 = Measuring out the {item}, as the tailors of Stormwind measure twice and charge three times
+cloth.2 = Counting the {item}, because the humanoids drop it generously once persuaded
+cloth.3 = Holding the {item} up to the light, as a moth got to the last lot first
+
+leather.1 = Counting the {item} you need, as the boars of Azeroth are not offering it up
+leather.2 = Checking the {item} for holes, because its last owner was still wearing it
+leather.3 = Weighing up the {item}, as leatherworking is mostly patience and a strong stomach
+
+metal.1 = Weighing the {item}, as a dwarf will check the sums with a hammer
+metal.2 = Counting out the {item}, because every bit of it was once a rock a miner hit all afternoon
+metal.3 = Asking after the {item}, so a dwarf in Ironforge can say it was better in his day
+
+herb.1 = Looking for {item}, as it grows exactly where the crocolisks like to nap
+herb.2 = Counting the {item} you need, because a druid is watching and taking notes
+herb.3 = Checking the {item} is the right herb, as the apprentice's last bunch turned out to be lettuce
+
+meat.1 = Finding the {item}, as the cook wants it fresh and its owner had other plans
+meat.2 = Adding the {item} to the shopping list, so the cook can stop glaring at the pantry
+meat.3 = Sniffing the {item} with care, because a cook in Westfall once skipped that step
+
+parts.1 = Counting the {item}, as a gnome engineer swears it won't explode this time
+parts.2 = Sorting the {item} from the spare parts, because there are always spare parts afterwards
+parts.3 = Polishing the {item}, so the goblin who sold you the schematic can't blame the parts
+
+elemental.1 = Asking a shaman about the {item}, as the elements drive a hard bargain
+elemental.2 = Wrapping the {item} in something fireproof, because the last apprentice didn't
+elemental.3 = Pricing the {item}, as elementals are never cheap and never grateful
+
+enchanting.1 = Sweeping up the {item}, as enchanters keep disenchanting perfectly good boots
+enchanting.2 = Measuring the {item} by the pinch, because a heap of it once turned a gnome blue
+enchanting.3 = Counting the {item}, so nobody sneezes on it this time
+
+goods.1 = Fetching the {item}, as no recipe in Azeroth is complete without one more little jar of something
+goods.2 = Adding the {item} to the list, because it's always the small thing that sends you back across town
+goods.3 = Checking the {item} against the recipe, as the apprentice once used the spices for dye
+
+reagent.1 = Finding the {item}, because recipes in Azeroth ask for odd things and nobody argues with a recipe
+reagent.2 = Fitting the {item} into the plan, as whoever wrote the recipe had a sense of humour
+
+vendor.1 = Sending you to {npc} for {item}, as trade suppliers keep it in a drawer and nobody knows why
+vendor.2 = Finding a vendor who stocks {item}, so you can skip the part where you fight something for it
+vendor.3 = Putting {item} on the shopping list for {npc}, because buying it beats making it and swearing
+
+auction.1 = Bidding on {item} at the auction house, as the goblins there price it with great imagination
+auction.2 = Buying {item} at the auction house, because somebody else did the farming and wants paying for it
+auction.3 = Sending a runner to the auctioneer for {item}, so the goblins get their cut and you keep your afternoon
+
+weigh.1 = Weighing the auction house's price for {item}, as the goblin behind the counter swears it's a bargain
+weigh.2 = Picking the cheapest way to your {item}, because a copper saved is a copper no goblin gets
+weigh.3 = Comparing prices on {item}, as the auction house and the vendors have never once agreed
+
+bags.1 = Rummaging through your bags for {item}, as adventurers keep everything just in case
+bags.2 = Counting the {item} already in your bags, so no goblin sells you what you own
+bags.3 = Finding {item} in your bags under a pile of grey loot, as is traditional
+
+bank.1 = Asking the bank about your {item}, as the banker remembers everything and admits nothing
+bank.2 = Checking the bank for {item}, because you put some there once and forgot
+bank.3 = Writing to the bank about the {item}, so the gnome at the counter has something to read

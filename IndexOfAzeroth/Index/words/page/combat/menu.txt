@@ -1,0 +1,19 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: outcome, name, when, rate, dps
+
+key = Combat
+key.tip = Combat opens PvP and the damage meter (B)
+title = Combat
+
+pvp = PvP
+pvp.tip = The PvP window lists every fight you had with another player
+pvp.latest = {outcome} against {name}, {when}
+pvp.latest.nobody = {outcome}, {when}
+pvp.rate = Win rate {rate}%
+pvp.none = No recorded PvP fights
+
+meter = Damage meter
+meter.tip = The damage meter lists your recent fights with their DPS, and each fight by spell
+meter.now = {dps} DPS in this fight
+meter.last = {dps} DPS in your last fight
+meter.none = No recorded fights

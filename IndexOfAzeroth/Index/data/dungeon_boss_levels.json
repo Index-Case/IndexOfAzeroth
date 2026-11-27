@@ -1,0 +1,124 @@
+{
+  "bosses": [
+    {
+      "dungeon": "City of Dalaran",
+      "boss": "Atrexis the Grave Knight",
+      "level": "below"
+    },
+    {
+      "dungeon": "City of Dalaran",
+      "boss": "Lyn the Ignored",
+      "level": "below"
+    },
+    {
+      "dungeon": "City of Dalaran",
+      "boss": "Shade of the Archmage",
+      "level": "surface"
+    },
+    {
+      "dungeon": "Blackmaw Hold",
+      "boss": "Bonesnout the Unbroken",
+      "level": "surface"
+    },
+    {
+      "dungeon": "Blackmaw Hold",
+      "boss": "Impaan the Imprisoner",
+      "level": "surface"
+    },
+    {
+      "dungeon": "Blackmaw Hold",
+      "boss": "Unbound Spirit",
+      "level": "below"
+    },
+    {
+      "dungeon": "Blackmaw Hold",
+      "boss": "Elder Shaman Bloodmane",
+      "level": "below"
+    },
+    {
+      "dungeon": "Blackmaw Hold",
+      "boss": "Blackmaw Behemoth",
+      "level": "below"
+    },
+    {
+      "dungeon": "Blackmaw Hold",
+      "boss": "Varrox Bleakhoof",
+      "level": "below"
+    },
+    {
+      "dungeon": "The Shaper's Terrace",
+      "boss": "Titanosaur",
+      "level": "surface"
+    },
+    {
+      "dungeon": "The Shaper's Terrace",
+      "boss": "Cinder",
+      "level": "surface"
+    },
+    {
+      "dungeon": "The Shaper's Terrace",
+      "boss": "Direhorn Matriarch",
+      "level": "surface"
+    },
+    {
+      "dungeon": "The Shaper's Terrace",
+      "boss": "Thunderhoof",
+      "level": "surface"
+    },
+    {
+      "dungeon": "The Shaper's Terrace",
+      "boss": "Venomridge",
+      "level": "surface"
+    },
+    {
+      "dungeon": "Krol'dok Stronghold",
+      "boss": "Twilight Commander Zarmok",
+      "level": "surface"
+    },
+    {
+      "dungeon": "Krol'dok Stronghold",
+      "boss": "Handler Ashka",
+      "level": "surface"
+    },
+    {
+      "dungeon": "Krol'dok Stronghold",
+      "boss": "Nar'gurk",
+      "level": "surface"
+    },
+    {
+      "dungeon": "Krol'dok Stronghold",
+      "boss": "Overseer Mugg",
+      "level": "surface"
+    },
+    {
+      "dungeon": "Excavation Site: Wetlands",
+      "boss": "Saltspine",
+      "level": "surface"
+    },
+    {
+      "dungeon": "Excavation Site: Wetlands",
+      "boss": "Shadetooth",
+      "level": "surface"
+    },
+    {
+      "dungeon": "Excavation Site: Wetlands",
+      "boss": "Highland Horror",
+      "level": "surface"
+    },
+    {
+      "dungeon": "Excavation Site: Wetlands",
+      "boss": "Relic Guardian",
+      "level": "surface"
+    },
+    {
+      "dungeon": "Ruins of Lordaeron",
+      "boss": "Witherfang",
+      "level": "surface"
+    },
+    {
+      "dungeon": "Ruins of Lordaeron",
+      "boss": "Rath'mael",
+      "level": "surface"
+    }
+  ]
+}

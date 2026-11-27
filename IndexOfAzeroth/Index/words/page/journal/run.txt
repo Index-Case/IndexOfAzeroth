@@ -1,0 +1,23 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: dungeon, kills, total, n, min
+
+none = No run here since the page started. The run starts when you walk into {dungeon}.
+down = Down
+inside = In progress
+paused = Run paused while you're outside
+last = Last run
+time = Time
+bosses = Bosses
+bosses.count = {kills} of {total}
+deaths = Deaths
+xp = Experience
+gold = Gold
+loot = Your loot
+cap = Instances this hour
+cap.count = {n} of 5, all characters
+cap.frees = The oldest instance frees up in {min} min.
+cap.none = You entered no instances in the last hour.
+earlier = Earlier runs
+earlier.ended = Ended
+earlier.xp = XP
+asked = your earlier runs

@@ -1,0 +1,55 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: n, low, high, ago, day, hour, pairs, share, scans, units
+
+fact = {n} ({low} to {high})
+fact.tip = The units of this item sold per day, as two full scans a day apart would judge them. The figure is an estimate from every pair of full scans in a row. The range is the 90% range of what such a day shows. On the past scans of this auction house, ranges set this way held 9 times in 10. An auction that is gone between two scans may have sold, expired or been cancelled, so each gone auction is weighted. Units come in whole auctions, so the range counts in auctions of the usual size for this item.
+fact.prior = Category median
+fact.prior.tip = No two full scans in a row listed this item yet, so this figure is the median sales per day of items of the same type, with a wide range.
+fact.none = Not enough pairs of scans yet
+fact.none.tip = There are not enough pairs of scans yet for sales per day. Two full scans of this auction house start this figure, however far apart the two scans are.
+
+age = last pair of scans {ago}
+age.older = from the pair of scans {ago} ago
+none = No two full scans in this time span both listed this item. Sales per day need two full scans that both list the item.
+estimate = These figures are estimates from your scans. An auction that is gone between two scans may have sold, expired or been cancelled, and scans rarely show the seller's name.
+fast = Sales of items that sell fast come out too low. An auction posted and bought between two scans never shows in either scan.
+limits = Scans can't show demand above the listed prices, and a cancelled auction can look like a sale.
+
+legend.sold = Units sold per day
+legend.sold.tip = The units sold per day, as estimated from the pairs of scans that ended that day.
+legend.range.tip = The 90% range of what two scans a day apart would show.
+legend.pairs = Two or more pairs of scans
+legend.pair = One pair of scans
+legend.thin = One pair of scans or none
+chart.day = {day}: about {n} sold per day ({low} to {high}), from {pairs} pairs of scans
+chart.day.one = {day}: about {n} sold per day ({low} to {high}), from 1 pair of scans
+
+heat.sold = Sales by hour and weekday
+heat.sold.key = Each cell is the units sold per hour at that hour of the week, from pairs of scans 12 hours apart or less. The number in a cell is how many pairs of scans cover that hour.
+heat.price = Price by hour and weekday
+heat.price.key = Each cell is the market price at that hour of the week against the median price of that week. The number in a cell is how many scans fell in that hour.
+legend.heat.sold = Units sold per hour
+legend.heat.sold.tip = The stronger the shade, the more units sold per hour.
+legend.heat.thin.sold = Fewer than 3 pairs of scans
+legend.heat.above = Above the week's median price
+legend.heat.below = Below the week's median price
+legend.heat.thin.price = Fewer than 3 scans
+heat.cell.sold = {day} {hour}: about {n} sold per hour, from {pairs} pairs of scans
+heat.cell.price = {day} {hour}: {share} of the week's median price, from {scans} scans
+heat.cell.thin = {day} {hour}: {n} scans, too few for a figure
+heat.few = Hour and weekday patterns need weeks of scans at many hours. Scans follow your play times, so some cells stay empty.
+
+col.when = Scan
+col.gap = Time since last scan
+col.gap.tip = The time since the full scan before this one.
+col.gone = Gone
+col.gone.tip = The units of this item that were listed in the scan before and gone in this one.
+col.share = Sale rate
+col.share.tip = The share of the units gone that count as sold. The other units gone expired or were cancelled.
+col.sold = Sold
+col.expired = Expired
+col.expired.tip = Units whose time ran out between the two scans, judged by the time left that the game showed.
+col.cancelled = Cancelled
+col.cancelled.tip = Units that count as cancelled by their sellers, often to post the units again at a lower price.
+reset = Possible reset
+reset.tip = The cheapest auctions of the scan before were all gone and the price jumped. The units sold from those cheap auctions are left out of sales per day.

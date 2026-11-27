@@ -1,0 +1,26 @@
+# The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+# placeholders: down, all, names, cur, done, n
+
+name = The Index of Azeroth
+reload.tip = Reload the interface (/reload)
+strip = Pixel strip
+strip.loading = loading
+strip.test = test pattern showing
+strip.sending = sending
+strip.off = off
+bosses = {down} of {all} bosses
+rares = Rare down: {names}
+guide = step {cur}, {done} of {all} done
+guide.done = {done} of {all} done
+cap = Instances this hour
+cap.count = {n} of 5
+click = Click: open the epic card
+middle-click = Middle-click: paste a guide from the page
+shift-click = Shift-click: print what the add-on sends
+ctrl-right-click = Ctrl+right-click: test pattern on or off
+cog = Cog: open the options
+drag = Drag: move the button
+
+folded = Options, General now keeps the add-on button you hid with /ioa button, so the add-on button is hidden on every character.
+reset = The add-on button is back at the top of the screen.
+error.drag = the minimap button's drag
