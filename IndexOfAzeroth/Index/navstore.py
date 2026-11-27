@@ -287,6 +287,51 @@ def load_npz(path, keys=None):
         return None
 
 
+FLAT = b"WCCFLAT1"
+FLAT_ALIGN = 4096
+
+
+def save_flat(path, arrays):
+    arrays = {k: np.ascontiguousarray(v) for k, v in arrays.items()}
+    table, at = {}, 0
+    for name, a in arrays.items():
+        at += -at % 64
+        table[name] = [a.dtype.str, list(a.shape), at]
+        at += a.nbytes
+    head = json.dumps(table).encode("utf-8")
+    start = len(FLAT) + 8 + len(head)
+    start += -start % FLAT_ALIGN
+    buf = bytearray(start + at)
+    buf[:len(FLAT) + 8 + len(head)] = FLAT + len(head).to_bytes(8, "little") + head
+    for name, a in arrays.items():
+        if a.size:
+            np.frombuffer(buf, a.dtype, a.size, start + table[name][2])[:] = a.reshape(-1)
+    store.write_bytes(path, buf)
+
+
+def mapped(path):
+    where = path if os.path.exists(path) else based(path)
+    if not where:
+        return None
+    try:
+        return flat_arrays(np.memmap(where, np.uint8, "r"))
+    except (OSError, ValueError, TypeError):
+        return None
+
+
+def flat_arrays(whole):
+    if bytes(whole[:len(FLAT)]) != FLAT:
+        return None
+    size = int.from_bytes(bytes(whole[len(FLAT):len(FLAT) + 8]), "little")
+    table = json.loads(bytes(whole[len(FLAT) + 8:len(FLAT) + 8 + size]).decode("utf-8"))
+    start = len(FLAT) + 8 + size
+    start += -start % FLAT_ALIGN
+    out = {}
+    for name, (dtype, shape, at) in table.items():
+        out[name] = np.ndarray(tuple(shape), np.dtype(dtype), whole, start + at)
+    return out
+
+
 def load_json(path, default, under=True):
     if os.path.exists(path) or not in_store(path):
         return store.load_json(path, default)

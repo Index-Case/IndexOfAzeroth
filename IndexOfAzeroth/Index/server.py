@@ -29,8 +29,8 @@ import questplan
 import storewriter
 from serverlog import ASK_WAIT, log_error, log_note, log_threads, start_thread, watch_answers
 from planning import (QuestPicks, covered_points, ground_sides, indoor_points, dress_epic, ends_finder, epic_context, plan_epic, reward_finder,
-                      plan_ways, reckon_levels, shared_ground_finder, shared_route_finder, shared_way_finder, table_spawns,
-                      unknown_giver, warm_paths)
+                      plan_ways, reckon_levels, shared_ground_finder, shared_route_finder, shared_way_finder, spells_building,
+                      table_spawns, unknown_giver, warm_paths)
 from strip import strip_loop
 from npcs import warm_npcs
 from handler import TYPES, PageServer, make_handler, whole
@@ -39,6 +39,7 @@ from layers import lay_gathered
 import nav
 import words
 from navfill import Fill
+import walksahead
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
@@ -94,7 +95,7 @@ def start_dots(hub):
 
 
 
-PIPELINE, SERVING, RELEASE = "pipeline", "serving", "release"
+PIPELINE, SERVING, RELEASE, PLAYED = "pipeline", "serving", "release", "played"
 JOBS = {
     "patch notes": PIPELINE,
     "rebuild": PIPELINE,
@@ -103,6 +104,7 @@ JOBS = {
     "client runner": RELEASE,
     "addons read": RELEASE,
     "path warm-up": SERVING,
+    "walks ahead": PLAYED,
     "NPC book": SERVING,
     "developer's additions": SERVING,
     "auction scans saved": SERVING,
@@ -124,9 +126,9 @@ def pipeline_on(dev, asked=False, root=None, env=None):
     return bool(dev) and (game.writes_game(root) or bool(asked) or env.get(PIPELINE_ENV) == "1")
 
 
-def jobs_on(pipeline, release=False):
+def jobs_on(pipeline, release=False, played=False):
     return {job for job, kind in JOBS.items() if kind == SERVING or (kind == PIPELINE and pipeline)
-            or (kind == RELEASE and release)}
+            or (kind == RELEASE and release) or (kind == PLAYED and played)}
 
 
 def start_job(on, job, target, args=(), kwargs=None):
@@ -137,7 +139,9 @@ def start_job(on, job, target, args=(), kwargs=None):
 
 def background_work(hub):
     rebuilder, fill = getattr(hub, "rebuilder", None), getattr(hub, "navfill", None)
-    return bool((rebuilder and rebuilder.running.locked()) or (fill and fill.running()) or nav.ACTIVITY.now()["working"])
+    runner, meter = getattr(hub, "clientrunner", None), getattr(hub, "meterdays", None)
+    return bool((rebuilder and rebuilder.running.locked()) or (fill and fill.running()) or nav.ACTIVITY.now()["working"]
+                or (runner and runner.running.locked()) or (meter and meter.running()) or spells_building())
 
 
 
@@ -174,7 +178,7 @@ def main():
     applied = apply_staged()
     nav.wm.serve_built()
     pipeline = pipeline_on(dev, args.pipeline)
-    on = set() if stand_in else jobs_on(pipeline, release=not dev)
+    on = set() if stand_in else jobs_on(pipeline, release=not dev, played=walksahead.on())
     hub = Hub()
     hub.navfill = Fill(log_error)
     if "navigation fill" in on:
@@ -265,6 +269,8 @@ def main():
                               reckon=lambda steps: reckon_levels(hub, steps),
                               ways=lambda start=None, indoors=None: plan_ways(hub, start=start, indoors=indoors))
         start_job(on, "epic watcher", storedonly.stored_only()(hub.watch.run))
+        hub.ahead = walksahead.Ahead(hub)
+        start_job(on, "walks ahead", storedonly.stored_only()(hub.ahead.watch))
         start_job(on, "quest book", questplan.book)
         start_job(on, "strip reader", storedonly.stored_only()(strip_loop), (hub,))
     storewriter.on_write_error(lambda path: log_error(f"saving {os.path.basename(path)}"))
@@ -279,6 +285,8 @@ def main():
         start_thread("app window", appwindow.open_window, (appwindow.page_url(args.port),))
     print(f"The Index of Azeroth on http://localhost:{args.port}" + (" and your LAN address" if args.lan else ""))
     server.serve_forever()
+    if getattr(hub, "ahead", None):
+        hub.ahead.stop()
 
 
 if __name__ == "__main__":

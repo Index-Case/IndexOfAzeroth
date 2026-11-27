@@ -185,6 +185,7 @@ def overlap(a, b):
     return any(inside(x, y) or inside(y, x) for x in OUTPUTS.get(a, ()) for y in OUTPUTS.get(b, ()))
 
 TRAFFIC_LOG = os.path.join(ROOT, "data", "traffic.log")
+STEP_LIMIT = 2 * 3600
 LAUNCH = []
 
 

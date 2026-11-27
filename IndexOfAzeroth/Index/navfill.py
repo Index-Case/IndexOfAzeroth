@@ -40,11 +40,12 @@ RECHECK = 86400
 START_GAP = 60
 RUN_LOOK = 2.0
 KINDS = ("tiles", "roads", "buildings", "doodads", "graph")
-PHASES = ("tiles", "roads", "buildings", "doodads", "stale", "graph")
+PHASES = ("tiles", "roads", "buildings", "doodads", "stale", "graph", "whole")
 DEFAULT_SECONDS = {"tiles": 1.0, "roads": 0.1, "buildings": 6.0, "graph": 0.5, "doodads": 0.2}
-PIECE_KIND = {"tile": "tiles", "roads": "roads", "building": "buildings", "graph": "graph", "doodads": "doodads"}
+PIECE_KIND = {"tile": "tiles", "roads": "roads", "building": "buildings", "graph": "graph", "doodads": "doodads",
+              "whole": "graph"}
 PHASE_WORDS = {"tiles": "terrain tiles", "roads": "roads", "buildings": "buildings", "graph": "travel graph",
-               "doodads": "doodad areas",
+               "whole": "travel graph", "doodads": "doodad areas",
                "stale": "pieces kept from before the build"}
 CONTINENTS = (0, 1)
 AREA_SPAN = 1024
@@ -152,6 +153,8 @@ def survey_map(inst, wdt, names, parts=tile_parts, rules=None, walked=None):
         areas.append(doodad_areas(got[1]))
         rows = np.asarray(got[1], np.float64).reshape(-1, nav.DOODAD_COLUMNS)
         walked_rows.append(rows[np.isin(rows[:, 0].astype(np.int64), walked)])
+    if tiles:
+        pieces["graph"].append(("whole", inst))
     pieces["buildings"] += [("building", inst, p) for p in places.values()]
     keys = np.unique(np.concatenate(areas)) if areas else np.zeros(0, np.int64)
     floored = set(nav.walked_areas(np.concatenate(walked_rows) if walked_rows else (), walked))
@@ -203,6 +206,8 @@ def piece_files(piece, rules=None):
         return [road_name(*piece[1:4], rules)]
     if piece[0] == "graph":
         return [graph_name(*piece[1:4], rules)]
+    if piece[0] == "whole":
+        return [os.path.basename(travel.whole_pointer(piece[1]))]
     key = nav.place_key(piece[1], piece[2]) if piece[0] == "building" else nav.props_key(piece[1], piece[2], piece[3])
     floors = [nav.floors_name(key, rules)] if floors_of(piece) else []
     return [nav.layers_name(key, rules), nav.joins_name(key, rules)] + floors
@@ -222,6 +227,8 @@ def piece_built(names, piece, rules=None):
         return road_name(*piece[1:4], rules) in names
     if piece[0] == "graph":
         return graph_built(names, *piece[1:4], rules)
+    if piece[0] == "whole":
+        return travel.whole_kept(piece[1], rules) is not None
     key = nav.place_key(piece[1], piece[2]) if piece[0] == "building" else nav.props_key(piece[1], piece[2], piece[3])
     floors = not floors_of(piece) or made_new(names, nav.floors_name(key, rules))
     return place_built(names, key, rules) and floors
@@ -270,6 +277,8 @@ def piece_words(piece):
         return f"roads {piece[2]}_{piece[3]}"
     if piece[0] == "graph":
         return f"graph {piece[2]}_{piece[3]}"
+    if piece[0] == "whole":
+        return "the whole graph"
     if piece[0] == "building":
         return f"building {int(piece[2][0])}/{int(piece[2][1])}"
     return f"doodads {piece[2]},{piece[3]}"
@@ -320,7 +329,7 @@ def worker_setup(pace=None):
     _pace, _paths = pace, None
     wm._remote = paced(wm._remote)
     nav.KEEP_TILES, nav.KEEP_BUILDINGS_BYTES = 64, 64 << 20
-    travel.KEEP_GRAPHS = 16
+    travel.KEEP_GRAPHS_BYTES = 16 << 20
 
 
 def build_piece(piece):
@@ -338,6 +347,8 @@ def build_piece(piece):
                 _paths.terrain.fetch_roads(inst, piece[2], piece[3])
             elif kind == "graph":
                 _paths.travel.store.tile(inst, piece[2], piece[3])
+            elif kind == "whole":
+                _paths.travel.store.whole_made(inst)
             elif kind == "building":
                 place = np.asarray(piece[2], np.float64)
                 try:
@@ -375,13 +386,15 @@ def piece_spot(piece):
 
 
 def near(piece, spots):
+    if piece[0] == "whole":
+        return False
     inst, n, w = piece_spot(piece)
     reach = WANT_REACH + (nav.TILE / 2 if piece[0] in ("tile", "roads", "graph") else 0)
     return any(s[0] == inst and abs(s[1] - n) <= reach and abs(s[2] - w) <= reach for s in spots)
 
 
 def first_key(piece):
-    kind = ("tile", "roads", "building", "doodads", "graph").index(piece[0])
+    kind = ("tile", "roads", "building", "doodads", "graph", "whole").index(piece[0])
     return kind, piece[0] == "building" and not piece[2][10]
 
 
@@ -402,7 +415,8 @@ class FillRun:
         self.fetch_wdt = fetch_wdt or (lambda row: wm.map_file(row, wm.installed_version()))
         self.state_path, self.wanted_path = state_path, wanted_path
         self.rules = nav.code_rules()
-        self.state = {"state": "filling", "build": None, "rules": self.rules, "served": None, "since": 0.0,
+        self.state = {"state": "filling", "build": None, "rules": self.rules, "flat": travel.FLAT_VERSION, "served": None,
+                      "since": 0.0,
                       "started": round(clock()), "phase": "maps", "doing": None, "counts": {}, "next": None, "held": 0,
                       "failed": 0,
                       "lastError": None, "eta": None, "reads": dict.fromkeys(casc.KINDS, 0)}
@@ -543,7 +557,9 @@ class FillRun:
         self.note(**self.sets(maps, names))
         if phase == "stale":
             return stale(maps, names, wm.switched_since(), self.tried, self.rules)
-        return sorted((p for m in maps.values() for p in m["missing"][phase] if p not in self.failed), key=first_key)
+        kind = "graph" if phase == "whole" else phase
+        return sorted((p for m in maps.values() for p in m["missing"][kind]
+                       if p not in self.failed and (p[0] == "whole") == (phase == "whole")), key=first_key)
 
     def wanted_first(self):
         wanted = read_wanted(self.wanted_path)
@@ -665,6 +681,7 @@ class Fill:
         if build is None:
             return False
         return (s.get("state") != "done" or s.get("build") != build or s.get("rules") != nav.code_rules()
+                or s.get("flat") != travel.FLAT_VERSION
                 or float(s.get("since") or 0) < wm.switched_since() or self.clock() - float(s.get("done") or 0) > RECHECK
                 or nav.switched() is None or (nav.served_rules() != nav.code_rules() and not s.get("held")))
 

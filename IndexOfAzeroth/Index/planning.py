@@ -1,6 +1,8 @@
 # The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
 import contextlib
+import contextvars
 import copy
+import functools
 import json
 import math
 import os
@@ -66,6 +68,56 @@ import talentplan
 from characters import char_entry, same_char
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
+
+
+_walks_ahead = contextvars.ContextVar("planning.walks_ahead", default=None)
+_CARRIED_BY = carried
+
+AHEAD = "ahead"
+
+ASKED_QUIET = 5.0
+
+_asked_lock = threading.Lock()
+
+_asked = {"now": 0, "last": -math.inf}
+
+
+class AheadOff(Exception):
+    pass
+
+
+def path_find(hub):
+    lane = _walks_ahead.get()
+    return hub.paths.find if lane is None else lane.find
+
+
+@contextlib.contextmanager
+def asked():
+    if _walks_ahead.get() is not None:
+        yield
+        return
+    with _asked_lock:
+        _asked["now"] += 1
+    try:
+        yield
+    finally:
+        with _asked_lock:
+            _asked["now"] -= 1
+            _asked["last"] = time.monotonic()
+
+
+def waited_on(work):
+    @functools.wraps(work)
+    def waited(*args, **kwargs):
+        with asked():
+            return work(*args, **kwargs)
+    return waited
+
+
+def asked_now(hub=None):
+    with _asked_lock:
+        busy = _asked["now"] > 0 or time.monotonic() - _asked["last"] < ASKED_QUIET
+    return busy or bool(getattr(getattr(hub, "shared", None), "working", None))
 
 
 def quest_state(hub):
@@ -735,6 +787,10 @@ def profession_summary(hub):
 
 
 _spells_building = threading.Lock()
+
+
+def spells_building():
+    return _spells_building.locked()
 
 
 def learn_trainer_spells(hub, cid, spells):
@@ -1477,6 +1533,7 @@ def xp_kept(out, lv, trial, after, trip, cap, book_):
 seg_yards = line_reach
 
 
+@waited_on
 def plan_epic(hub, key, anchor, parked=(), kept=None, quest_levels=None, indoors=None):
     epic = plan_quests(hub, key, anchor, parked, kept, quest_levels, **indoors_kw(indoors))
     if epic and not epic.get("waiting"):
@@ -1845,6 +1902,7 @@ def plan_holdings(hub, key=None):
     return holdings.Holdings(learnable, ways, rewards)
 
 
+@waited_on
 def dress_epic(hub, key, epic, at, chores=True, landed=False, leave=None, indoors=None):
     d = None if ":" in key else hub.dungeons.by_key.get(key)
     only = chore_kinds(hub, key)
@@ -3203,16 +3261,17 @@ def through_is_better(straight, round_len, through_len):
     return straight < SHORT_WAY and round_len > through_len * (1 + DETOUR_MOST)
 
 
+@waited_on
 def round_or_through(hub, inst, start, goal, start_z, goal_z, indoors, ghost, avoid, level, mode, side=None):
     def way_from(z):
-        body = hub.paths.find(inst, start, goal, z, goal_z, indoors, ghost, avoid, level=level, side=side)
+        body = path_find(hub)(inst,start, goal, z, goal_z, indoors, ghost, avoid, level=level, side=side)
         if mode == "safe":
             return safest_or_plain(hub, inst, start, goal, z, goal_z, indoors, ghost, avoid, level, body, side)
         straight = math.hypot(goal[0] - start[0], goal[1] - start[1])
         if (mode not in ("round", "gather") or not body or body.get("partial") or avoid is None
                 or not through_is_better(straight, body.get("length") or 0, straight)):
             return body
-        through = hub.paths.find(inst, start, goal, z, goal_z, indoors, ghost, None, level=level, side=side)
+        through = path_find(hub)(inst,start, goal, z, goal_z, indoors, ghost, None, level=level, side=side)
         if through and not through.get("partial") and through_is_better(straight, body["length"], through["length"]):
             return {**through, "through": True}
         return body
@@ -3234,14 +3293,14 @@ def safest_or_plain(hub, inst, start, goal, start_z, goal_z, indoors, ghost, avo
     red = red_yards(body["points"], avoid[1], start)
     if not body.get("partial") and (red > 0 or (body.get("length") or 0) > straight * (1 + SAFEST_DETOUR_MOST)):
         with nav.no_margin():
-            direct = hub.paths.find(inst, start, goal, start_z, goal_z, indoors, ghost, avoid, level=level, side=side)
+            direct = path_find(hub)(inst,start, goal, start_z, goal_z, indoors, ghost, avoid, level=level, side=side)
         if direct and direct.get("points") and not direct.get("partial"):
             direct_red = red_yards(direct["points"], avoid[1], start)
             if body["length"] > direct["length"] * (1 + SAFEST_DETOUR_MOST) or red > direct_red:
                 body, red = direct, direct_red
     if red <= 0:
         return body
-    plain = hub.paths.find(inst, start, goal, start_z, goal_z, indoors, ghost, (("round",) + tuple(avoid[0][1:]), avoid[1]),
+    plain = path_find(hub)(inst,start, goal, start_z, goal_z, indoors, ghost, (("round",) + tuple(avoid[0][1:]), avoid[1]),
                            level=level, side=side)
     if plain and plain.get("points") and (not plain.get("partial") or body.get("partial")) \
             and red_yards(plain["points"], avoid[1], start) < red:
@@ -3382,7 +3441,7 @@ def danger_stretches(points, threats, step=DANGER_STEP, start=None):
 
 def walk_yards(hub, inst, a, b, level=None, faction="", ghost=False, indoors=None):
     avoid = way_avoid(hub, inst, "round", level, faction) if level else None
-    r = hub.paths.find(inst, tuple(a[:2]), tuple(b[:2]), start_z=a[2] if len(a) > 2 else None,
+    r = path_find(hub)(inst,tuple(a[:2]), tuple(b[:2]), start_z=a[2] if len(a) > 2 else None,
                        goal_z=b[2] if len(b) > 2 else None, indoors=indoors, ghost=ghost, avoid=avoid, level=level,
                        side=faction or None)
     if not r:
@@ -3448,9 +3507,25 @@ AHEAD_KEPT = 4 * nav.PATHS_KEPT
 def weigh_pool(behind):
     with _weigh_lock:
         if behind not in _weigh_pools:
-            _weigh_pools[behind] = ThreadPoolExecutor(WEIGH_WORKERS_BEHIND if behind else WEIGH_WORKERS,
-                                                      thread_name_prefix="weighing behind" if behind else "weighing")
+            _weigh_pools[behind] = ThreadPoolExecutor(
+                WEIGH_WORKERS if not behind else WEIGH_WORKERS_BEHIND,
+                thread_name_prefix="walks ahead" if behind == AHEAD else "weighing behind" if behind else "weighing")
         return _weigh_pools[behind]
+
+
+def ask_ahead(hub, lane, key, anchor, mode="any", parked=(), quest_levels=None, indoors=None):
+    token = _walks_ahead.set(lane)
+    try:
+        with planreport.quiet():
+            epic = worked_epic(hub, key, anchor, parked, None, quest_levels, indoors if anchor else None)
+            if epic is None or epic.get("waiting"):
+                return False
+            meta = {"anchor": list(anchor) if anchor else None, "anchorIndoors": indoors if anchor else None}
+            hub.shared.ways_of(epic["steps"], shared_way_finder(hub, mode), shared_route_finder(hub, mode), meta,
+                               progress=lane.going)
+            return not lane.off
+    finally:
+        _walks_ahead.reset(token)
 
 
 def _weighed(key, done):
@@ -3460,7 +3535,7 @@ def _weighed(key, done):
 
 
 def weigh_walks(hub, walks, level, side, patience, ghost=False, ahead=()):
-    behind = nav.wm.in_background()
+    behind = AHEAD if _walks_ahead.get() is not None else nav.wm.in_background()
     pool, deadline, mine = weigh_pool(behind), time.time() + patience, []
     switches = tuple(sorted(carried.values().items()))
     with _weigh_lock:
@@ -3491,6 +3566,8 @@ def weigh_walks(hub, walks, level, side, patience, ghost=False, ahead=()):
             out[w] = LATE
         except (OSError, game.GameNotFound):
             out[w] = None
+        except AheadOff:
+            raise
         except Exception:
             log_error("weighing a route's walk")
             out[w] = None
@@ -3537,6 +3614,7 @@ def walk_floor(w):
     return max(0.0, math.dist(a, b) - nav.SNAP_CELLS * nav.CELL * stride - nav.TALK_REACH)
 
 
+@waited_on
 def weigh_route(hub, start, goal, name, side, taxi, hearth, patience=None, ghost=False, ride=False, indoors=None,
                 held=None):
     speed, level = hub.characters.travel_speed(), None if ghost else (hub.state or {}).get("level")

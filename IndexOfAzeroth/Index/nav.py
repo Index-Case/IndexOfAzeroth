@@ -718,11 +718,35 @@ _store_look = contextvars.ContextVar(f"{__name__}.store_look", default=None)
 
 @contextlib.contextmanager
 def one_look(stamp):
+    held = _look_digests.get()
     token = _store_look.set(stamp)
+    digests = _look_digests.set(held if held is not None and held[0] == stamp else (stamp, {}))
     try:
         yield
     finally:
+        _look_digests.reset(digests)
         _store_look.reset(token)
+
+
+_look_digests = contextvars.ContextVar(f"{__name__}.look_digests", default=None)
+
+
+def look_digest(path):
+    held = _look_digests.get()
+    if held is None:
+        return store.digest(path)
+    if path not in held[1]:
+        held[1][path] = store.digest(path)
+    return held[1][path]
+
+
+@contextlib.contextmanager
+def afresh():
+    token = _look_digests.set(None)
+    try:
+        yield
+    finally:
+        _look_digests.reset(token)
 
 
 def array_digest(a):
@@ -1268,14 +1292,19 @@ class Terrain:
 
     def indexed(self, instance):
         path = map_index_path()
+        now = store_stamp()
+        with self.lock:
+            if self.index_read[0] == path and kept_fresh(self.checked, path, now, lambda: navstore.stamp(path)):
+                return self.index_read[1].get(str(instance))
         stamp = navstore.stamp(path)
-        if stamp != self.index_read[0]:
-            read = navstore.load_json(path, {})
-            for entry in read.values():
-                if isinstance(entry, dict) and "tiles" in entry:
-                    entry["tiles"] = {(int(c), int(r)) for c, r in entry["tiles"]}
-            self.index_read = (stamp, read)
-        return self.index_read[1].get(str(instance))
+        read = navstore.load_json(path, {})
+        for entry in read.values():
+            if isinstance(entry, dict) and "tiles" in entry:
+                entry["tiles"] = {(int(c), int(r)) for c, r in entry["tiles"]}
+        with self.lock:
+            self.index_read = (path, read)
+            self.checked[path] = (stamp, now)
+        return read.get(str(instance))
 
     def map_kind(self, instance):
         entry = self.indexed(instance) if wm.serving() else None
@@ -2754,7 +2783,9 @@ class Paths:
         with noting_trails() as read:
             got = work()
         box = trails_box(read, instance)
-        return got, box, (by(instance, box) if by(instance, MAP_BOX) == before else None)
+        with afresh():
+            moved = by(instance, MAP_BOX) != before
+        return got, box, (None if moved else by(instance, box))
 
     def reset(self):
         with self.lock:
@@ -3171,7 +3202,7 @@ class Paths:
         return result
 
     def ways_data(self, instance, box):
-        return (tuple(store.digest(p) for p in WAYS_DATA + (wm.SWITCH,)),) + self.walk_stamp(instance, box)
+        return (tuple(look_digest(p) for p in WAYS_DATA + (wm.SWITCH,)),) + self.walk_stamp(instance, box)
 
     @staticmethod
     def kept_rules():

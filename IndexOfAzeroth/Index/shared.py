@@ -1103,6 +1103,14 @@ class Shared:
     def next_version(self):
         return max(int(time.time()), int((self.data or {}).get("version") or 0) + 1, self.top + 1)
 
+    def ways_of(self, steps, find_way, find_route, meta=None, progress=None):
+        m = meta or {}
+        start, indoors = (m.get("from"), m.get("fromIndoors")) if m.get("from") else (m.get("anchor"), m.get("anchorIndoors"))
+        return epic_steps(steps, find_way, find_route, tuple(start) if start else None, self.find_ground,
+                          find_danger=self.find_danger, find_covered=self.find_covered, find_height=self.find_height,
+                          progress=progress, failed=self.failed, find_indoor=self.find_indoor,
+                          indoors=indoors if start else None, noted=self.noted, find_sides=self.find_sides)
+
     def write_epic(self, key, steps, find_way, meta=None, find_route=None, since=None, still=None, ask=None):
         since = self.stops.get(key, 0) if since is None else since
         with self.lock:
@@ -1129,8 +1137,6 @@ class Shared:
                 self.progress = {**(self.progress or {}), "key": key, "done": done, "of": of, "unbuilt": unbuilt, "now": now,
                                  "ways": list(drawn)}
         try:
-            m = meta or {}
-            start, indoors = (m.get("from"), m.get("fromIndoors")) if m.get("from") else (m.get("anchor"), m.get("anchorIndoors"))
             if self.find_rewards:
                 steps = [{**st, "rw": rw} if rw else st for st, rw in zip(steps, self.find_rewards(steps))]
             ends = None
@@ -1139,10 +1145,7 @@ class Shared:
             except Exception:
                 if self.failed:
                     self.failed()
-            steps = epic_steps(steps, find_way, find_route, tuple(start) if start else None, self.find_ground,
-                               find_danger=self.find_danger, find_covered=self.find_covered, find_height=self.find_height,
-                               progress=going, failed=self.failed, find_indoor=self.find_indoor,
-                               indoors=indoors if start else None, noted=self.noted, find_sides=self.find_sides)
+            steps = self.ways_of(steps, find_way, find_route, meta, progress=going)
             places = None
             try:
                 places = step_places(steps, self.find_place)

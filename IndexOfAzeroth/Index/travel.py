@@ -1,4 +1,5 @@
 # The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md.
+import contextvars
 import math
 import os
 import threading
@@ -15,11 +16,12 @@ import nav
 import navstore
 import wmonav
 from serverlog import log_error, start_thread
+from store import save_json
 
 STRIDE = 4
 BLOCKS = 128 // STRIDE
 RING = STRIDE
-KEEP_GRAPHS = 1200
+KEEP_GRAPHS_BYTES = 768 << 20
 FLOOR_REACH = STRIDE * 1.5
 FLOOR_Z = 2.5
 WALK_SPEED = 7.0
@@ -345,6 +347,9 @@ def meets(floors):
 
 
 
+_reads = contextvars.ContextVar(f"{__name__}.reads", default=None)
+
+
 class Store:
 
     def __init__(self, paths):
@@ -352,14 +357,34 @@ class Store:
         self.lock = threading.Lock()
         self.kept = OrderedDict()
         self.checked = {}
+        self.held = {}
+        self.held_bytes = 0
+        self.flight = nav.SingleFlight()
+        self.wholes = {}
+        self.loosening = set()
 
     def get(self, key, path, build, inputs):
         now = nav.store_stamp()
+        found = self.found(key, path, now)
+        got = found[0] if found else self.flight.do(key, lambda: self.read(key, path, build, inputs, now))
+        reads = _reads.get()
+        if reads is not None:
+            with self.lock:
+                reads[path] = self.checked.get(key, (False,))[0]
+        return got
+
+    def found(self, key, path, now):
         with self.lock:
             if key in self.kept and (not self.paths.terrain.client_files
                                      or nav.kept_fresh(self.checked, key, now, lambda: navstore.stamp(path))):
                 self.kept.move_to_end(key)
-                return self.kept[key]
+                return (self.kept[key],)
+        return None
+
+    def read(self, key, path, build, inputs, now):
+        found = self.found(key, path, now)
+        if found:
+            return found[0]
         stand_in = not self.paths.terrain.client_files
         stamp = None if stand_in else navstore.stamp(path)
         got = None if stand_in else navstore.load_npz(path)
@@ -374,11 +399,16 @@ class Store:
                 nav.arrays.save_npz(path, **got)
                 stamp = navstore.stamp(path)
         got = None if "none" in got else got
+        size = nav.held_bytes(got)
         with self.lock:
-            self.kept[key] = got
+            self.held_bytes += size - self.held.get(key, 0)
+            self.kept[key], self.held[key] = got, size
+            self.kept.move_to_end(key)
             self.checked[key] = (stamp, now)
-            while len(self.kept) > KEEP_GRAPHS:
-                self.checked.pop(self.kept.popitem(last=False)[0], None)
+            while self.held_bytes > KEEP_GRAPHS_BYTES and len(self.kept) > 1:
+                gone = self.kept.popitem(last=False)[0]
+                self.held_bytes -= self.held.pop(gone)
+                self.checked.pop(gone, None)
         return got
 
     @staticmethod
@@ -402,6 +432,262 @@ class Store:
                         lambda: build_walked(self.paths, inst, gn, gw), lambda got: files)
 
 
+    def region(self, inst, tc0, tr0, tc1, tr1):
+        return Region(self, inst, tc0, tr0, tc1, tr1, self.whole(inst))
+
+    def whole(self, inst):
+        if not self.paths.terrain.client_files:
+            return None
+        now = nav.store_stamp()
+        with self.lock:
+            got = self.wholes.get(inst)
+            if got is not None and got[0] == now:
+                return got[2]
+        entry, made = whole_kept(inst), None
+        if entry is not None and self.whole_tiles(inst, entry):
+            if got is not None and got[1] == entry["file"] and got[2] is not None:
+                made = got[2]
+            else:
+                path = os.path.join(nav.CACHE, entry["file"])
+                arrays = navstore.mapped(path)
+                if arrays is not None:
+                    made = Whole(arrays)
+                elif navstore.packed(path) is not None:
+                    self.loosen(path)
+        with self.lock:
+            self.wholes[inst] = (now, entry["file"] if entry else None, made)
+        return made
+
+    def whole_tiles(self, inst, entry):
+        terrain, mine = self.paths.terrain, {(int(c), int(r)) for c, r in entry["tiles"]}
+        index = terrain.indexed(inst) if nav.wm.serving() else None
+        if index is not None and "tiles" in index:
+            return index["tiles"] == mine
+        return all(terrain.on_map(inst, c, r) == ((c, r) in mine) for r in range(64) for c in range(64))
+
+    def loosen(self, path):
+        with self.lock:
+            if path in self.loosening:
+                return
+            self.loosening.add(path)
+
+        def work():
+            try:
+                navstore.make_loose(path)
+            except OSError:
+                pass
+        start_thread("a map's whole travel graph out of the pack", work)
+
+    def whole_made(self, inst):
+        reads = {}
+        token = _reads.set(reads)
+        try:
+            region = Region(self, inst, 0, 0, 63, 63)
+        finally:
+            _reads.reset(token)
+        arrays = whole_arrays(region)
+        if any(navstore.stamp(p) != s for p, s in reads.items()):
+            raise nav.NotBuilt(("whole", inst))
+        terrain = self.paths.terrain
+        tiles = [[c, r] for r in range(64) for c in range(64) if terrain.on_map(inst, c, r)]
+        made_by = whole_made_by()
+        name = f"w{made_by}-{inst}-{time.time_ns()}.flat"
+        navstore.save_flat(os.path.join(nav.CACHE, name), arrays)
+        pointer = whole_pointer(inst)
+        was = navstore.load_json(pointer, {})
+        sets = dict(was.get("sets") or {})
+        keep = {made_by, whole_made_by(nav.served_rules()), whole_made_by(nav.code_rules())}
+        gone = list(was.get("old") or []) + [e["file"] for k, e in sets.items() if k == made_by or k not in keep]
+        sets = {k: e for k, e in sets.items() if k in keep}
+        sets[made_by] = {"file": name, "tiles": tiles, "nodes": int(region.n),
+                         "inputs": {os.path.basename(p): s for p, s in sorted(reads.items())}}
+        left = []
+        for old in gone:
+            try:
+                os.remove(os.path.join(nav.CACHE, old))
+            except FileNotFoundError:
+                pass
+            except OSError:
+                left.append(old)
+        save_json(pointer, {"sets": sets, "old": left}, indent=None)
+        return name
+
+
+
+FLAT_VERSION = 1
+
+
+def whole_made_by(rules=None):
+    return f"{nav.graph_made_by(rules)}.{FLAT_VERSION}"
+
+
+def whole_pointer(inst):
+    return os.path.join(nav.CACHE, f"whole-{inst}.json")
+
+
+def whole_kept(inst, rules=None):
+    entry = (navstore.load_json(whole_pointer(inst), {}).get("sets") or {}).get(whole_made_by(rules))
+    if not entry:
+        return None
+    for name, stamp in entry["inputs"].items():
+        if navstore.stamp(os.path.join(nav.CACHE, name)) != (tuple(stamp) if stamp else None):
+            return None
+    return entry
+
+
+def whole_arrays(region):
+    def narrow(x, dtype):
+        y = x.astype(dtype)
+        if not np.array_equal(y.astype(x.dtype), x):
+            raise ValueError(f"a map's whole graph: a number doesn't fit {np.dtype(dtype).name}")
+        return y
+
+    def runs(of, starts):
+        which = np.searchsorted(starts, of, "right") - 1
+        if len(which) and (np.diff(which) < 0).any():
+            raise ValueError("a map's whole graph: a tile's or floor's moves aren't one run")
+        return np.r_[np.searchsorted(which, np.arange(len(starts)), "left"), len(of)].astype(np.int64)
+
+    cat = lambda parts, dtype, shape=(0,): np.concatenate(parts) if parts else np.zeros(shape, dtype)
+    tiles, ground, n = list(region.tiles), region.terrain_nodes, region.n
+    start = np.array([region.offset[k] for k in tiles] + [ground], np.int64)
+    at = np.array(tiles, np.int64).reshape(-1, 2)
+    out = {"tile_at": at.astype(np.int16), "tile_start": start,
+           "block": cat([t["block"] for t in region.tiles.values()], np.int16),
+           "centre": narrow(region.centre, np.float32), "spot": narrow(region.spot, np.int32),
+           "piece_of": np.stack([t["piece_of"] for t in region.tiles.values()]) if tiles else np.zeros((0, 128, 128), np.int32)}
+    if out["block"].dtype != np.int16 or out["piece_of"].dtype != np.int32:
+        raise ValueError("a map's whole graph: a tile's blocks or cells in another type")
+    for k, grid in region.g.items():
+        out["g_" + k] = grid.reshape(64, BLOCKS, 64, BLOCKS)[at[:, 1], :, at[:, 0], :]
+    a, b, yards, fall = region.t_edges
+    out.update(t_seg=runs(a, start[:-1]), ta=narrow(a, np.int32), tb=narrow(b, np.int32), ty=narrow(yards, np.float32), tf=fall)
+    lab, size = region.weak()
+    out.update(roomy=np.zeros(ground, bool), penned=(size[lab] < PLACE_PIECES)[:ground])
+    keys = [("big", k) for k in region.floor_at] + [("walked", k) for k in region.walked_at]
+    firsts = [region.floor_at[k][0] for k in region.floor_at] + [region.walked_at[k][0] for k in region.walked_at]
+    if firsts != [off for off, _ in region.floors]:
+        raise ValueError("a map's whole graph: its floors aren't in the order they're named in")
+    index = {key: i for i, key in enumerate(keys)}
+    fstart = np.array(firsts + [n], np.int64)
+    fa, fb, fy, fu, ff = region.f_edges
+    pon = [f["piece_of_node"] for _, f in region.floors]
+    joins = region.join_runs[-1]
+    met = (len(region.joins[0]) - joins) // 2
+    out.update(floor_start=fstart,
+               floor_key=np.array([(0, k, 0) if kind == "big" else (1, *k) for kind, k in keys], np.int64).reshape(-1, 3),
+               fcentre=narrow(region.floor_centre, np.float32),
+               fspot=cat([f["spot"] for _, f in region.floors], np.float32, (0, 3)),
+               pon=cat(pon, np.int32), pon_seg=np.cumsum([0] + [len(p) for p in pon]).astype(np.int64),
+               f_seg=runs(fa, fstart[:-1]), fa=narrow(fa, np.int32), fb=narrow(fb, np.int32),
+               fy=narrow(fy, np.float32), fu=narrow(fu, np.float32), ff=ff,
+               j_seg=np.array(region.join_runs, np.int64), ja=narrow(region.joins[0][:joins], np.int32),
+               jb=narrow(region.joins[1][:joins], np.int32), jy=narrow(region.joins[2][:joins], np.float32),
+               ma=narrow(region.joins[0][joins:joins + met], np.int32), mb=narrow(region.joins[1][joins:joins + met], np.int32))
+    if out["fspot"].dtype != np.float32 or out["pon"].dtype != np.int32:
+        raise ValueError("a map's whole graph: a floor's spots or nodes in another type")
+    placed, tb, tw, tb_seg, tw_seg = {}, [], [], [0], [0]
+    for t in region.tiles.values():
+        for p in t.get("bigs", np.zeros((0, nav.PLACE_COLUMNS))):
+            if placed.setdefault(int(p[1]), nav.place_key(region.inst, p)) != nav.place_key(region.inst, p):
+                raise ValueError(f"a map's whole graph: building {int(p[1])} placed two ways")
+            if ("big", int(p[1])) in index:
+                tb.append(index[("big", int(p[1]))])
+        tw += sorted(index[("walked", k)] for k in {(int(gn), int(gw)) for gn, gw in t.get("walked", ())} if ("walked", k) in index)
+        tb_seg.append(len(tb))
+        tw_seg.append(len(tw))
+    out.update(tb_idx=np.array(tb, np.int32), tb_seg=np.array(tb_seg, np.int64),
+               tw_idx=np.array(tw, np.int32), tw_seg=np.array(tw_seg, np.int64))
+    whole, roomy = Whole(out), np.zeros(ground, bool)
+    for (tc, tr), first, last in zip(tiles, start[:-1].tolist(), start[1:].tolist()):
+        one = Region.__new__(Region)
+        one.tc0, one.tr0, one.tc1, one.tr1, one.g = tc, tr, tc, tr, {}
+        whole.cut(one)
+        lab, size = one.weak()
+        roomy[first:last] = size[lab[:last - first]] >= PLACE_PIECES
+    out["roomy"] = roomy
+    return out
+
+
+class Whole:
+
+    def __init__(self, arrays):
+        self.a = a = arrays
+        start, fstart, pseg = a["tile_start"].tolist(), a["floor_start"].tolist(), a["pon_seg"].tolist()
+        self.tile_at = [(int(c), int(r)) for c, r in a["tile_at"].tolist()]
+        self.tile_of = np.full((64, 64), -1, np.int64)
+        self.tile_of[a["tile_at"][:, 1], a["tile_at"][:, 0]] = np.arange(len(self.tile_at))
+        self.ground, self.n = start[-1], fstart[-1]
+        self.tiles = [{"piece_of": a["piece_of"][i], "centre": a["centre"][start[i]:start[i + 1]]} for i in range(len(self.tile_at))]
+        g = self.ground
+        self.floors = [{"centre": a["fcentre"][fstart[i] - g:fstart[i + 1] - g], "spot": a["fspot"][fstart[i] - g:fstart[i + 1] - g],
+                        "piece_of_node": a["pon"][pseg[i]:pseg[i + 1]]} for i in range(len(fstart) - 1)]
+        self.floor_key = [("big", k) if kind == 0 else ("walked", (k, w)) for kind, k, w in a["floor_key"].tolist()]
+        self.floor_start = fstart
+        self.f_seg, self.j_seg = a["f_seg"].tolist(), a["j_seg"].tolist()
+
+    def cut(self, r):
+        a = self.a
+        nr, nc = r.tr1 - r.tr0 + 1, r.tc1 - r.tc0 + 1
+        take = lambda arr, spans: np.concatenate([arr[s:e] for s, e in spans]) if spans else arr[:0].copy()
+        sub = self.tile_of[r.tr0:r.tr1 + 1, r.tc0:r.tc1 + 1].ravel()
+        rel = np.flatnonzero(sub >= 0)
+        idx = sub[rel]
+        tr_rel, tc_rel = np.divmod(rel, nc)
+        start = a["tile_start"]
+        counts = start[idx + 1] - start[idx]
+        r.tiles = {self.tile_at[i]: self.tiles[i] for i in idx.tolist()}
+        r.offset = dict(zip(r.tiles, (np.cumsum(counts) - counts).tolist()))
+        r.terrain_nodes = n = int(counts.sum())
+        brk = np.flatnonzero(np.diff(idx) != 1) + 1
+        first, last = (idx[np.r_[0, brk]], idx[np.r_[brk - 1, len(idx) - 1]]) if len(idx) else (idx, idx)
+        span = lambda seg: list(zip(seg[first].tolist(), seg[last + 1].tolist()))
+        nodes = span(start)
+        newid, at = np.full(self.n, -1, np.int64), 0
+        for s, e in nodes:
+            newid[s:e] = np.arange(at, at + e - s)
+            at += e - s
+        b = take(a["block"], nodes).astype(np.int64)
+        br, bc = np.repeat(tr_rel * BLOCKS, counts), np.repeat(tc_rel * BLOCKS, counts)
+        r.block = (br + b // BLOCKS) * (nc * BLOCKS) + bc + b % BLOCKS
+        r.centre, r.spot = take(a["centre"], nodes).astype(np.float64), take(a["spot"], nodes).astype(np.int64)
+        r.roomy, r.penned = take(a["roomy"], nodes), take(a["penned"], nodes)
+        for k, grid in r.g.items():
+            if len(idx):
+                grid.reshape(nr, BLOCKS, nc, BLOCKS)[tr_rel, :, tc_rel, :] = a["g_" + k][idx]
+        moves = span(a["t_seg"])
+        ta, tb = take(a["ta"], moves), take(a["tb"], moves)
+        keep = newid[tb] >= 0
+        r.t_edges = (newid[ta[keep]], newid[tb[keep]], take(a["ty"], moves)[keep].astype(np.float64), take(a["tf"], moves)[keep])
+        bigs = take(a["tb_idx"], span(a["tb_seg"]))
+        order = bigs[np.sort(np.unique(bigs, return_index=True)[1])].tolist() + np.unique(take(a["tw_idx"], span(a["tw_seg"]))).tolist()
+        r.floors, r.floor_at, r.walked_at = [], {}, {}
+        held, fe, je, g = [], [], [], self.ground
+        for i in order:
+            s, e = self.floor_start[i], self.floor_start[i + 1]
+            newid[s:e] = np.arange(n, n + e - s)
+            kind, key = self.floor_key[i]
+            r.floors.append((n, self.floors[i]))
+            (r.floor_at if kind == "big" else r.walked_at)[key] = (n, self.floors[i])
+            held.append((s - g, e - g))
+            fe.append((self.f_seg[i], self.f_seg[i + 1]))
+            je.append((self.j_seg[i], self.j_seg[i + 1]))
+            n += e - s
+        r.f_edges = (newid[take(a["fa"], fe)], newid[take(a["fb"], fe)], take(a["fy"], fe).astype(np.float64),
+                     take(a["fu"], fe).astype(np.float64), take(a["ff"], fe))
+        ja, jb = newid[take(a["ja"], je)], newid[take(a["jb"], je)]
+        keep = (ja >= 0) & (jb >= 0)
+        ma, mb = newid[a["ma"]], newid[a["mb"]]
+        both = (ma >= 0) & (mb >= 0)
+        lo, hi = np.minimum(ma[both], mb[both]), np.maximum(ma[both], mb[both])
+        by = np.lexsort((hi, lo))
+        lo, hi = lo[by], hi[by]
+        r.joins = (np.concatenate([ja[keep], lo, hi]), np.concatenate([jb[keep], hi, lo]),
+                   np.concatenate([take(a["jy"], je)[keep].astype(np.float64), np.full(len(lo), 1.5), np.full(len(hi), 1.5)]))
+        r.floor_centre = take(a["fcentre"], held).astype(np.float64)
+        r.n = n
+
+
 
 def region_box(key):
     _, tc0, tr0, tc1, tr1 = key
@@ -410,7 +696,7 @@ def region_box(key):
 
 class Region:
 
-    def __init__(self, store, inst, tc0, tr0, tc1, tr1):
+    def __init__(self, store, inst, tc0, tr0, tc1, tr1, whole=None):
         self.inst, self.tc0, self.tr0, self.tc1, self.tr1 = inst, tc0, tr0, tc1, tr1
         paths = store.paths
         self.terrain = paths.terrain
@@ -418,6 +704,22 @@ class Region:
         self.r0, self.c0 = tr0 * 128, tc0 * 128
         self.box = region_box((inst, tc0, tr0, tc1, tr1))
         self._dungeon = bool(paths.terrain.client_files and paths.terrain.is_dungeon(inst))
+        self.g = g = {"ground": np.full((nr * BLOCKS, nc * BLOCKS), np.nan, np.float32)}
+        for k in COARSE_KEYS[1:]:
+            g[k] = np.full((nr * BLOCKS, nc * BLOCKS), np.nan, np.float32) if k == "water" else \
+                np.zeros((nr * BLOCKS, nc * BLOCKS), np.float32 if k in ("spread", "tilt") else bool)
+        g["area"] = np.zeros((nr * BLOCKS, nc * BLOCKS), np.uint32)
+        if whole is None:
+            self.stitch(store)
+        else:
+            whole.cut(self)
+        self.movers = self.rides(paths)
+
+    def stitch(self, store):
+        inst, tc0, tr0, tc1, tr1 = self.inst, self.tc0, self.tr0, self.tc1, self.tr1
+        paths, g = store.paths, self.g
+        nc = tc1 - tc0 + 1
+        self.roomy = self.penned = None
         self.tiles, self.offset, n = {}, {}, 0
         for tr in range(tr0, tr1 + 1):
             for tc in range(tc0, tc1 + 1):
@@ -430,11 +732,6 @@ class Region:
                 self.offset[(tc, tr)] = n
                 n += len(t["centre"])
         self.terrain_nodes = n
-        self.g = g = {"ground": np.full((nr * BLOCKS, nc * BLOCKS), np.nan, np.float32)}
-        for k in COARSE_KEYS[1:]:
-            g[k] = np.full((nr * BLOCKS, nc * BLOCKS), np.nan, np.float32) if k == "water" else \
-                np.zeros((nr * BLOCKS, nc * BLOCKS), np.float32 if k in ("spread", "tilt") else bool)
-        g["area"] = np.zeros((nr * BLOCKS, nc * BLOCKS), np.uint32)
         blk, cen, spot, ea, eb, ey, ef = [], [], [], [], [], [], []
         for (tc, tr), t in self.tiles.items():
             br, bc = (tr - tr0) * BLOCKS, (tc - tc0) * BLOCKS
@@ -488,6 +785,7 @@ class Region:
                 floors.append((self.walked_at, spot, store.walked(inst, *spot)))
             except nav.NotBuilt as e:
                 nav.wm.note_unbuilt(e.what)
+        self.join_runs, joined = [0], 0
         for at, key, f in floors:
             if f is None:
                 continue
@@ -505,6 +803,8 @@ class Region:
                 ja += [node[up], f["joins"][down, 0] + off]
                 jb += [f["joins"][up, 0] + off, node[down]]
                 jy += [f["join_yards"][up], f["join_yards"][down]]
+                joined += int(up.sum()) + int(down.sum())
+            self.join_runs.append(joined)
         self.f_edges = (cat(fa, np.int64), cat(fb, np.int64), cat(fy, np.float64), cat(fu, np.float64), cat(ff, bool))
         ma, mb = meets(self.floors)
         ja += [ma, mb]
@@ -513,7 +813,6 @@ class Region:
         self.joins = (cat(ja, np.int64), cat(jb, np.int64), cat(jy, np.float64))
         self.floor_centre = cat(fcen, np.float64).reshape(-1, 3)
         self.n = n
-        self.movers = self.rides(paths)
 
     def held(self):
         shared = ("tiles", "floors", "floor_at", "walked_at", "terrain")
@@ -598,6 +897,12 @@ class Region:
         return got
 
     def pocket(self, node):
+        roomy = getattr(self, "roomy", None)
+        if roomy is not None and node < self.terrain_nodes:
+            if roomy[node]:
+                return False
+            if self.penned[node]:
+                return True
         lab, size = self.weak()
         return bool(size[lab[node]] < PLACE_PIECES)
 
@@ -809,7 +1114,7 @@ LEG_BEND = 8.0
 class Pieces:
 
     def __init__(self, store, inst):
-        region = Region(store, inst, 0, 0, 63, 63)
+        region = store.region(inst, 0, 0, 63, 63)
         a, b, _, _ = region.t_edges
         fa, fb, *_ = region.f_edges
         ja, jb, _ = region.joins
@@ -921,7 +1226,7 @@ class TravelGraph:
                 self.regions.move_to_end(key)
                 return (key, stamp), got[1]
         with nav.one_look(stamp):
-            region = Region(self.store, *key)
+            region = self.store.region(*key)
         size = region.held()
         with self.lock:
             self.forget(key)

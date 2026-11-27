@@ -15,6 +15,7 @@ IN_RELEASE = {
     "dungeonbake": SHIPS, "dungeonbake.json": SHIPS,
     "tooltips": PLAYER, "tooltips.json": PLAYER, "tooltips_fallback.json": SHIPS, "shield_block.json": SHIPS,
     "navcache": PLAYER, "navpack": SHIPS,
+    "navways": PLAYER,
     "buildcache": PLAYER,
     "buildcache/listfile-wmo.csv": SHIPS, "buildcache/listfile-terrain.csv": SHIPS,
     "buildcache/listfile-ui-0e6b94bd.csv": SHIPS, "buildcache/shield_block_filled.json": SHIPS,

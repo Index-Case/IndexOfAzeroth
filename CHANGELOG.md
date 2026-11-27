@@ -1,6 +1,18 @@
 <!-- The Index of Azeroth. Copyright 2026 Index Case <indexofazeroth@pm.me>. PolyForm Strict 1.0.0, see LICENSE.md. -->
 # Changelog
 
+## 0.1.16-alpha
+
+### Planning
+- New: The Index works out the ways for your next plans while you play. A plan for a zone of your level, or after a level-up, can be ready in seconds.
+- Faster planning.
+
+### Fixes
+- Fixed: The Index could keep running after its window was closed while it finished an update.
+
+### Data
+- Quest data brought up to date.
+
 ## 0.1.15-alpha
 
 ### Dungeons
